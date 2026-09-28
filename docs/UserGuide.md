@@ -87,6 +87,18 @@ Examples:
 * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01`
 * `add n/Betsy Crowe t/friend e/betsycrowe@example.com a/Newgate Prison p/1234567 t/criminal`
 
+### Adding or clearing a remark : `remark`
+
+Adds or replaces a note for the person at the given index in the currently displayed list.
+
+Format: `remark INDEX [r/REMARK]`
+
+* The index must be a positive integer shown in the current list.
+* `remark 2 r/Likes baseball` sets the second displayed person's remark.
+* `remark 2 r/` or `remark 2` clears that person's remark.
+* A successful command shows the full person list again.
+* New contacts start with an empty remark. Editing other details preserves the remark.
+
 ### Listing all persons: `list`
 
 Shows a list of all persons in the address book.
@@ -190,6 +202,7 @@ _Details coming soon ..._
 Action | Format, Examples
 --------|------------------
 **Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]…​` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
+**Remark** | `remark INDEX [r/REMARK]` <br> e.g., `remark 1 r/Likes baseball`
 **Clear** | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]…​`<br> e.g., `edit 2 n/James Lee e/jameslee@example.com`

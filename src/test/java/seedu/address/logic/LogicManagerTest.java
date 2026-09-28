@@ -20,7 +20,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.CommandResult;
+import seedu.address.logic.commands.EditCommand;
 import seedu.address.logic.commands.ListCommand;
+import seedu.address.logic.commands.RemarkCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.Model;
@@ -50,6 +52,41 @@ public class LogicManagerTest {
         JsonUserPrefsStorage userPrefsStorage = new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json"));
         StorageManager storage = new StorageManager(addressBookStorage, userPrefsStorage);
         logic = new LogicManager(model, storage);
+    }
+
+    @Test
+    public void execute_editCommand_updatesModelAndStorage() throws Exception {
+        Person original = new PersonBuilder().withRemark("Likes coffee").build();
+        model.addPerson(original);
+        Person edited = new PersonBuilder(original).withName("Alice Yeoh").build();
+        Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
+        expectedModel.setPerson(original, edited);
+
+        assertCommandSuccess("edit 1 n/Alice Yeoh",
+                String.format(EditCommand.MESSAGE_EDIT_PERSON_SUCCESS, Messages.format(edited)), expectedModel);
+        JsonAddressBookStorage saved = new JsonAddressBookStorage(temporaryFolder.resolve("addressBook.json"));
+        assertEquals(expectedModel.getAddressBook(), saved.readAddressBook().orElseThrow());
+    }
+
+    @Test
+    public void execute_remarkCommands_persistAfterReload() throws Exception {
+        Person original = new PersonBuilder().build();
+        model.addPerson(original);
+        JsonAddressBookStorage saved = new JsonAddressBookStorage(temporaryFolder.resolve("addressBook.json"));
+
+        for (String value : new String[] {"Likes swimming", "Likes coffee", ""}) {
+            Person expected = new PersonBuilder(original).withRemark(value).build();
+            CommandResult result = logic.execute("remark 1 r/" + value);
+            String message = value.isEmpty() ? RemarkCommand.MESSAGE_DELETE_REMARK_SUCCESS
+                    : RemarkCommand.MESSAGE_ADD_REMARK_SUCCESS;
+            assertEquals(String.format(message, Messages.format(expected)), result.getFeedbackToUser());
+            assertEquals(expected, model.getFilteredPersonList().get(0));
+
+            model = new ModelManager(saved.readAddressBook().orElseThrow(), new UserPrefs());
+            assertEquals(expected, model.getFilteredPersonList().get(0));
+            logic = new LogicManager(model, new StorageManager(saved,
+                    new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json"))));
+        }
     }
 
     @Test
