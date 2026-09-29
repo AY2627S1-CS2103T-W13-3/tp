@@ -9,6 +9,12 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 
 ## Project team
 
+### Gwen Lim
+
+<img src="images/gwenlim89.png" width="200px" alt="Gwen Lim">
+
+[[github](https://github.com/gwenlim89)]
+
 ### John Doe
 
 <img src="images/johndoe.png" width="200px">
