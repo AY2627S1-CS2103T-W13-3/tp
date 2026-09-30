@@ -18,24 +18,26 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 * Role: Democratic Member
 * Responsibilities: TBC
 
-### Jane Doe
+### Ayush Jain
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/ayushjain8541.png" width="200px">
 
-[[github](http://github.com/johndoe)]
-[[portfolio](team/johndoe.md)]
+[[github](https://github.com/Ayushjain8541)]
 
-* Role: Team Lead
-* Responsibilities: UI
+* Role: TBC
+* Responsibilities: TBC
 
-### Johnny Doe
+### Gwen Lim
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/gwenlim89.png" width="200px" alt="Gwen Lim">
 
-[[github](http://github.com/johndoe)] [[portfolio](team/johndoe.md)]
+[[github](https://github.com/gwenlim89)]
 
-* Role: Developer
-* Responsibilities: Data
+* Role: Developer and Tester
+* Responsibilities: Implement features and bug fixes; write and maintain tests; report bugs and verify fixes.
+
+These roles and responsibilities are provisional and will be confirmed after team discussion.
+
 
 ### Jean Doe
 
