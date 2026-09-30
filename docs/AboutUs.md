@@ -38,16 +38,14 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 
 These roles and responsibilities are provisional and will be confirmed after team discussion.
 
-
-### Jean Doe
+### Kin Chong
 
 <img src="images/KinChongPhoto.jpg" width="200px">
 
-[[github](http://github.com/johndoe)]
-[[portfolio](team/johndoe.md)]
+[[github](https://github.com/wkc75)]
 
 * Role: Developer
-* Responsibilities: Dev Ops + Threading
+* Responsibilities: TBC
 
 ### James Doe
 
