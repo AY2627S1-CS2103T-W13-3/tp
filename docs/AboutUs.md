@@ -40,7 +40,7 @@ These roles and responsibilities are provisional and will be confirmed after tea
 
 ### Kin Chong
 
-<img src="images/KinChongPhoto.jpg" width="200px">
+<img src="images/wkc75.png" width="200px">
 
 [[github](https://github.com/wkc75)]
 
