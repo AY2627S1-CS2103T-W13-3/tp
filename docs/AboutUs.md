@@ -49,12 +49,11 @@ These roles and responsibilities are provisional and will be confirmed after tea
 * Role: Developer
 * Responsibilities: Dev Ops + Threading
 
-### James Doe
+### Somaaditya Samal
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/somaadityasamal.png" width="200px" alt="Somaaditya Samal">
 
-[[github](http://github.com/johndoe)]
-[[portfolio](team/johndoe.md)]
+[[github](https://github.com/SomaadityaSamal)]
 
-* Role: Developer
-* Responsibilities: UI
+* Role: Developer and Tester
+* Responsibilities: Implement features and bug fixes; write and maintain tests; report bugs and verify fixes.
