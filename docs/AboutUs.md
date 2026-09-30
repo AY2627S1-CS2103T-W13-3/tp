@@ -9,6 +9,24 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 
 ## Project team
 
+### Josthan Wong
+
+<img src="images/josthan12.png" width="200px">
+
+[[github](https://github.com/josthan12)]
+
+* Role: Democratic Member
+* Responsibilities: TBC
+
+### Ayush Jain
+
+<img src="images/ayushjain8541.png" width="200px">
+
+[[github](https://github.com/Ayushjain8541)]
+
+* Role: TBC
+* Responsibilities: TBC
+
 ### Gwen Lim
 
 <img src="images/gwenlim89.png" width="200px" alt="Gwen Lim">
@@ -20,33 +38,6 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 
 These roles and responsibilities are provisional and will be confirmed after team discussion.
 
-### John Doe
-
-<img src="images/johndoe.png" width="200px">
-
-[[homepage](http://www.comp.nus.edu.sg/~damithch)]
-[[github](https://github.com/johndoe)]
-[[portfolio](team/johndoe.md)]
-
-* Role: Project Advisor
-
-### Ayush Jain
-
-<img src="images/ayushjain8541.png" width="200px">
-
-[[github](https://github.com/Ayushjain8541)]
-
-* Role: TBC
-* Responsibilities: TBC
-
-### Johnny Doe
-
-<img src="images/johndoe.png" width="200px">
-
-[[github](http://github.com/johndoe)] [[portfolio](team/johndoe.md)]
-
-* Role: Developer
-* Responsibilities: Data
 
 ### Jean Doe
 
