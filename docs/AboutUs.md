@@ -41,7 +41,7 @@ These roles and responsibilities are provisional and will be confirmed after tea
 
 ### Jean Doe
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/KinChongPhoto.jpg" width="200px">
 
 [[github](http://github.com/johndoe)]
 [[portfolio](team/johndoe.md)]
