@@ -261,29 +261,42 @@ _{Explain here how the data archiving feature will be implemented}_
 
 **Target user profile**:
 
-* has a need to manage a significant number of contacts
-* prefers desktop apps over other types of applications
-* can type fast
-* prefers typing to mouse interactions
-* is reasonably comfortable using CLI apps
+* is an individual insurance agent who manages their own client and prospect records
+* personally keeps track of client contact details and the next action they need to take for each client
+* uses a personal computer to manage client details and follow ups
+* needs to review which client follow ups are due, upcoming, or overdue
+* types quickly and prefers typed commands to mouse interactions 
 
-**Value proposition**: Manage contacts faster than with a typical mouse-driven GUI application.
+**Value proposition**: Policy Harbour helps individual insurance agents keep client contact details and one pending next action per client organised in a keyboard driven desktop app, making follow ups easier to review and manage.
 
 
 ### User stories
 
 Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unlikely to have) - `*`
 
-| Priority | As a …​                                    | I want to …​                     | So that I can…​                                                        |
-| -------- | ------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------- |
-| `* * *`  | new user                                   | see usage instructions         | refer to instructions when I forget how to use the App                 |
-| `* * *`  | user                                       | add a new person               |                                                                        |
-| `* * *`  | user                                       | delete a person                | remove entries that I no longer need                                   |
-| `* * *`  | user                                       | find a person by name          | locate details of persons without having to go through the entire list |
-| `* *`    | user                                       | hide private contact details   | minimize chance of someone else seeing them by accident                |
-| `*`      | user with many persons in the address book | sort persons by name           | locate a person easily                                                 |
-
-*{More to be added}*
+| Priority | As a …​                           | I want to …​                                                | So that I can…​                                   |
+| -------- | --------------------------------- | ----------------------------------------------------------- | ------------------------------------------------- |
+| `* * *`  | insurance agent                   | add a client or prospect with their contact details         | keep their information in one place               |
+| `* * *`  | insurance agent                   | view my client list                                         | see the clients and prospects I manage            |
+| `* * *`  | insurance agent                   | view a selected client's complete profile                   | review relevant context before contacting them    |
+| `* * *`  | insurance agent                   | delete an incorrect client record                           | prevent inaccurate records from causing confusion |
+| `* * *`  | insurance agent                   | access my saved information after restarting the app        | retain my work between sessions                   |
+| `* * *`  | insurance agent                   | record a follow up and its due date                         | remember a promised action                        |
+| `* * *`  | insurance agent                   | see follow ups that are due soon                            | plan my upcoming work                             |
+| `* * *`  | insurance agent                   | see overdue follow ups                                      | address missed commitments promptly               |
+| `* * *`  | insurance agent                   | mark a completed follow up as complete                      | know it no longer needs attention                 |
+| `* * *`  | insurance agent                   | receive a clear explanation when I enter an invalid command | correct it without risking my records             |
+| `* *`    | insurance agent                   | archive former or inactive clients                          | keep them out of my active portfolio              |
+| `* *`    | insurance agent                   | filter clients using relevant criteria                      | focus on the records I need                       |
+| `* *`    | insurance agent                   | identify clients I have not contacted recently              | avoid overlooking long-term relationships         |
+| `* *`    | insurance agent                   | reschedule a client's follow up                             | reflect an agreed change to our plans             |
+| `* *`    | insurance agent                   | record client preferences and circumstances                 | provide personalised, continuous service          |
+| `* *`    | insurance agent                   | identify client records with incomplete information         | know which details need attention                 |
+| `* *`    | insurance agent switching systems | import existing client contact information                  | avoid re-entering records manually                |
+| `* *`    | insurance agent                   | identify clients with approaching policy related dates      | prepare for relevant upcoming events              |
+| `* *`    | first time user                   | view concise usage guidance                                 | begin using the app without extensive training    |
+| `*`      | potential user                    | explore realistic sample client records                     | understand how the app could support my work      |
+| `*`      | insurance agent                   | categorise clients with tags                                | group related records                             |
 
 ### Use cases
 
@@ -399,8 +412,14 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 ### Glossary
 
-* **Mainstream OS**: Windows, Linux, Unix, or macOS
-* **Private contact detail**: A contact detail that is not meant to be shared with others
+* **Client record**: The contact details stored for a client or prospective client
+* **Follow up**: The next action an agent plans to take for a client, with a due date and description
+* **Pending**: A follow up that has been recorded and not yet cleared. It stays pending after its due date passes
+* **Index**: The row number of a client in the list currently displayed.
+* **Overdue**: A pending follow up whose due date is before today
+* **Due today**: A pending follow up whose due date is today
+* **Upcoming**: A pending follow up whose due date is after today
+
 
 --------------------------------------------------------------------------------------------------------------------
 
