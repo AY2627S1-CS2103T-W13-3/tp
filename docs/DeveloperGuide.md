@@ -317,28 +317,8 @@ _{More to be added}_
 ### Non-Functional Requirements
 
 1. Should work on any _mainstream OS_ as long as it has Java `25` or above installed.
-
 2. Should be able to hold up to 1000 persons without noticeable sluggishness in performance for typical usage.
-
-3. A user with above-average typing speed for regular English text (i.e. not code or system administration commands) should be able to accomplish most tasks faster using commands than using the mouse.
-
-4. Should respond to typical user commands such as adding, editing, deleting, searching, filtering, and viewing client records within 1 second under normal operating conditions.
-
-5. Should preserve all successfully saved client information between application sessions, such that closing and reopening the application does not cause data loss.
-
-6. Invalid commands or invalid user input should not modify existing client data and should result in a clear error message explaining how the input can be corrected.
-
-7. Should be usable without an Internet connection for all core client-management functions.
-
-8. Client data should be stored locally on the user's device and should not require a remote server for normal operation.
-
-9. Should be distributable as a single executable JAR file without requiring a separate installation process.
-
-10. The user interface should remain usable at common laptop screen resolutions, including `1280 × 720` and above.
-
-11. Commonly used commands and command formats should remain consistent throughout the application to reduce the amount of relearning required from the user.
-
-12. The application should be designed primarily for keyboard-based interaction, while still allowing mouse interaction where appropriate.
+3. A user with above average typing speed for regular English text (i.e. not code, not system admin commands) should be able to accomplish most of the tasks faster using commands than using the mouse.
 
 _{More to be added}_
 
