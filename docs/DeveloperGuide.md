@@ -287,32 +287,107 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 ### Use cases
 
-(For all use cases below, the **System** is the `AddressBook` and the **Actor** is the `user`, unless specified otherwise)
+(For all use cases below, the **System** is the `PolicyHabour` and the **Actor** is the `Insurance Agent `, unless specified otherwise)
 
-**Use case: Delete a person**
+**Use case: UC01 - Retrieve Client Profile**
 
 **MSS**
 
-1.  User requests to list persons
-2.  AddressBook shows a list of persons
-3.  User requests to delete a specific person in the list
-4.  AddressBook deletes the person
+1.  Agent chooses to view all client. 
+2. System displays client list with index for each client.  
+3. Agent selects the desired client from the list.  
+4. System displays the client’s full contact details and pending follow-ups, if any. 
+
+    Use case ends.
+
+**Use case: UC02 - Add Client Profile**
+
+**MSS**
+
+1.  User chooses to add new client profile.  
+2. System requests for details of new client.  
+3. User enters the requested details.  
+4. System request for confirmation.  
+5. User confirms it. 
+6. System saves new client record and displays the updated client list. 
 
     Use case ends.
 
 **Extensions**
 
-* 2a. The list is empty.
+* 3a. Sysem detects an error in the entered data.  
 
-  Use case ends.
+   * 3a1. System request for correct data.  
+   * 3a2. User enters new data. 
 
-* 3a. The given index is invalid.
+   Steps 3a1-3a2 are repeated until the data entered are correct.
 
-    * 3a1. AddressBook shows an error message.
+   Use case resumes from step 4.
 
-      Use case resumes at step 2.
 
-*{More to be added}*
+* a. At any time, User chooses to cancel the record. 
+
+    * a1. System requests to confirm the cancellation.  
+    * a2. User confirms the cancellation. 
+
+
+      Use case ends. 
+
+**Use case: UC03 - Delete Client Record**
+
+**MSS**
+
+1.  User performs Retrieve Client Profile (UC01) to select desired client.
+2. User request to delete the desired client.
+3. System deletes the desired client. record and any associated pending follow-up and saves the changes. 
+4. System displays the updated client list.  
+
+   User case ends 
+
+**Use case: UC04 - Record Client Follow-Up**
+
+**MSS**
+
+1.  User performs Retrieve Client Profile (UC01) to select desired client
+2. User chooses to add new Client Follow-up for desired client
+3. System request for details of new followup 
+4. User enters requested details 
+5. System request for confirmation
+6. User confirms it 
+7. System records and saves the follow-up and displays the updated desired client information
+
+    Use case ends.
+
+**Extensions**
+
+* 4a. Sysem detects an error in the entered data.  
+
+   * 4a1. System request for correct data.  
+   * 4a2. User enters new data. 
+
+   Steps 4a1-4a2 are repeated until the   data entered are correct.
+
+   Use case resumes from step 5.
+
+
+* a. At any time, User chooses to cancel the record. 
+
+    * a1. System requests to confirm the cancellation.  
+    * a2. User confirms the cancellation. 
+
+
+      Use case ends. 
+
+**Use case: UC05 - Clear Client Follow-Up**
+
+**MSS**
+
+1.  User performs Retrieve Client Profile (UC01) to select desired client
+2. User chooses the respective client follow-up to deleted 
+3. System deletes the respective client follow-up and saves the changes 
+4. System displays updated desired client information 
+
+    Use case ends.
 
 ### Non-Functional Requirements
 
