@@ -263,11 +263,11 @@ _{Explain here how the data archiving feature will be implemented}_
 
 * is an individual insurance agent who manages their own client and prospect records
 * personally keeps track of client contact details and the next action they need to take for each client
-* uses a personal computer for this administrative work
+* uses a personal computer to manage client details and follow ups
 * needs to review which client follow ups are due, upcoming, or overdue
-* is comfortable typing commands and prefers keyboard interactions to mouse interactions
+* types quickly and prefers typed commands to mouse interactions 
 
-**Value proposition**: Manage contacts faster than with a typical mouse-driven GUI application.
+**Value proposition**: Policy Harbour helps individual insurance agents keep client contact details and one pending next action per client organized in a keyboard driven desktop app, making follow ups easier to review and manage.
 
 
 ### User stories
