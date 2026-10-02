@@ -261,11 +261,11 @@ _{Explain here how the data archiving feature will be implemented}_
 
 **Target user profile**:
 
-* has a need to manage a significant number of contacts
-* prefers desktop apps over other types of applications
-* can type fast
-* prefers typing to mouse interactions
-* is reasonably comfortable using CLI apps
+* is an individual insurance agent who manages their own client and prospect records
+* personally keeps track of client contact details and the next action they need to take for each client
+* uses a personal computer for this administrative work
+* needs to review which client follow ups are due, upcoming, or overdue
+* is comfortable typing commands and prefers keyboard interactions to mouse interactions
 
 **Value proposition**: Manage contacts faster than with a typical mouse-driven GUI application.
 
