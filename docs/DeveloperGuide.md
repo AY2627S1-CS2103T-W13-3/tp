@@ -324,8 +324,14 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 ### Glossary
 
-* **Mainstream OS**: Windows, Linux, Unix, or macOS
-* **Private contact detail**: A contact detail that is not meant to be shared with others
+* **Client record**: The contact details stored for a client or prospective client
+* **Follow up**: The next action an agent plans to take for a client, with a due date and description
+* **Pending**: A follow up that has been recorded and not yet cleared. It stays pending after its due date passes
+* **Index**: The row number of a client in the list currently displayed.
+* **Overdue**: A pending follow up whose due date is before today
+* **Due today**: A pending follow up whose due date is today
+* **Upcoming**: A pending follow up whose due date is after today
+
 
 --------------------------------------------------------------------------------------------------------------------
 
