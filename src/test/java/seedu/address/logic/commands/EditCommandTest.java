@@ -15,6 +15,9 @@ import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 import static seedu.address.testutil.TypicalIndexes.INDEX_SECOND_PERSON;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
+import java.time.LocalDate;
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 
 import seedu.address.commons.core.index.Index;
@@ -24,6 +27,7 @@ import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.EditPersonDescriptorBuilder;
 import seedu.address.testutil.PersonBuilder;
@@ -34,6 +38,22 @@ import seedu.address.testutil.PersonBuilder;
 public class EditCommandTest {
 
     private Model model = new ModelManager(getTypicalAddressBook(), new UserPrefs());
+
+    @Test
+    public void execute_contactEdit_preservesFollowUp() throws Exception {
+        Person original = model.getFilteredPersonList().getFirst();
+        FollowUp action = new FollowUp(LocalDate.of(2026, 10, 5), "Call client");
+        model.setPerson(original, original.withFollowUp(action));
+        EditCommand command = new EditCommand(INDEX_FIRST_PERSON,
+                new EditPersonDescriptorBuilder().withPhone(VALID_PHONE_BOB).build());
+
+        command.execute(model);
+
+        Person edited = model.getFilteredPersonList().getFirst();
+        assertEquals(VALID_PHONE_BOB, edited.getPhone().value);
+        assertEquals(Optional.of(action), edited.getFollowUp());
+        assertEquals(original.getName(), edited.getName());
+    }
 
     @Test
     public void execute_allFieldsSpecifiedUnfilteredList_success() {
