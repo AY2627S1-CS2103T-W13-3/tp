@@ -7,12 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
 import org.junit.jupiter.api.Test;
 
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.ObservableList;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.Messages;
@@ -134,6 +137,46 @@ public class AddCommandTest {
 
         @Override
         public ObservableList<Person> getFilteredPersonList() {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public void showPendingFollowUps() {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public LocalDate getToday() {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public ReadOnlyObjectProperty<LocalDate> todayProperty() {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public ReadOnlyBooleanProperty showingFollowUpsProperty() {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public boolean isDataLoadingBlocked() {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public Model forkForCommand(LocalDate today) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public boolean hasUnsavedChanges() {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public void commitFrom(Model candidate) {
             throw new AssertionError("This method should not be called.");
         }
 
