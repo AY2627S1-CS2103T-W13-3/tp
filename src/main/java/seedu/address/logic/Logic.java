@@ -1,5 +1,9 @@
 package seedu.address.logic;
 
+import java.time.LocalDate;
+
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.ObservableList;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.commands.CommandResult;
@@ -22,6 +26,15 @@ public interface Logic {
 
     /** Returns an unmodifiable view of the filtered list of persons */
     ObservableList<Person> getFilteredPersonList();
+
+    /** Returns the date snapshot used for displayed follow-up statuses. */
+    ReadOnlyObjectProperty<LocalDate> todayProperty();
+
+    /** Returns whether the pending follow-ups view is showing. */
+    ReadOnlyBooleanProperty showingFollowUpsProperty();
+
+    /** Returns whether invalid saved data has blocked client changes. */
+    boolean isDataLoadingBlocked();
 
     /**
      * Returns the user prefs' GUI settings.

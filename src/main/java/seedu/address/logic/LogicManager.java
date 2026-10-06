@@ -1,9 +1,15 @@
 package seedu.address.logic;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.logging.Logger;
 
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.ObservableList;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
@@ -29,14 +35,23 @@ public class LogicManager implements Logic {
 
     private final Model model;
     private final Storage storage;
+    private final Clock clock;
     private final AddressBookParser addressBookParser;
 
     /**
      * Constructs a {@code LogicManager} with the given {@code Model} and {@code Storage}.
      */
     public LogicManager(Model model, Storage storage) {
-        this.model = model;
-        this.storage = storage;
+        this(model, storage, Clock.systemDefaultZone());
+    }
+
+    /**
+     * Constructs a {@code LogicManager} with an injectable clock for date-dependent commands.
+     */
+    public LogicManager(Model model, Storage storage, Clock clock) {
+        this.model = requireNonNull(model);
+        this.storage = requireNonNull(storage);
+        this.clock = requireNonNull(clock);
         addressBookParser = new AddressBookParser();
     }
 
@@ -62,6 +77,21 @@ public class LogicManager implements Logic {
     @Override
     public ObservableList<Person> getFilteredPersonList() {
         return model.getFilteredPersonList();
+    }
+
+    @Override
+    public ReadOnlyObjectProperty<LocalDate> todayProperty() {
+        return model.todayProperty();
+    }
+
+    @Override
+    public ReadOnlyBooleanProperty showingFollowUpsProperty() {
+        return model.showingFollowUpsProperty();
+    }
+
+    @Override
+    public boolean isDataLoadingBlocked() {
+        return model.isDataLoadingBlocked();
     }
 
     @Override
