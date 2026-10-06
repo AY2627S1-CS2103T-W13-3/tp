@@ -1,7 +1,10 @@
 package seedu.address.model;
 
+import java.time.LocalDate;
 import java.util.function.Predicate;
 
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.ObservableList;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.model.person.Person;
@@ -60,7 +63,38 @@ public interface Model {
      */
     void setPerson(Person target, Person editedPerson);
 
-    /** Returns an unmodifiable view of the filtered person list */
+    /** Shows all pending follow-ups in due-date order, retaining insertion order for ties. */
+    void showPendingFollowUps();
+
+    /** Returns the date snapshot used for this model's command and displayed statuses. */
+    LocalDate getToday();
+
+    /** Returns the stable, read-only date property. */
+    ReadOnlyObjectProperty<LocalDate> todayProperty();
+
+    /** Returns whether the displayed list is in pending-follow-up mode. */
+    ReadOnlyBooleanProperty showingFollowUpsProperty();
+
+    /** Returns whether startup loading failed and client mutations must be blocked. */
+    boolean isDataLoadingBlocked();
+
+    /**
+     * Copies data, preferences and view state into an isolated, initially clean command candidate.
+     * The caller supplies the command's sampled date. Discard the candidate on failure.
+     */
+    Model forkForCommand(LocalDate today);
+
+    /** Returns whether a successful client-data mutation has occurred since creation/publication. */
+    boolean hasUnsavedChanges();
+
+    /**
+     * Publishes a validated candidate produced by {@link #forkForCommand(LocalDate)}.
+     * The caller must save dirty candidates successfully before calling this method.
+     * Performs no file I/O and retains the live observable list and properties.
+     */
+    void commitFrom(Model candidate);
+
+    /** Returns the stable, unmodifiable displayed list, authoritative for command indices. */
     ObservableList<Person> getFilteredPersonList();
 
     /**
