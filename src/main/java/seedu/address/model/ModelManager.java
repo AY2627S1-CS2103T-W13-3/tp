@@ -126,8 +126,9 @@ public class ModelManager implements Model {
     //=========== Filtered Person List Accessors =============================================================
 
     /**
-     * Returns an unmodifiable view of the list of {@code Person} backed by the internal list of
-     * {@code addressBook}
+     * Returns the stable, unmodifiable list of persons currently displayed.
+     * This list is maintained separately from the address book; model mutations and view changes
+     * must explicitly refresh its contents through {@link #refreshDisplayedPersons()}.
      */
     @Override
     public ObservableList<Person> getFilteredPersonList() {

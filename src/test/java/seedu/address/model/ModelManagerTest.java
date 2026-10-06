@@ -293,8 +293,13 @@ public class ModelManagerTest {
         ReadOnlyObjectProperty<LocalDate> date = live.todayProperty();
         ReadOnlyBooleanProperty pending = live.showingFollowUpsProperty();
         List<List<Person>> displayedChanges = new ArrayList<>();
-        displayed.addListener((ListChangeListener<Person>) change ->
-                displayedChanges.add(List.copyOf(change.getList())));
+        List<LocalDate> datesAtPublication = new ArrayList<>();
+        List<Boolean> modesAtPublication = new ArrayList<>();
+        displayed.addListener((ListChangeListener<Person>) change -> {
+            displayedChanges.add(List.copyOf(change.getList()));
+            datesAtPublication.add(date.get());
+            modesAtPublication.add(pending.get());
+        });
         Model candidate = live.forkForCommand(TODAY.plusDays(1));
         Person replacement = withFollowUp(late, 0);
         candidate.setPerson(late, replacement);
@@ -307,6 +312,8 @@ public class ModelManagerTest {
         assertSame(date, live.todayProperty());
         assertSame(pending, live.showingFollowUpsProperty());
         assertEquals(List.of(List.of(replacement, early)), displayedChanges);
+        assertEquals(List.of(candidate.getToday()), datesAtPublication);
+        assertEquals(List.of(candidate.showingFollowUpsProperty().get()), modesAtPublication);
         assertEquals(List.of(replacement, early), live.getAddressBook().getPersonList());
         assertEquals(TODAY.plusDays(1), date.get());
         assertTrue(pending.get());
