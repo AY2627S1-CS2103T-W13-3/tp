@@ -59,6 +59,8 @@ public class LogicManager implements Logic {
     public CommandResult execute(String commandText) throws CommandException, ParseException {
         logger.info("----------------[USER COMMAND][" + commandText + "]");
 
+        refreshToday();
+
         CommandResult commandResult;
         Command command = addressBookParser.parseCommand(commandText, model.isDataLoadingBlocked());
         commandResult = command.execute(model);
@@ -82,6 +84,11 @@ public class LogicManager implements Logic {
     @Override
     public ReadOnlyObjectProperty<LocalDate> todayProperty() {
         return model.todayProperty();
+    }
+
+    @Override
+    public void refreshToday() {
+        model.updateToday(LocalDate.now(clock));
     }
 
     @Override

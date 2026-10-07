@@ -151,6 +151,11 @@ public class AddCommandTest {
         }
 
         @Override
+        public void updateToday(LocalDate today) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
         public ReadOnlyObjectProperty<LocalDate> todayProperty() {
             throw new AssertionError("This method should not be called.");
         }

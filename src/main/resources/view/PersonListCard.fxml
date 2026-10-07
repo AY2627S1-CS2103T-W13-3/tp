@@ -31,6 +31,15 @@
       <Label fx:id="phone" styleClass="cell_small_label" text="\$phone" />
       <Label fx:id="address" styleClass="cell_small_label" text="\$address" />
       <Label fx:id="email" styleClass="cell_small_label" text="\$email" />
+      <VBox styleClass="follow-up-section" spacing="3">
+        <Label fx:id="followUpNone" styleClass="cell_small_label" />
+        <VBox fx:id="followUpDetails" spacing="3">
+          <Label fx:id="followUpDueDate" styleClass="cell_small_label" />
+          <Label fx:id="followUpDescription" styleClass="cell_small_label, follow-up-description"
+                 maxWidth="1.7976931348623157E308" wrapText="true" />
+          <Label fx:id="followUpStatus" styleClass="follow-up-status" />
+        </VBox>
+      </VBox>
     </VBox>
   </GridPane>
 </HBox>
