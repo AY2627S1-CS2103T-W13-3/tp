@@ -137,6 +137,18 @@ public class ArgumentTokenizerTest {
     }
 
     @Test
+    public void tokenize_followUpPrefixes_requireAnOrdinaryLeadingSpace() {
+        Prefix datePrefix = new Prefix("d/");
+        Prefix descriptionPrefix = new Prefix("m/");
+        ArgumentMultimap argMultimap = ArgumentTokenizer.tokenize("1d/2026-10-05 m/Call", datePrefix,
+                descriptionPrefix);
+
+        assertArgumentAbsent(argMultimap, datePrefix);
+        assertArgumentPresent(argMultimap, descriptionPrefix, "Call");
+        assertPreamblePresent(argMultimap, "1d/2026-10-05");
+    }
+
+    @Test
     public void equalsMethod() {
         Prefix aaa = new Prefix("aaa");
 
