@@ -7,20 +7,30 @@ import static seedu.address.testutil.Assert.assertThrows;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import javafx.animation.Animation;
+import javafx.animation.Timeline;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.event.ActionEvent;
+import javafx.util.Duration;
 import seedu.address.logic.LogicManager;
 import seedu.address.logic.Messages;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
+import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.Storage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.MutableClock;
 import seedu.address.testutil.TypicalPersons;
 
 public class MainAppTest {
@@ -66,6 +76,38 @@ public class MainAppTest {
         Model repaired = app.initModelManager(storage, new UserPrefs());
         assertFalse(repaired.isDataLoadingBlocked());
         assertEquals(book, repaired.getAddressBook());
+    }
+
+    @Test
+    public void focusRefresh_updatesDateWithoutSaving() {
+        Path file = testFolder.resolve("focus.json");
+        Model model = new ModelManager(new AddressBook(), new UserPrefs(), LocalDate.of(2026, 10, 7), false);
+        MutableClock clock = new MutableClock(Instant.parse("2026-10-07T00:00:00Z"), ZoneOffset.UTC);
+        LogicManager logic = new LogicManager(model, storage(file), clock);
+        SimpleBooleanProperty focused = new SimpleBooleanProperty(false);
+        MainApp.refreshDateOnFocus(focused, logic);
+
+        clock.setInstant(Instant.parse("2026-10-08T00:00:00Z"));
+        assertEquals(LocalDate.of(2026, 10, 7), model.getToday());
+        focused.set(true);
+        assertEquals(LocalDate.of(2026, 10, 8), model.getToday());
+        assertFalse(Files.exists(file));
+    }
+
+    @Test
+    public void periodicRefresh_isScheduledAndUpdatesDateWithoutSaving() {
+        Path file = testFolder.resolve("periodic.json");
+        Model model = new ModelManager(new AddressBook(), new UserPrefs(), LocalDate.of(2026, 10, 7), false);
+        MutableClock clock = new MutableClock(Instant.parse("2026-10-07T00:00:00Z"), ZoneOffset.UTC);
+        LogicManager logic = new LogicManager(model, storage(file), clock);
+        Timeline timeline = MainApp.createDateRefreshTimeline(logic);
+        assertEquals(Animation.INDEFINITE, timeline.getCycleCount());
+        assertEquals(Duration.minutes(1), timeline.getKeyFrames().get(0).getTime());
+
+        clock.setInstant(Instant.parse("2026-10-08T00:00:00Z"));
+        timeline.getKeyFrames().get(0).getOnFinished().handle(new ActionEvent());
+        assertEquals(LocalDate.of(2026, 10, 8), model.getToday());
+        assertFalse(Files.exists(file));
     }
 
     private Storage storage(Path file) {

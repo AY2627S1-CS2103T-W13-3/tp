@@ -95,7 +95,8 @@ public class FollowUpWorkflowIntegrationTest {
         };
         LogicManager logic = new LogicManager(model, failingStorage, clock);
         for (String command : List.of("add n/Bob p/92345678 e/bob@example.com a/Street",
-                "delete 1", "followup 1 d/2026-10-06 m/Replace", "followup 1 clear", "clear")) {
+                "delete 1", "edit 1 n/Updated Rachel", "followup 1 d/2026-10-06 m/Replace",
+                "followup 1 clear", "clear")) {
             assertThrows(CommandException.class, LogicManager.MESSAGE_SAVE_FAILED, () -> logic.execute(command));
             assertEquals(TODAY, model.getToday());
             assertTrue(model.showingFollowUpsProperty().get());

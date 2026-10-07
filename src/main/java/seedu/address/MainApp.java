@@ -7,8 +7,13 @@ import java.time.LocalDate;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.beans.value.ObservableValue;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.commons.util.StringUtil;
@@ -42,6 +47,8 @@ public class MainApp extends Application {
     protected Logic logic;
     protected Storage storage;
     protected Model model;
+
+    private Timeline dateRefreshTimeline;
 
     @Override
     public void init() throws Exception {
@@ -113,12 +120,35 @@ public class MainApp extends Application {
     @Override
     public void start(Stage primaryStage) {
         logger.info("Starting AddressBook " + MainApp.VERSION);
+        logic.refreshToday();
+        refreshDateOnFocus(primaryStage.focusedProperty(), logic);
         ui.start(primaryStage);
+        dateRefreshTimeline = createDateRefreshTimeline(logic);
+        dateRefreshTimeline.play();
+    }
+
+    /** Refreshes statuses when the application returns to the foreground. */
+    static void refreshDateOnFocus(ObservableValue<Boolean> focused, Logic logic) {
+        focused.addListener((observable, wasFocused, isFocused) -> {
+            if (isFocused) {
+                logic.refreshToday();
+            }
+        });
+    }
+
+    /** Refreshes statuses every minute so an open window also updates across local midnight. */
+    static Timeline createDateRefreshTimeline(Logic logic) {
+        Timeline timeline = new Timeline(new KeyFrame(Duration.minutes(1), event -> logic.refreshToday()));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        return timeline;
     }
 
     @Override
     public void stop() {
         logger.info("============================ [ Stopping AddressBook ] =============================");
+        if (dateRefreshTimeline != null) {
+            dateRefreshTimeline.stop();
+        }
         try {
             storage.saveUserPrefs(model.getUserPrefs());
         } catch (IOException e) {
