@@ -6,8 +6,12 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.commons.util.StringUtil;
@@ -42,6 +46,8 @@ public class MainApp extends Application {
     protected Logic logic;
     protected Storage storage;
     protected Model model;
+
+    private Timeline dateRefreshTimeline;
 
     @Override
     public void init() throws Exception {
@@ -121,12 +127,24 @@ public class MainApp extends Application {
     @Override
     public void start(Stage primaryStage) {
         logger.info("Starting AddressBook " + MainApp.VERSION);
+        logic.refreshToday();
+        primaryStage.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
+            if (isFocused) {
+                logic.refreshToday();
+            }
+        });
         ui.start(primaryStage);
+        dateRefreshTimeline = new Timeline(new KeyFrame(Duration.minutes(1), event -> logic.refreshToday()));
+        dateRefreshTimeline.setCycleCount(Animation.INDEFINITE);
+        dateRefreshTimeline.play();
     }
 
     @Override
     public void stop() {
         logger.info("============================ [ Stopping AddressBook ] =============================");
+        if (dateRefreshTimeline != null) {
+            dateRefreshTimeline.stop();
+        }
         try {
             storage.saveUserPrefs(model.getUserPrefs());
         } catch (IOException e) {

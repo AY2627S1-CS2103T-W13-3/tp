@@ -69,6 +69,9 @@ public interface Model {
     /** Returns the date snapshot used for this model's command and displayed statuses. */
     LocalDate getToday();
 
+    /** Updates the status date without changing client data or the displayed list. */
+    void updateToday(LocalDate today);
+
     /** Returns the stable, read-only date property. */
     ReadOnlyObjectProperty<LocalDate> todayProperty();
 
