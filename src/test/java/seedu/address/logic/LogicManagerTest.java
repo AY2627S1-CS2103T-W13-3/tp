@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.Messages.MESSAGE_CHANGES_BLOCKED;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
@@ -125,14 +126,41 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_dataLoadingBlocked_mutationCommandsBlocked() {
+        Model blockedModel = new ModelManager(new AddressBook(), new UserPrefs(),
+                LocalDate.of(2026, 10, 7), true);
+        Logic blockedLogic = new LogicManager(blockedModel, storage);
+        String addCommand = AddCommand.COMMAND_WORD + NAME_DESC_AMY + PHONE_DESC_AMY
+                + EMAIL_DESC_AMY + ADDRESS_DESC_AMY;
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute(addCommand));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("clear"));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("delete 1"));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                blockedLogic.execute("edit 1 " + NAME_DESC_AMY));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("followup 1 clear"));
+    }
+
+    @Test
+    public void execute_dataLoadingBlocked_readOnlyCommandSucceeds() throws Exception {
+        Model blockedModel = new ModelManager(new AddressBook(), new UserPrefs(),
+                LocalDate.of(2026, 10, 7), true);
+        Logic blockedLogic = new LogicManager(blockedModel, storage);
+        CommandResult result = blockedLogic.execute(ListCommand.COMMAND_WORD);
+        assertEquals(ListCommand.MESSAGE_SUCCESS, result.getFeedbackToUser());
+    }
+
+    @Test
+    public void execute_followUpIndexOutOfRange_precedesInvalidDate() {
+        assertCommandException("followup 999 d/bad m/", MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+    }
+
+    @Test
     public void execute_afterMidnightInvalidCommand_refreshesDate() {
         LocalDate startupDate = LocalDate.of(2026, 10, 7);
         Model liveModel = new ModelManager(new AddressBook(), new UserPrefs(), startupDate, false);
         Clock nextDayClock = Clock.fixed(Instant.parse("2026-10-08T00:00:00Z"), ZoneOffset.UTC);
         Logic nextDayLogic = new LogicManager(liveModel, storage, nextDayClock);
-
         assertThrows(ParseException.class, () -> nextDayLogic.execute("invalid"));
-
         assertEquals(startupDate.plusDays(1), liveModel.getToday());
     }
 
@@ -151,15 +179,12 @@ public class LogicManagerTest {
         Logic idleLogic = new LogicManager(liveModel, storage, clock);
         List<LocalDate> dateChanges = new ArrayList<>();
         idleLogic.todayProperty().addListener((observable, oldDate, newDate) -> dateChanges.add(newDate));
-
         idleLogic.refreshToday();
         assertTrue(dateChanges.isEmpty());
         assertEquals(FollowUpStatus.DUE_TODAY, dueToday.getFollowUp().orElseThrow().getStatus(liveModel.getToday()));
         assertEquals(FollowUpStatus.UPCOMING, dueTomorrow.getFollowUp().orElseThrow().getStatus(liveModel.getToday()));
-
         clock.setInstant(Instant.parse("2026-10-07T16:00:00Z"));
         idleLogic.refreshToday();
-
         assertEquals(LocalDate.of(2026, 10, 8), idleLogic.todayProperty().get());
         assertEquals(List.of(LocalDate.of(2026, 10, 8)), dateChanges);
         assertEquals(FollowUpStatus.OVERDUE, dueToday.getFollowUp().orElseThrow().getStatus(liveModel.getToday()));
@@ -177,11 +202,9 @@ public class LogicManagerTest {
         Model liveModel = new ModelManager(new AddressBook(), new UserPrefs(), startupDate, false);
         MutableClock clock = new MutableClock(Instant.parse("2026-10-07T00:00:00Z"), ZoneOffset.UTC);
         Logic timedLogic = new LogicManager(liveModel, storage, clock);
-
         clock.setInstant(Instant.parse("2026-10-12T00:00:00Z"));
         timedLogic.refreshToday();
         assertEquals(LocalDate.of(2026, 10, 12), liveModel.getToday());
-
         clock.setInstant(Instant.parse("2026-10-06T00:00:00Z"));
         timedLogic.refreshToday();
         assertEquals(LocalDate.of(2026, 10, 6), liveModel.getToday());

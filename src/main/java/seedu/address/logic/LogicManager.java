@@ -62,7 +62,7 @@ public class LogicManager implements Logic {
         refreshToday();
 
         CommandResult commandResult;
-        Command command = addressBookParser.parseCommand(commandText);
+        Command command = addressBookParser.parseCommand(commandText, model.isDataLoadingBlocked());
         commandResult = command.execute(model);
 
         try {

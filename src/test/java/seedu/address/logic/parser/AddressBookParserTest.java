@@ -2,7 +2,9 @@ package seedu.address.logic.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
+import static seedu.address.logic.Messages.MESSAGE_CHANGES_BLOCKED;
+import static seedu.address.logic.Messages.MESSAGE_EMPTY_COMMAND;
+import static seedu.address.logic.Messages.MESSAGE_INVALID_CHARACTERS;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
@@ -19,8 +21,10 @@ import seedu.address.logic.commands.EditCommand;
 import seedu.address.logic.commands.EditCommand.EditPersonDescriptor;
 import seedu.address.logic.commands.ExitCommand;
 import seedu.address.logic.commands.FindCommand;
+import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
+import seedu.address.logic.commands.SetFollowUpCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.model.person.Person;
@@ -88,13 +92,46 @@ public class AddressBookParserTest {
     }
 
     @Test
-    public void parseCommand_unrecognisedInput_throwsParseException() {
-        assertThrows(ParseException.class, String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE), ()
-            -> parser.parseCommand(""));
+    public void parseCommand_emptyInput_throwsParseException() {
+        assertThrows(ParseException.class, MESSAGE_EMPTY_COMMAND, () -> parser.parseCommand("   "));
     }
 
     @Test
     public void parseCommand_unknownCommand_throwsParseException() {
         assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("unknownCommand"));
+    }
+
+    @Test
+    public void parseCommand_followUps_ignoresTrailingText() throws Exception {
+        assertTrue(parser.parseCommand("followups any trailing text") instanceof FollowUpsCommand);
+    }
+
+    @Test
+    public void parseCommand_followUp_routesToSingularParser() throws Exception {
+        assertEquals(new SetFollowUpCommand(INDEX_FIRST_PERSON, "2026-10-05", "Send quotation"),
+                parser.parseCommand("followup 1 d/2026-10-05 m/Send quotation"));
+    }
+
+    @Test
+    public void parseCommand_controlCharacter_throwsBeforeOtherChecks() {
+        assertThrows(ParseException.class, MESSAGE_INVALID_CHARACTERS, () ->
+                parser.parseCommand("unknown\u2028command", true));
+    }
+
+    @Test
+    public void parseCommand_loadingBlocked_blocksMutationsButNotQueries() throws Exception {
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("followup malformed", true));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("add malformed", true));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("edit malformed", true));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("delete malformed", true));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("clear", true));
+        assertTrue(parser.parseCommand("followups", true) instanceof FollowUpsCommand);
+        assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("unknown", true));
+        assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("FOLLOWUP 1 clear"));
     }
 }
