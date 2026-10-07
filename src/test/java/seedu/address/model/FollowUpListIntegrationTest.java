@@ -16,6 +16,7 @@ import seedu.address.commons.core.index.Index;
 import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.FindCommand;
+import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.person.FollowUp;
@@ -24,7 +25,7 @@ import seedu.address.model.person.Person;
 import seedu.address.testutil.AddressBookBuilder;
 
 /**
- * Checks the model foundation with existing commands, before follow-up command routing is added.
+ * Checks pending-list and existing commands together, before parser routing is added.
  */
 public class FollowUpListIntegrationTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 4);
@@ -34,7 +35,7 @@ public class FollowUpListIntegrationTest {
     @Test
     public void delete_pendingCandidate_targetsDisplayedRowAndPublishesOnlyOnCommit() throws Exception {
         Model live = createModel();
-        live.showPendingFollowUps();
+        new FollowUpsCommand().execute(live);
         Model candidate = live.forkForCommand(TODAY.plusDays(1));
 
         new DeleteCommand(Index.fromOneBased(1)).execute(candidate);
@@ -52,7 +53,7 @@ public class FollowUpListIntegrationTest {
     @Test
     public void existingCommands_switchViewsAndKeepFailedCandidateIsolated() throws Exception {
         Model live = createModel();
-        live.showPendingFollowUps();
+        new FollowUpsCommand().execute(live);
         Model failed = live.forkForCommand(TODAY.plusDays(1));
         assertThrows(CommandException.class, () -> new DeleteCommand(Index.fromOneBased(3)).execute(failed));
         assertFalse(failed.hasUnsavedChanges());
@@ -64,13 +65,13 @@ public class FollowUpListIntegrationTest {
         assertEquals(List.of(LATE, EARLY), candidate.getFilteredPersonList());
         assertFalse(candidate.showingFollowUpsProperty().get());
         assertFalse(candidate.hasUnsavedChanges());
-        candidate.showPendingFollowUps();
+        new FollowUpsCommand().execute(candidate);
         new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice"))).execute(candidate);
         assertEquals(List.of(LATE), candidate.getFilteredPersonList());
         assertFalse(candidate.showingFollowUpsProperty().get());
         assertFalse(candidate.hasUnsavedChanges());
 
-        candidate.showPendingFollowUps();
+        new FollowUpsCommand().execute(candidate);
         new DeleteCommand(Index.fromOneBased(1)).execute(candidate);
         new AddCommand(EARLY).execute(candidate);
         assertEquals(List.of(LATE, EARLY), candidate.getFilteredPersonList());
