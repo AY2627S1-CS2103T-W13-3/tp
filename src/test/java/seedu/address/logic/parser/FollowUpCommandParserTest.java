@@ -26,8 +26,11 @@ public class FollowUpCommandParserTest {
         assertParseSuccess(parser, " 1 m/Send quotation d/2026-10-05",
                 new SetFollowUpCommand(INDEX_FIRST_PERSON, "2026-10-05", "Send quotation"));
         assertParseSuccess(parser, " 1 clear", new ClearFollowUpCommand(INDEX_FIRST_PERSON));
+        assertParseSuccess(parser, " 3 clear", new ClearFollowUpCommand(Index.fromOneBased(3)));
         assertParseSuccess(parser, " 01 clear", new ClearFollowUpCommand(INDEX_FIRST_PERSON));
         assertParseSuccess(parser, " 000000000000000000001 clear", new ClearFollowUpCommand(INDEX_FIRST_PERSON));
+        assertParseSuccess(parser, " 999 d/2026-10-05 m/Send quotation",
+                new SetFollowUpCommand(Index.fromOneBased(999), "2026-10-05", "Send quotation"));
     }
 
     @Test
@@ -52,7 +55,7 @@ public class FollowUpCommandParserTest {
         assertParseFailure(parser, " +1 clear", MESSAGE_INVALID_INDEX);
         assertParseFailure(parser, " 1.5 clear", MESSAGE_INVALID_INDEX);
         assertParseFailure(parser, " 2147483648 clear", MESSAGE_INVALID_INDEX);
-        assertParseFailure(parser, " 999 d/bad m/", MESSAGE_INVALID_INDEX);
+        assertParseFailure(parser, " 3000000000 clear", MESSAGE_INVALID_INDEX);
     }
 
     @Test
@@ -65,5 +68,7 @@ public class FollowUpCommandParserTest {
     public void parseIndex_longLeadingZeroes_success() throws Exception {
         assertEquals(INDEX_FIRST_PERSON, FollowUpParserUtil.parseIndex("000000000000000000001"));
         assertEquals(Index.fromOneBased(Integer.MAX_VALUE), FollowUpParserUtil.parseIndex("00000000002147483647"));
+        assertEquals(Index.fromOneBased(3), FollowUpParserUtil.parseIndex("3"));
+        assertEquals(Index.fromOneBased(999), FollowUpParserUtil.parseIndex("999"));
     }
 }

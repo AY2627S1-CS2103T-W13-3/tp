@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.Messages.MESSAGE_CHANGES_BLOCKED;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
@@ -115,6 +116,36 @@ public class LogicManagerTest {
 
         liveModel.commitFrom(liveModel.forkForCommand(today.plusDays(1)));
         assertEquals(today.plusDays(1), bridgedLogic.todayProperty().get());
+    }
+
+    @Test
+    public void execute_dataLoadingBlocked_mutationCommandsBlocked() {
+        Model blockedModel = new ModelManager(new AddressBook(), new UserPrefs(),
+                LocalDate.of(2026, 10, 7), true);
+        Logic blockedLogic = new LogicManager(blockedModel, storage);
+
+        String addCommand = AddCommand.COMMAND_WORD + NAME_DESC_AMY + PHONE_DESC_AMY
+                + EMAIL_DESC_AMY + ADDRESS_DESC_AMY;
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute(addCommand));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("clear"));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                blockedLogic.execute("edit 1 " + NAME_DESC_AMY));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("followup 1 clear"));
+    }
+
+    @Test
+    public void execute_dataLoadingBlocked_readOnlyCommandSucceeds() throws Exception {
+        Model blockedModel = new ModelManager(new AddressBook(), new UserPrefs(),
+                LocalDate.of(2026, 10, 7), true);
+        Logic blockedLogic = new LogicManager(blockedModel, storage);
+
+        CommandResult result = blockedLogic.execute(ListCommand.COMMAND_WORD);
+        assertEquals(ListCommand.MESSAGE_SUCCESS, result.getFeedbackToUser());
+    }
+
+    @Test
+    public void execute_followUpIndexOutOfRange_precedesInvalidDate() {
+        assertCommandException("followup 999 d/bad m/", MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
     }
 
     /**

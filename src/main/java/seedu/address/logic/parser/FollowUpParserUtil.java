@@ -25,7 +25,7 @@ public final class FollowUpParserUtil {
 
         String significantDigits = value.replaceFirst("^0+", "");
         if (significantDigits.isEmpty() || significantDigits.length() > 10
-                || significantDigits.compareTo("2147483647") > 0) {
+                || (significantDigits.length() == 10 && significantDigits.compareTo("2147483647") > 0)) {
             throw new ParseException(ParserUtil.MESSAGE_INVALID_INDEX);
         }
 
