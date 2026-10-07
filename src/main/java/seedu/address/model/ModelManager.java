@@ -156,6 +156,14 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public void updateToday(LocalDate today) {
+        requireNonNull(today);
+        if (!today.equals(this.today.get())) {
+            this.today.set(today);
+        }
+    }
+
+    @Override
     public ReadOnlyObjectProperty<LocalDate> todayProperty() {
         return today.getReadOnlyProperty();
     }

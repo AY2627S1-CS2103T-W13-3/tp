@@ -30,6 +30,9 @@ public interface Logic {
     /** Returns the date snapshot used for displayed follow-up statuses. */
     ReadOnlyObjectProperty<LocalDate> todayProperty();
 
+    /** Refreshes the shared status date from the current local date. */
+    void refreshToday();
+
     /** Returns whether the pending follow-ups view is showing. */
     ReadOnlyBooleanProperty showingFollowUpsProperty();
 

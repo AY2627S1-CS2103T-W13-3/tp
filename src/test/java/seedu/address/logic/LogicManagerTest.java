@@ -15,11 +15,15 @@ import static seedu.address.testutil.TypicalPersons.AMY;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,11 +39,14 @@ import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.FollowUp;
+import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.Storage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.MutableClock;
 import seedu.address.testutil.PersonBuilder;
 
 public class LogicManagerTest {
@@ -115,6 +122,69 @@ public class LogicManagerTest {
 
         liveModel.commitFrom(liveModel.forkForCommand(today.plusDays(1)));
         assertEquals(today.plusDays(1), bridgedLogic.todayProperty().get());
+    }
+
+    @Test
+    public void execute_afterMidnightInvalidCommand_refreshesDate() {
+        LocalDate startupDate = LocalDate.of(2026, 10, 7);
+        Model liveModel = new ModelManager(new AddressBook(), new UserPrefs(), startupDate, false);
+        Clock nextDayClock = Clock.fixed(Instant.parse("2026-10-08T00:00:00Z"), ZoneOffset.UTC);
+        Logic nextDayLogic = new LogicManager(liveModel, storage, nextDayClock);
+
+        assertThrows(ParseException.class, () -> nextDayLogic.execute("invalid"));
+
+        assertEquals(startupDate.plusDays(1), liveModel.getToday());
+    }
+
+    @Test
+    public void refreshToday_idleAcrossLocalMidnight_updatesStatusesWithoutSaving() {
+        LocalDate startupDate = LocalDate.of(2026, 10, 7);
+        Person dueToday = new PersonBuilder().withFollowUp(new FollowUp(startupDate, "Call client")).build();
+        Person dueTomorrow = new PersonBuilder().withName("Tomorrow")
+                .withFollowUp(new FollowUp(startupDate.plusDays(1), "Send quotation")).build();
+        AddressBook addressBook = new AddressBook();
+        addressBook.addPerson(dueToday);
+        addressBook.addPerson(dueTomorrow);
+        Model liveModel = new ModelManager(addressBook, new UserPrefs(), startupDate, false);
+        MutableClock clock = new MutableClock(Instant.parse("2026-10-07T15:59:59Z"),
+                ZoneId.of("Asia/Singapore"));
+        Logic idleLogic = new LogicManager(liveModel, storage, clock);
+        List<LocalDate> dateChanges = new ArrayList<>();
+        idleLogic.todayProperty().addListener((observable, oldDate, newDate) -> dateChanges.add(newDate));
+
+        idleLogic.refreshToday();
+        assertTrue(dateChanges.isEmpty());
+        assertEquals(FollowUpStatus.DUE_TODAY, dueToday.getFollowUp().orElseThrow().getStatus(liveModel.getToday()));
+        assertEquals(FollowUpStatus.UPCOMING, dueTomorrow.getFollowUp().orElseThrow().getStatus(liveModel.getToday()));
+
+        clock.setInstant(Instant.parse("2026-10-07T16:00:00Z"));
+        idleLogic.refreshToday();
+
+        assertEquals(LocalDate.of(2026, 10, 8), idleLogic.todayProperty().get());
+        assertEquals(List.of(LocalDate.of(2026, 10, 8)), dateChanges);
+        assertEquals(FollowUpStatus.OVERDUE, dueToday.getFollowUp().orElseThrow().getStatus(liveModel.getToday()));
+        assertEquals(FollowUpStatus.DUE_TODAY, dueTomorrow.getFollowUp().orElseThrow().getStatus(liveModel.getToday()));
+        idleLogic.refreshToday();
+        assertEquals(1, dateChanges.size());
+        assertFalse(liveModel.hasUnsavedChanges());
+        assertEquals(addressBook, liveModel.getAddressBook());
+        assertFalse(Files.exists(storage.getAddressBookFilePath()));
+    }
+
+    @Test
+    public void refreshToday_clockJumps_usesCurrentDate() {
+        LocalDate startupDate = LocalDate.of(2026, 10, 7);
+        Model liveModel = new ModelManager(new AddressBook(), new UserPrefs(), startupDate, false);
+        MutableClock clock = new MutableClock(Instant.parse("2026-10-07T00:00:00Z"), ZoneOffset.UTC);
+        Logic timedLogic = new LogicManager(liveModel, storage, clock);
+
+        clock.setInstant(Instant.parse("2026-10-12T00:00:00Z"));
+        timedLogic.refreshToday();
+        assertEquals(LocalDate.of(2026, 10, 12), liveModel.getToday());
+
+        clock.setInstant(Instant.parse("2026-10-06T00:00:00Z"));
+        timedLogic.refreshToday();
+        assertEquals(LocalDate.of(2026, 10, 6), liveModel.getToday());
     }
 
     /**

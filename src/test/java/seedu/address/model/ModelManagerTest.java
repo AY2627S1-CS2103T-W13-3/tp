@@ -99,6 +99,64 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void updateToday_changedDate_preservesPendingViewAndDirtyData() {
+        Person late = withFollowUp(ALICE, 2);
+        Person early = withFollowUp(BENSON, 0);
+        Model model = modelWith(late, early);
+        model.showPendingFollowUps();
+        model.setPerson(late, late);
+        AddressBook originalData = new AddressBook(model.getAddressBook());
+        ObservableList<Person> displayed = model.getFilteredPersonList();
+        ReadOnlyObjectProperty<LocalDate> date = model.todayProperty();
+        List<LocalDate> dateChanges = new ArrayList<>();
+        List<List<Person>> listChanges = new ArrayList<>();
+        date.addListener((observable, oldDate, newDate) -> dateChanges.add(newDate));
+        displayed.addListener((ListChangeListener<Person>) change -> listChanges.add(List.copyOf(change.getList())));
+
+        model.updateToday(TODAY.plusDays(1));
+
+        assertSame(date, model.todayProperty());
+        assertSame(displayed, model.getFilteredPersonList());
+        assertEquals(List.of(TODAY.plusDays(1)), dateChanges);
+        assertTrue(listChanges.isEmpty());
+        assertEquals(List.of(early, late), displayed);
+        assertEquals(originalData, model.getAddressBook());
+        assertTrue(model.showingFollowUpsProperty().get());
+        assertTrue(model.hasUnsavedChanges());
+    }
+
+    @Test
+    public void updateToday_searchView_preservesFilterAndCleanState() {
+        Model model = modelWith(ALICE, BENSON);
+        model.updateFilteredPersonList(person -> person.getName().fullName.startsWith("Alice"));
+
+        model.updateToday(TODAY.plusDays(1));
+
+        assertEquals(List.of(ALICE), model.getFilteredPersonList());
+        assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
+        assertFalse(model.showingFollowUpsProperty().get());
+        assertFalse(model.hasUnsavedChanges());
+        model.setPerson(ALICE, new PersonBuilder(ALICE).withName("Zelda").build());
+        assertTrue(model.getFilteredPersonList().isEmpty());
+    }
+
+    @Test
+    public void updateToday_sameDate_doesNotNotifyListeners() {
+        Model model = modelWith();
+        List<LocalDate> dateChanges = new ArrayList<>();
+        model.todayProperty().addListener((observable, oldDate, newDate) -> dateChanges.add(newDate));
+
+        model.updateToday(LocalDate.parse(TODAY.toString()));
+
+        assertTrue(dateChanges.isEmpty());
+    }
+
+    @Test
+    public void updateToday_nullDate_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> modelManager.updateToday(null));
+    }
+
+    @Test
     public void showPendingFollowUps_afterSearch_sortsAllPendingAndPreservesSourceOrder() {
         Person late = withFollowUp(ALICE, 2);
         Person early = withFollowUp(BENSON, -1);
