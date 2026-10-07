@@ -3,6 +3,7 @@ package seedu.address;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -10,6 +11,7 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.beans.value.ObservableValue;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import seedu.address.commons.core.LogsCenter;
@@ -23,7 +25,6 @@ import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.ReadOnlyUserPrefs;
 import seedu.address.model.UserPrefs;
-import seedu.address.model.util.SampleDataUtil;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.Storage;
@@ -67,29 +68,21 @@ public class MainApp extends Application {
     }
 
     /**
-     * Returns a {@code ModelManager} with the data from {@code storage}'s address book and {@code userPrefs}. <br>
-     * The data from the sample address book will be used instead if {@code storage}'s address book is not found,
-     * or an empty address book will be used instead if errors occur when reading {@code storage}'s address book.
+     * Returns a model with saved data, or an empty writable model when the data file does not exist.
+     * Invalid saved data results in an empty model that blocks client changes to protect the file.
      */
-    private Model initModelManager(Storage storage, ReadOnlyUserPrefs userPrefs) {
+    Model initModelManager(Storage storage, ReadOnlyUserPrefs userPrefs) {
         logger.info("Using data file : " + storage.getAddressBookFilePath());
 
-        Optional<ReadOnlyAddressBook> addressBookOptional;
-        ReadOnlyAddressBook initialData;
         try {
-            addressBookOptional = storage.readAddressBook();
-            if (addressBookOptional.isEmpty()) {
-                logger.info("Creating a new data file " + storage.getAddressBookFilePath()
-                        + " populated with a sample AddressBook.");
-            }
-            initialData = addressBookOptional.orElseGet(SampleDataUtil::getSampleAddressBook);
+            Optional<ReadOnlyAddressBook> savedData = storage.readAddressBook();
+            ReadOnlyAddressBook initialData = savedData.orElseGet(AddressBook::new);
+            return new ModelManager(initialData, userPrefs, LocalDate.now(), false);
         } catch (DataLoadingException e) {
             logger.warning("Data file at " + storage.getAddressBookFilePath() + " could not be loaded."
-                    + " Will be starting with an empty AddressBook.");
-            initialData = new AddressBook();
+                    + " Client changes are blocked to protect the saved file.");
+            return new ModelManager(new AddressBook(), userPrefs, LocalDate.now(), true);
         }
-
-        return new ModelManager(initialData, userPrefs);
     }
 
     /**
@@ -128,15 +121,26 @@ public class MainApp extends Application {
     public void start(Stage primaryStage) {
         logger.info("Starting AddressBook " + MainApp.VERSION);
         logic.refreshToday();
-        primaryStage.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
+        refreshDateOnFocus(primaryStage.focusedProperty(), logic);
+        ui.start(primaryStage);
+        dateRefreshTimeline = createDateRefreshTimeline(logic);
+        dateRefreshTimeline.play();
+    }
+
+    /** Refreshes statuses when the application returns to the foreground. */
+    static void refreshDateOnFocus(ObservableValue<Boolean> focused, Logic logic) {
+        focused.addListener((observable, wasFocused, isFocused) -> {
             if (isFocused) {
                 logic.refreshToday();
             }
         });
-        ui.start(primaryStage);
-        dateRefreshTimeline = new Timeline(new KeyFrame(Duration.minutes(1), event -> logic.refreshToday()));
-        dateRefreshTimeline.setCycleCount(Animation.INDEFINITE);
-        dateRefreshTimeline.play();
+    }
+
+    /** Refreshes statuses every minute so an open window also updates across local midnight. */
+    static Timeline createDateRefreshTimeline(Logic logic) {
+        Timeline timeline = new Timeline(new KeyFrame(Duration.minutes(1), event -> logic.refreshToday()));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        return timeline;
     }
 
     @Override

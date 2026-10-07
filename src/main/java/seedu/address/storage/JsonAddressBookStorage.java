@@ -3,14 +3,16 @@ package seedu.address.storage;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.logging.Logger;
 
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.commons.exceptions.IllegalValueException;
-import seedu.address.commons.util.FileUtil;
 import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.ReadOnlyAddressBook;
 
@@ -21,7 +23,7 @@ public class JsonAddressBookStorage {
 
     private static final Logger logger = LogsCenter.getLogger(JsonAddressBookStorage.class);
 
-    private Path filePath;
+    private final Path filePath;
 
     public JsonAddressBookStorage(Path filePath) {
         this.filePath = filePath;
@@ -82,8 +84,32 @@ public class JsonAddressBookStorage {
         requireNonNull(addressBook);
         requireNonNull(filePath);
 
-        FileUtil.createIfMissing(filePath);
-        JsonUtil.saveJsonFile(new JsonSerializableAddressBook(addressBook), filePath);
+        String json = JsonUtil.toJsonString(new JsonSerializableAddressBook(addressBook));
+        Path destination = filePath.toAbsolutePath();
+        Path parent = destination.getParent();
+        Files.createDirectories(parent);
+        Path temporaryFile = Files.createTempFile(parent, ".addressbook-", ".tmp");
+        try {
+            writeTemporaryFile(temporaryFile, json);
+            replaceFile(temporaryFile, destination);
+        } finally {
+            try {
+                Files.deleteIfExists(temporaryFile);
+            } catch (IOException cleanupError) {
+                logger.warning("Could not remove temporary address book file: " + cleanupError.getMessage());
+            }
+        }
+    }
+
+    /** Separate seam for deterministic write-failure tests. */
+    void writeTemporaryFile(Path temporaryFile, String json) throws IOException {
+        Files.writeString(temporaryFile, json, StandardCharsets.UTF_8);
+    }
+
+    /** Replaces the destination only after the complete temporary file has been written. */
+    void replaceFile(Path temporaryFile, Path destination) throws IOException {
+        Files.move(temporaryFile, destination, StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING);
     }
 
 }

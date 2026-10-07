@@ -3,9 +3,9 @@ package seedu.address.logic;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
-import java.nio.file.AccessDeniedException;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -26,53 +26,58 @@ import seedu.address.storage.Storage;
  * The main LogicManager of the app.
  */
 public class LogicManager implements Logic {
-    public static final String FILE_OPS_ERROR_FORMAT = "Could not save data due to the following error: %s";
-
-    public static final String FILE_OPS_PERMISSION_ERROR_FORMAT =
-            "Could not save data to file %s due to insufficient permissions to write to the file or the folder.";
+    public static final String MESSAGE_SAVE_FAILED =
+            "Changes could not be saved. No changes were kept. Try the command again.";
 
     private final Logger logger = LogsCenter.getLogger(LogicManager.class);
 
     private final Model model;
     private final Storage storage;
-    private final Clock clock;
+    private final Supplier<Clock> clockSource;
     private final AddressBookParser addressBookParser;
 
     /**
      * Constructs a {@code LogicManager} with the given {@code Model} and {@code Storage}.
      */
     public LogicManager(Model model, Storage storage) {
-        this(model, storage, Clock.systemDefaultZone());
+        this(model, storage, Clock::systemDefaultZone);
     }
 
     /**
      * Constructs a {@code LogicManager} with an injectable clock for date-dependent commands.
      */
     public LogicManager(Model model, Storage storage, Clock clock) {
+        this(model, storage, fixedClockSource(clock));
+    }
+
+    private LogicManager(Model model, Storage storage, Supplier<Clock> clockSource) {
         this.model = requireNonNull(model);
         this.storage = requireNonNull(storage);
-        this.clock = requireNonNull(clock);
+        this.clockSource = requireNonNull(clockSource);
         addressBookParser = new AddressBookParser();
+    }
+
+    private static Supplier<Clock> fixedClockSource(Clock clock) {
+        requireNonNull(clock);
+        return () -> clock;
     }
 
     @Override
     public CommandResult execute(String commandText) throws CommandException, ParseException {
-        logger.info("----------------[USER COMMAND][" + commandText + "]");
-
-        refreshToday();
-
-        CommandResult commandResult;
         Command command = addressBookParser.parseCommand(commandText, model.isDataLoadingBlocked());
-        commandResult = command.execute(model);
+        logger.info("Executing " + command.getClass().getSimpleName());
+        Model candidate = model.forkForCommand(LocalDate.now(clockSource.get()));
+        CommandResult commandResult = command.execute(candidate);
 
-        try {
-            storage.saveAddressBook(model.getAddressBook());
-        } catch (AccessDeniedException e) {
-            throw new CommandException(String.format(FILE_OPS_PERMISSION_ERROR_FORMAT, e.getMessage()), e);
-        } catch (IOException ioe) {
-            throw new CommandException(String.format(FILE_OPS_ERROR_FORMAT, ioe.getMessage()), ioe);
+        if (candidate.hasUnsavedChanges()) {
+            try {
+                storage.saveAddressBook(candidate.getAddressBook());
+            } catch (IOException e) {
+                throw new CommandException(MESSAGE_SAVE_FAILED, e);
+            }
         }
 
+        model.commitFrom(candidate);
         return commandResult;
     }
 
@@ -88,7 +93,7 @@ public class LogicManager implements Logic {
 
     @Override
     public void refreshToday() {
-        model.updateToday(LocalDate.now(clock));
+        model.updateToday(LocalDate.now(clockSource.get()));
     }
 
     @Override

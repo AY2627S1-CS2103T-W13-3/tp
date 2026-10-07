@@ -12,7 +12,6 @@ import static seedu.address.logic.commands.CommandTestUtil.EMAIL_DESC_AMY;
 import static seedu.address.logic.commands.CommandTestUtil.NAME_DESC_AMY;
 import static seedu.address.logic.commands.CommandTestUtil.PHONE_DESC_AMY;
 import static seedu.address.testutil.Assert.assertThrows;
-import static seedu.address.testutil.TypicalPersons.AMY;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
@@ -90,14 +89,12 @@ public class LogicManagerTest {
 
     @Test
     public void execute_storageThrowsIoException_throwsCommandException() {
-        assertCommandFailureForExceptionFromStorage(DUMMY_IO_EXCEPTION, String.format(
-                LogicManager.FILE_OPS_ERROR_FORMAT, DUMMY_IO_EXCEPTION.getMessage()));
+        assertCommandFailureForExceptionFromStorage(DUMMY_IO_EXCEPTION, LogicManager.MESSAGE_SAVE_FAILED);
     }
 
     @Test
     public void execute_storageThrowsAdException_throwsCommandException() {
-        assertCommandFailureForExceptionFromStorage(DUMMY_AD_EXCEPTION, String.format(
-                LogicManager.FILE_OPS_PERMISSION_ERROR_FORMAT, DUMMY_AD_EXCEPTION.getMessage()));
+        assertCommandFailureForExceptionFromStorage(DUMMY_AD_EXCEPTION, LogicManager.MESSAGE_SAVE_FAILED);
     }
 
     @Test
@@ -155,13 +152,13 @@ public class LogicManagerTest {
     }
 
     @Test
-    public void execute_afterMidnightInvalidCommand_refreshesDate() {
+    public void execute_afterMidnightInvalidCommand_keepsDate() {
         LocalDate startupDate = LocalDate.of(2026, 10, 7);
         Model liveModel = new ModelManager(new AddressBook(), new UserPrefs(), startupDate, false);
         Clock nextDayClock = Clock.fixed(Instant.parse("2026-10-08T00:00:00Z"), ZoneOffset.UTC);
         Logic nextDayLogic = new LogicManager(liveModel, storage, nextDayClock);
         assertThrows(ParseException.class, () -> nextDayLogic.execute("invalid"));
-        assertEquals(startupDate.plusDays(1), liveModel.getToday());
+        assertEquals(startupDate, liveModel.getToday());
     }
 
     @Test
@@ -289,9 +286,8 @@ public class LogicManagerTest {
         // Triggers the saveAddressBook method by executing an add command
         String addCommand = AddCommand.COMMAND_WORD + NAME_DESC_AMY + PHONE_DESC_AMY
                 + EMAIL_DESC_AMY + ADDRESS_DESC_AMY;
-        Person expectedPerson = new PersonBuilder(AMY).withTags().build();
-        ModelManager expectedModel = new ModelManager();
-        expectedModel.addPerson(expectedPerson);
+        Model expectedModel = new ModelManager(model.getAddressBook(), model.getUserPrefs(), model.getToday(),
+                model.isDataLoadingBlocked());
         assertCommandFailure(addCommand, CommandException.class, expectedMessage, expectedModel);
     }
 }

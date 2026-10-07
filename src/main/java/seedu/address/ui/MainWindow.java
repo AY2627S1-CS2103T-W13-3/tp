@@ -14,6 +14,7 @@ import javafx.stage.Stage;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.logic.Logic;
+import seedu.address.logic.Messages;
 import seedu.address.logic.commands.CommandResult;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
@@ -120,7 +121,7 @@ public class MainWindow extends UiPart<Stage> {
         personListPanelPlaceholder.getChildren().add(personListPanel.getRoot());
 
         resultDisplay = new ResultDisplay();
-        resultDisplay.setFeedbackToUser(ListCommand.MESSAGE_SUCCESS);
+        resultDisplay.setFeedbackToUser(initialFeedback(logic.isDataLoadingBlocked()));
         resultDisplayPlaceholder.getChildren().add(resultDisplay.getRoot());
 
         StatusBarFooter statusBarFooter = new StatusBarFooter(dataFilePath);
@@ -174,6 +175,15 @@ public class MainWindow extends UiPart<Stage> {
         return personListPanel;
     }
 
+    /** The loading warning remains visible even after read-only commands or errors. */
+    static String feedbackWithLoadWarning(boolean loadingBlocked, String feedback) {
+        return loadingBlocked ? Messages.MESSAGE_LOAD_WARNING + "\n" + feedback : feedback;
+    }
+
+    static String initialFeedback(boolean loadingBlocked) {
+        return loadingBlocked ? Messages.MESSAGE_LOAD_WARNING : ListCommand.MESSAGE_SUCCESS;
+    }
+
     /**
      * Executes the command and returns the result.
      *
@@ -183,7 +193,8 @@ public class MainWindow extends UiPart<Stage> {
         try {
             CommandResult commandResult = logic.execute(commandText);
             logger.info("Result: " + commandResult.getFeedbackToUser());
-            resultDisplay.setFeedbackToUser(commandResult.getFeedbackToUser());
+            resultDisplay.setFeedbackToUser(feedbackWithLoadWarning(logic.isDataLoadingBlocked(),
+                    commandResult.getFeedbackToUser()));
 
             if (commandResult.isShowHelp()) {
                 handleHelp();
@@ -196,7 +207,7 @@ public class MainWindow extends UiPart<Stage> {
             return commandResult;
         } catch (CommandException | ParseException e) {
             logger.info("An error occurred while executing a command.");
-            resultDisplay.setFeedbackToUser(e.getMessage());
+            resultDisplay.setFeedbackToUser(feedbackWithLoadWarning(logic.isDataLoadingBlocked(), e.getMessage()));
             throw e;
         }
     }
