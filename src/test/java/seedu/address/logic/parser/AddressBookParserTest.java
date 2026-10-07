@@ -114,26 +114,24 @@ public class AddressBookParserTest {
 
     @Test
     public void parseCommand_controlCharacter_throwsBeforeOtherChecks() {
-        assertThrows(ParseException.class, MESSAGE_INVALID_CHARACTERS,
-                () -> parser.parseCommand("unknown\u2028command", true));
+        assertThrows(ParseException.class, MESSAGE_INVALID_CHARACTERS, () ->
+                parser.parseCommand("unknown\u2028command", true));
     }
 
     @Test
     public void parseCommand_loadingBlocked_blocksMutationsButNotQueries() throws Exception {
-        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED,
-                () -> parser.parseCommand("followup malformed", true));
-        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED,
-                () -> parser.parseCommand("add malformed", true));
-        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED,
-                () -> parser.parseCommand("edit malformed", true));
-        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED,
-                () -> parser.parseCommand("delete malformed", true));
-        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED,
-                () -> parser.parseCommand("clear", true));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("followup malformed", true));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("add malformed", true));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("edit malformed", true));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("delete malformed", true));
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+                parser.parseCommand("clear", true));
         assertTrue(parser.parseCommand("followups", true) instanceof FollowUpsCommand);
-        assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND,
-                () -> parser.parseCommand("unknown", true));
-        assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND,
-                () -> parser.parseCommand("FOLLOWUP 1 clear"));
+        assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("unknown", true));
+        assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("FOLLOWUP 1 clear"));
     }
 }
