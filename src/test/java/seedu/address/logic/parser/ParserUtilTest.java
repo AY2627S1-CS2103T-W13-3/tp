@@ -32,7 +32,7 @@ public class ParserUtilTest {
     private static final String VALID_TAG_1 = "friend";
     private static final String VALID_TAG_2 = "neighbour";
 
-    private static final String WHITESPACE = " \t\r\n";
+    private static final String WHITESPACE = "   ";
 
     @Test
     public void parseIndex_invalidInput_throwsParseException() {
@@ -191,4 +191,31 @@ public class ParserUtilTest {
 
         assertEquals(expectedTagSet, actualTagSet);
     }
+
+    @Test
+    public void parseIndex_boundariesAndLeadingZeroes_matchClientContract() throws Exception {
+        assertEquals(INDEX_FIRST_PERSON, ParserUtil.parseIndex("0001"));
+        assertEquals(INDEX_FIRST_PERSON, ParserUtil.parseIndex("0".repeat(10000) + "1"));
+        assertEquals(2147483647, ParserUtil.parseIndex("0002147483647").getOneBased());
+        for (String invalid : List.of("", "0", "0000", "-1", "+1", "1.0", "2147483648", "١", "１", "1\t")) {
+            assertThrows(ParseException.class, "Index must be a positive integer from 1 to 2147483647.", ()
+                -> ParserUtil.parseIndex(invalid));
+        }
+    }
+
+    @Test
+    public void parseTags_caseVariants_deduplicatesAfterNormalization() throws Exception {
+        assertEquals(Set.of(new Tag("health")), ParserUtil.parseTags(List.of("HEALTH", "health", "Health")));
+    }
+
+    @Test
+    public void parseContactFields_controlsAreNotTrimmedAway() {
+        assertThrows(ParseException.class, Name.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseName("\tRachel"));
+        assertThrows(ParseException.class, Phone.MESSAGE_CONSTRAINTS, () -> ParserUtil.parsePhone("001\n"));
+        assertThrows(ParseException.class, Email.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseEmail("a@bc\r"));
+        assertThrows(ParseException.class, Address.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseAddress("Blk 1\t"));
+        assertThrows(ParseException.class, Tag.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseTag("active\n"));
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseIndex(null));
+    }
+
 }

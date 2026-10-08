@@ -1,5 +1,6 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -57,4 +58,13 @@ public class NameTest {
         // different values -> returns false
         assertFalse(name.equals(new Name("Other Valid Name")));
     }
+
+    @Test
+    public void constructor_outerOrdinarySpaces_preservesCaseAndInternalSpaces() {
+        assertEquals("Rachel  Lim", new Name("  Rachel  Lim  ").fullName);
+        for (String invalid : new String[] {"张三", "Émile", "Rachel\tLim", "Rachel\u00a0Lim"}) {
+            assertFalse(Name.isValidName(invalid));
+        }
+    }
+
 }
