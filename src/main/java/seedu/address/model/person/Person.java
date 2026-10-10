@@ -4,6 +4,7 @@ import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -92,8 +93,8 @@ public class Person {
     }
 
     /**
-     * Returns true if both persons have the same name.
-     * This defines a weaker notion of equality between two persons.
+     * Returns true if both persons have exactly the same stored name (legacy name matching).
+     * This is neither duplicate rejection nor stable record identity for profile selection.
      */
     public boolean isSamePerson(Person otherPerson) {
         if (otherPerson == this) {
@@ -102,6 +103,21 @@ public class Person {
 
         return otherPerson != null
                 && otherPerson.getName().equals(getName());
+    }
+
+    /**
+     * Returns true if names match ignoring English case and repeated ordinary spaces, and either
+     * phones match exactly or emails match ignoring case. Other fields do not affect rejection.
+     * This symmetric relation is intentionally non-transitive; do not use it as equality or record identity.
+     */
+    public boolean isDuplicateOf(Person otherPerson) {
+        return otherPerson != null
+                && normalizedName().equals(otherPerson.normalizedName())
+                && (phone.equals(otherPerson.phone) || email.value.equalsIgnoreCase(otherPerson.email.value));
+    }
+
+    private String normalizedName() {
+        return name.fullName.toLowerCase(Locale.ROOT).replaceAll(" +", " ");
     }
 
     /**

@@ -193,4 +193,37 @@ public class AddCommandParserTest {
                 + ADDRESS_DESC_BOB + TAG_DESC_HUSBAND + TAG_DESC_FRIEND,
                 String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddCommand.MESSAGE_USAGE));
     }
+
+    @Test
+    public void parse_shapeErrors_precedeRepeatedPrefixesAndFieldValidation() {
+        assertParseFailure(parser, " n/Bad& n/Rachel p/12 e/bad",
+                "Invalid command format!\nUsage: add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...");
+        assertParseFailure(parser, " text n/Rachel n/Rachel p/001 e/a@bc a/Blk 1",
+                "Invalid command format!\nUsage: add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...");
+        assertParseFailure(parser, " n/Bad& n/Rachel p/12 e/bad a/",
+                "Multiple values specified for the following single-valued field(s): n/");
+    }
+
+    @Test
+    public void parse_fieldValidation_followsNamePhoneEmailAddressThenTags() {
+        assertParseFailure(parser, " a/ t/! e/bad p/12 n/Bad&",
+                "Names must contain only English letters, digits and spaces. Names must not be blank.");
+        assertParseFailure(parser, " a/ t/! e/bad p/12 n/Rachel",
+                "Phone numbers must contain only digits 0-9 and have at least 3 digits.");
+        assertParseFailure(parser, " a/ t/! e/bad p/001 n/Rachel",
+                "Email format is not supported. Example: rachel.lim+work@example.com.");
+        assertParseFailure(parser, " a/ t/! e/a@bc p/001 n/Rachel", "Addresses must not be blank.");
+        assertParseFailure(parser, " a/Blk 1 t/! e/a@bc p/001 n/Rachel",
+                "Tags must contain only English letters and digits. Tags must not be blank.");
+    }
+
+    @Test
+    public void parse_unicodeAddressAndMixedCaseTags_preservesLiteralUnknownPrefix() {
+        Person person = new PersonBuilder().withName("Rachel  Lim").withPhone("001")
+                .withEmail("Rachel@example.com").withAddress("新加坡 🏠 z/literal")
+                .withTags("health", "active").build();
+        assertParseSuccess(parser, " n/  Rachel  Lim  p/001 e/Rachel@example.com a/新加坡 🏠 z/literal"
+                + " t/HEALTH t/health t/active", new AddCommand(person));
+    }
+
 }

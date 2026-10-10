@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import seedu.address.commons.core.index.Index;
-import seedu.address.commons.util.StringUtil;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.Address;
 import seedu.address.model.person.Email;
@@ -23,27 +22,38 @@ public class ParserUtil {
     public static final String MESSAGE_INVALID_INDEX = "Index must be a positive integer from 1 to 2147483647.";
 
     /**
-     * Parses {@code oneBasedIndex} into an {@code Index} and returns it. Leading and trailing whitespaces will be
+     * Parses {@code oneBasedIndex} into an {@code Index} and returns it. Leading and trailing ordinary spaces will be
      * trimmed.
-     * @throws ParseException if the specified index is invalid (not a non-zero unsigned integer).
+     * @throws ParseException if the specified index is invalid (not an ASCII integer from 1 through 2147483647).
      */
     public static Index parseIndex(String oneBasedIndex) throws ParseException {
-        String trimmedIndex = oneBasedIndex.trim();
-        if (!StringUtil.isNonZeroUnsignedInteger(trimmedIndex)) {
+        requireNonNull(oneBasedIndex);
+        String trimmedIndex = trimOrdinarySpaces(oneBasedIndex);
+        if (!trimmedIndex.matches("[0-9]+")) {
             throw new ParseException(MESSAGE_INVALID_INDEX);
         }
-        return Index.fromOneBased(Integer.parseInt(trimmedIndex));
+
+        int firstSignificantDigit = 0;
+        while (firstSignificantDigit < trimmedIndex.length() && trimmedIndex.charAt(firstSignificantDigit) == '0') {
+            firstSignificantDigit++;
+        }
+        String significantDigits = trimmedIndex.substring(firstSignificantDigit);
+        if (significantDigits.isEmpty() || significantDigits.length() > 10
+                || (significantDigits.length() == 10 && significantDigits.compareTo("2147483647") > 0)) {
+            throw new ParseException(MESSAGE_INVALID_INDEX);
+        }
+        return Index.fromOneBased(Integer.parseInt(significantDigits));
     }
 
     /**
      * Parses a {@code String name} into a {@code Name}.
-     * Leading and trailing whitespaces will be trimmed.
+     * Leading and trailing ordinary spaces will be trimmed.
      *
      * @throws ParseException if the given {@code name} is invalid.
      */
     public static Name parseName(String name) throws ParseException {
         requireNonNull(name);
-        String trimmedName = name.trim();
+        String trimmedName = trimOrdinarySpaces(name);
         if (!Name.isValidName(trimmedName)) {
             throw new ParseException(Name.MESSAGE_CONSTRAINTS);
         }
@@ -52,13 +62,13 @@ public class ParserUtil {
 
     /**
      * Parses a {@code String phone} into a {@code Phone}.
-     * Leading and trailing whitespaces will be trimmed.
+     * Leading and trailing ordinary spaces will be trimmed.
      *
      * @throws ParseException if the given {@code phone} is invalid.
      */
     public static Phone parsePhone(String phone) throws ParseException {
         requireNonNull(phone);
-        String trimmedPhone = phone.trim();
+        String trimmedPhone = trimOrdinarySpaces(phone);
         if (!Phone.isValidPhone(trimmedPhone)) {
             throw new ParseException(Phone.MESSAGE_CONSTRAINTS);
         }
@@ -67,13 +77,13 @@ public class ParserUtil {
 
     /**
      * Parses a {@code String address} into an {@code Address}.
-     * Leading and trailing whitespaces will be trimmed.
+     * Leading and trailing ordinary spaces will be trimmed.
      *
      * @throws ParseException if the given {@code address} is invalid.
      */
     public static Address parseAddress(String address) throws ParseException {
         requireNonNull(address);
-        String trimmedAddress = address.trim();
+        String trimmedAddress = trimOrdinarySpaces(address);
         if (!Address.isValidAddress(trimmedAddress)) {
             throw new ParseException(Address.MESSAGE_CONSTRAINTS);
         }
@@ -82,13 +92,13 @@ public class ParserUtil {
 
     /**
      * Parses a {@code String email} into an {@code Email}.
-     * Leading and trailing whitespaces will be trimmed.
+     * Leading and trailing ordinary spaces will be trimmed.
      *
      * @throws ParseException if the given {@code email} is invalid.
      */
     public static Email parseEmail(String email) throws ParseException {
         requireNonNull(email);
-        String trimmedEmail = email.trim();
+        String trimmedEmail = trimOrdinarySpaces(email);
         if (!Email.isValidEmail(trimmedEmail)) {
             throw new ParseException(Email.MESSAGE_CONSTRAINTS);
         }
@@ -97,13 +107,13 @@ public class ParserUtil {
 
     /**
      * Parses a {@code String tag} into a {@code Tag}.
-     * Leading and trailing whitespaces will be trimmed.
+     * Leading and trailing ordinary spaces will be trimmed.
      *
      * @throws ParseException if the given {@code tag} is invalid.
      */
     public static Tag parseTag(String tag) throws ParseException {
         requireNonNull(tag);
-        String trimmedTag = tag.trim();
+        String trimmedTag = trimOrdinarySpaces(tag);
         if (!Tag.isValidTagName(trimmedTag)) {
             throw new ParseException(Tag.MESSAGE_CONSTRAINTS);
         }
@@ -121,4 +131,9 @@ public class ParserUtil {
         }
         return tagSet;
     }
+
+    private static String trimOrdinarySpaces(String value) {
+        return value.replaceAll("^ +| +$", "");
+    }
+
 }

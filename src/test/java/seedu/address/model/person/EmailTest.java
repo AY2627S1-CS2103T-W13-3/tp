@@ -1,8 +1,11 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -85,4 +88,17 @@ public class EmailTest {
         // different values -> returns false
         assertFalse(email.equals(new Email("other.valid@email")));
     }
+
+    @Test
+    public void isValidEmail_mvpExamples_matchGrammar() {
+        for (String valid : List.of("john@example", "john@ab-c", "john@a-bc", "a@12", "Rachel+work@example.com")) {
+            assertTrue(Email.isValidEmail(valid));
+        }
+        for (String invalid : List.of("john..doe@example.com", "john@a-b", "john@example-.com",
+                "john@@example.com", "john@ab--cd", "john@a.b", "é@example.com", "john@例子.com")) {
+            assertFalse(Email.isValidEmail(invalid));
+        }
+        assertEquals("Rachel.Lim+work@Example.COM", new Email("Rachel.Lim+work@Example.COM").value);
+    }
+
 }

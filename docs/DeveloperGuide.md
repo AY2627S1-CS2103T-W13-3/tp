@@ -9,7 +9,8 @@ title: Developer Guide
 
 ## **Acknowledgements**
 
-* _{List the sources of reused or adapted ideas, code, documentation, and third-party libraries here, with links to the originals.}_
+* PolicyHarbor adapts [AddressBook Level 3](https://github.com/se-edu/addressbook-level3), retaining its Java/JavaFX architecture and test conventions.
+* Ayush Jain used OpenAI Codex to assist with the client-record validation, duplicate detection, tag formatting, add/delete parsing and messages, associated tests, and the related User/Developer Guide sections in this increment.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -156,6 +157,35 @@ Classes used by multiple components are in the `seedu.address.commons` package.
 ## **Implementation**
 
 This section describes some noteworthy details on how certain features are implemented.
+
+### Client-record validation and duplicate rejection
+
+Contact values remain immutable `Name`, `Phone`, `Email` and `Address` objects inside `Person`. Name and address constructors trim outer U+0020 spaces, retaining internal spaces and case. Shared parsers trim only U+0020 for all contact fields. Names, phones and tags use ASCII validation; addresses accept Unicode single-line text but reject C0/C1 controls and U+2028/U+2029. Email keeps the existing grammar, including the adjacent alphanumeric pair in the final domain label, and preserves stored case.
+
+`Person.isDuplicateOf` implements normalized-name equality **AND** (exact-phone equality **OR** case-insensitive-email equality). Names are normalized only for this comparison: lowercase with `Locale.ROOT` and collapse ordinary-space runs. Stored names remain unchanged. Address, tags and follow-up do not participate.
+
+The relation is symmetric but **not transitive**. For a common name, record A `(111, one@example.com)` duplicates B `(111, two@example.com)`, and B duplicates C `(222, two@example.com)`, while A and C are allowed together. Consequently:
+
+* `UniquePersonList.contains` checks for a duplicate against every existing record.
+* `setPersons` checks every pair before replacing the list, so ordering cannot hide a conflict.
+* `setPerson` resolves the target by full value equality, excludes only that full-list slot and checks the replacement against every other record before updating. Matching the old target does not bypass those checks.
+* Follow-up-only replacements retain the contact fields and remain valid. Two same-name clients can coexist and be replaced or deleted independently.
+
+`AddressBook` delegates to this collection path. The existing model, command candidates and storage conversion therefore reuse the same rejection rule. Storage adapter alignment and profile selection belong to their separate packages; this increment introduces no persistent ID or profile API.
+
+**Alternatives considered:** name-only rejection prevents legitimate same-name clients. Redefining `Person.equals`/`hashCode` around duplicate rejection would violate equality's transitivity. Both are unsuitable. `Person.isSamePerson` retains exact stored-name matching for legacy callers; it is neither the duplicate predicate nor a stable record-identity key. `equals`/`hashCode` still include all stored fields and follow-up.
+
+`Tag` normalizes validated ASCII values with `Locale.ROOT`, so sets deduplicate case variants. `Tag.formatTags(Set<Tag>)` is the shared display API: sorted bracketed lowercase values separated by one space, or `None`. `Messages.format(Person)` uses it and emits contact details only; add/delete feedback does not append follow-up information.
+
+### Client command parsing and publication
+
+`AddCommandParser` retains the existing tokenizer. It checks required prefixes and preamble before repeated required prefixes, then validates name, phone, email, address and tags in that order. Unrecognized prefixes remain part of the current field value. The model's whole-address-book duplicate check follows parsing, even when the client is hidden by a filter. Successful addition resets the view to the full insertion-order list.
+
+`DeleteCommandParser` checks for exactly one ordinary-space-separated token before calling `ParserUtil.parseIndex`. The shared helper accepts ASCII digits, trims outer U+0020, removes leading zeroes before bounded conversion and rejects values outside `1..2147483647` without leaking `NumberFormatException`. `FollowUpParserUtil` delegates to it. The future view parser can consume the same helper. Delete resolves an index against `Model.getFilteredPersonList`, retaining the active mode and deleting the full record with its action.
+
+The merged `LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, index and save failures preserve the live data, list mode/order and date; successful read-only commands do not save. This increment tests that existing transaction boundary with client commands instead of introducing another execution path. UI selection and excluded legacy command routes are outside this package.
+
+Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, index boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, pending/filter indices, follow-up targeting and injected save failures. Parser tests cover syntax separately from command displayed-range checks.
 
 ### \[Proposed\] Undo/redo feature
 
@@ -470,22 +500,35 @@ testers are expected to do more *exploratory* testing.
 
 1. _{ more test cases …​ }_
 
-### Deleting a person
+### Client creation, duplicates and deletion
 
-1. Deleting a person while all persons are being shown
+Run each scenario in a fresh writable test folder with an empty client dataset and Java 25. Use synthetic data. Inspect `list` before each indexed command; preceding deletions change row numbers. These are manual procedures to run against the built JAR, not a claim that GUI testing has already been performed.
 
-   1. Prerequisites: List all persons using the `list` command, with multiple persons in the list.
+1. Contact normalization and tags:
+   1. Enter `add n/  Rachel  Lim  p/001 e/Rachel@example.com a/新加坡 🏠 t/HEALTH t/health t/active`.
+   1. Expected: the client is added, the stored name retains the two internal spaces, phone remains `001`, email retains case and address retains Unicode. Feedback ends in `Tags: [active] [health]`.
+   1. Close and relaunch. Expected: the same stored contact values remain.
+1. Duplicate partition (new folder):
+   1. Add `add n/Rachel Lim p/001 e/Rachel@example.com a/Blk 1`.
+   1. Add `add n/Rachel Lim p/002 e/other@example.com a/Blk 2`. Expected: both clients exist.
+   1. Try `add n/RACHEL  LIM p/001 e/new@example.com a/Blk 3`. Expected: `This client already exists in Policy Harbour.`; list unchanged.
+   1. Try `add n/rachel lim p/003 e/RACHEL@EXAMPLE.COM a/Blk 3`. Expected: the same duplicate error; list unchanged.
+   1. Add `add n/John Tan p/001 e/Rachel@example.com a/Blk 3`. Expected: allowed because the name differs.
+1. Validation order (new folder):
+   1. Try `add n/Bad& n/Rachel p/12 e/bad`. Expected: format error and the exact add usage because address is missing, before any repeated-prefix or field error.
+   1. Try `add a/ t/! e/bad p/12 n/Bad&`. Expected: the name constraint, before phone/email/address/tag errors.
+   1. Correct the name, phone, email and address in turn. Expected: each remaining constraint is reported in that order; no client is added until all values are valid.
+1. Displayed indices and delete errors (new folder):
+   1. Add the two Rachel records from the duplicate scenario. Enter `find Rachel`, then `delete 01`.
+   1. Expected: only the first displayed Rachel is removed; the other record remains and feedback includes `Tags: None`.
+   1. Try `delete 0 extra`. Expected: `Invalid command format!` plus `Usage: delete INDEX` on the next line.
+   1. Try `delete 0` and `delete 2147483648`. Expected: `Index must be a positive integer from 1 to 2147483647.`
+   1. Try `delete 2147483647`. Expected: `The client index provided is invalid.` All rejected cases preserve the list and data.
+1. Pending-order targeting (new folder):
+   1. Add the two Rachel records. Record a follow-up for row 1 at device-today + 2 days and row 2 at device-today + 1 day using `followup INDEX d/DATE m/ACTION`.
+   1. Enter `followups`, then `delete 1`. Expected: the second-added Rachel (earlier due date) is removed with its action; pending mode remains active with the other Rachel.
 
-   1. Test case: `delete 1`<br>
-      Expected: The first contact is deleted from the list. The status message shows the deleted contact's details.
-
-   1. Test case: `delete 0`<br>
-      Expected: No person is deleted. The status message shows error details.
-
-   1. Other incorrect delete commands to try: `delete`, `delete x`, `...` (where x is larger than the list size)<br>
-      Expected: Similar to previous.
-
-1. _{ more test cases …​ }_
+Injected I/O failure and non-transitive replacement conflicts are automated in `ClientRecordCommandsTest` and `UniquePersonListTest`. A save failure must leave both the displayed state and saved bytes unchanged. The profile, UI layout and startup warning require their owners' separate manual checks.
 
 ### Saving data
 

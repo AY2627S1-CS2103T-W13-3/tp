@@ -1,5 +1,6 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -53,4 +54,15 @@ public class AddressTest {
         // different values -> returns false
         assertFalse(address.equals(new Address("Other Valid Address")));
     }
+
+    @Test
+    public void constructor_singleLineUnicode_trimsOrdinarySpacesAndPreservesText() {
+        assertEquals("新加坡 🏠 #02-01", new Address("  新加坡 🏠 #02-01  ").value);
+        assertTrue(Address.isValidAddress("\u00a0"));
+        for (String invalid : new String[] {"A\nB", "A\rB", "A\tB", "A\u0085B", "A\u2028B", "A\u2029B"}) {
+            assertFalse(Address.isValidAddress(invalid));
+            assertThrows(IllegalArgumentException.class, () -> new Address(invalid));
+        }
+    }
+
 }

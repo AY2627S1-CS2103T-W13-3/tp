@@ -9,13 +9,10 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
  */
 public class Address {
 
-    public static final String MESSAGE_CONSTRAINTS = "Addresses can take any values, and should not be blank";
+    public static final String MESSAGE_CONSTRAINTS = "Addresses must not be blank.";
 
-    /*
-     * The first character of the address must not be a whitespace,
-     * otherwise " " (a blank string) becomes a valid input.
-     */
-    public static final String VALIDATION_REGEX = "[^\\s].*";
+    // Single-line text may contain Unicode and punctuation, but not controls or line separators.
+    public static final String VALIDATION_REGEX = "[^\\x00-\\x1f\\x7f-\\x9f\\u2028\\u2029]+";
 
     public final String value;
 
@@ -26,15 +23,17 @@ public class Address {
      */
     public Address(String address) {
         requireNonNull(address);
-        checkArgument(isValidAddress(address), MESSAGE_CONSTRAINTS);
-        value = address;
+        String trimmedAddress = address.replaceAll("^ +| +$", "");
+        checkArgument(isValidAddress(trimmedAddress), MESSAGE_CONSTRAINTS);
+        value = trimmedAddress;
     }
 
     /**
      * Returns true if a given string is a valid address.
      */
     public static boolean isValidAddress(String test) {
-        return test.matches(VALIDATION_REGEX);
+        String trimmedAddress = test.replaceAll("^ +| +$", "");
+        return !trimmedAddress.isEmpty() && trimmedAddress.matches(VALIDATION_REGEX);
     }
 
     @Override

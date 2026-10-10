@@ -103,4 +103,21 @@ public class AddressBookTest {
         }
     }
 
+    @Test
+    public void resetData_sameNameDifferentContacts_acceptsBoth() {
+        Person otherAlice = new PersonBuilder(ALICE).withPhone("000").withEmail("other@example.com").build();
+        addressBook.resetData(new AddressBookStub(List.of(ALICE, otherAlice)));
+        assertEquals(List.of(ALICE, otherAlice), addressBook.getPersonList());
+        assertEquals(addressBook, new AddressBook(addressBook));
+    }
+
+    @Test
+    public void resetData_normalizedDuplicate_rejectsWithoutChanges() {
+        addressBook.addPerson(ALICE);
+        Person duplicate = new PersonBuilder(ALICE).withName("ALICE   PAULINE").build();
+        assertThrows(DuplicatePersonException.class, ()
+            -> addressBook.resetData(new AddressBookStub(List.of(ALICE, duplicate))));
+        assertEquals(List.of(ALICE), addressBook.getPersonList());
+    }
+
 }
