@@ -40,7 +40,8 @@ public interface Model {
     ReadOnlyAddressBook getAddressBook();
 
     /**
-     * Returns true if a person with the same identity as {@code person} exists in the address book.
+     * Returns true if an existing record duplicates {@code person} according to
+     * {@link Person#isDuplicateOf(Person)}. This is not a selection identity check.
      */
     boolean hasPerson(Person person);
 
@@ -59,7 +60,7 @@ public interface Model {
     /**
      * Replaces the given person {@code target} with {@code editedPerson}.
      * {@code target} must exist in the address book.
-     * The person identity of {@code editedPerson} must not be the same as another existing person in the address book.
+     * {@code editedPerson} must not duplicate any record other than the replaced target.
      */
     void setPerson(Person target, Person editedPerson);
 
@@ -78,11 +79,25 @@ public interface Model {
     /** Returns whether the displayed list is in pending-follow-up mode. */
     ReadOnlyBooleanProperty showingFollowUpsProperty();
 
+    /**
+     * Returns the stable, read-only selected-client property; null means no selection.
+     */
+    ReadOnlyObjectProperty<Person> selectedPersonProperty();
+
+    /**
+     * Selects the exact canonical record in the current displayed list, without marking data dirty.
+     * Only the view command explicitly selects a client; other operations reconcile or clear it.
+     *
+     * @throws NullPointerException if {@code person} is null.
+     * @throws IllegalArgumentException if that instance is not in the current displayed list.
+     */
+    void selectPerson(Person person);
+
     /** Returns whether startup loading failed and client mutations must be blocked. */
     boolean isDataLoadingBlocked();
 
     /**
-     * Copies data, preferences and view state into an isolated, initially clean command candidate.
+     * Copies data, preferences and view state, including selection, into an isolated, initially clean candidate.
      * The caller supplies the command's sampled date. Discard the candidate on failure.
      */
     Model forkForCommand(LocalDate today);

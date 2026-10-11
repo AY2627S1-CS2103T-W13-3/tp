@@ -183,6 +183,24 @@ Deleted client: Rachel Lim; Phone: 001; Email: Rachel@example.com; Address: Blk 
 
 Shape errors take priority over index syntax. A rejected delete leaves data, the current list and date unchanged. A save failure also keeps the previous state and reports `Changes could not be saved. No changes were kept. Try the command again.` Deletion is blocked if saved data could not be loaded at startup.
 
+### Keeping the same client profile open `[planned; pending integration]`
+
+The selection model is implemented, but the `view` command and profile panel are not available in this increment. The following describes the planned behaviour once those features are integrated; it is not a list of commands you can use to open a profile yet.
+
+Your open profile will follow the client, even when their row number changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
+
+| Change | Planned result for your open profile |
+| --- | --- |
+| Show the full list or add a client | Keep the same client open. |
+| Search or show pending follow-ups | Keep the client open only if they remain in the displayed list; otherwise close the profile. |
+| Record or replace that client's follow-up | Update their profile and keep it open, even if the pending list moves their row. |
+| Clear that client's follow-up in the full list or search results | Keep their profile open without a follow-up. |
+| Clear that client's follow-up in the pending list | Close their profile because the client leaves the pending list. |
+| Delete the open client | Close their profile; do not open the client who inherits their row number. |
+| Delete another client or change another client's follow-up | Keep the same client open despite any renumbering. |
+
+Once a profile closes because its client leaves the list, returning to the full list will not reopen it. You will need another successful `view` command. Reopening the application will also start without an open profile. A failed command or failed save must leave the previous profile unchanged; this requires the later command and profile integration checks.
+
 ### Clearing all entries: `clear`
 
 Clears all entries from the address book.
