@@ -166,6 +166,16 @@ public class AddCommandTest {
         }
 
         @Override
+        public ReadOnlyObjectProperty<Person> selectedPersonProperty() {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public void selectPerson(Person person) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
         public boolean isDataLoadingBlocked() {
             throw new AssertionError("This method should not be called.");
         }

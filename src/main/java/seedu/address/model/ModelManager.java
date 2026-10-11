@@ -1,12 +1,14 @@
 package seedu.address.model;
 
 import static java.util.Objects.requireNonNull;
+import static seedu.address.commons.util.AppUtil.checkArgument;
 import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 
@@ -33,6 +35,7 @@ public class ModelManager implements Model {
             FXCollections.unmodifiableObservableList(displayedPersons);
     private final ReadOnlyObjectWrapper<LocalDate> today = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyBooleanWrapper showingFollowUps = new ReadOnlyBooleanWrapper(false);
+    private final ReadOnlyObjectWrapper<Person> selectedPerson = new ReadOnlyObjectWrapper<>();
     private final boolean dataLoadingBlocked;
     private Predicate<Person> activePredicate = PREDICATE_SHOW_ALL_PERSONS;
     private boolean unsavedChanges;
@@ -117,10 +120,13 @@ public class ModelManager implements Model {
     @Override
     public void setPerson(Person target, Person editedPerson) {
         requireAllNonNull(target, editedPerson);
-
+        // Collection target lookup accepts equal values; track the canonical slot it will replace.
+        int targetIndex = addressBook.getPersonList().indexOf(target);
+        boolean isSelectedTarget = targetIndex >= 0
+                && addressBook.getPersonList().get(targetIndex) == selectedPerson.get();
         addressBook.setPerson(target, editedPerson);
         unsavedChanges = true;
-        refreshDisplayedPersons();
+        refreshDisplayedPersons(isSelectedTarget ? editedPerson : selectedPerson.get());
     }
 
     //=========== Filtered Person List Accessors =============================================================
@@ -174,6 +180,19 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public ReadOnlyObjectProperty<Person> selectedPersonProperty() {
+        return selectedPerson.getReadOnlyProperty();
+    }
+
+    @Override
+    public void selectPerson(Person person) {
+        requireNonNull(person);
+        checkArgument(displayedPersons.stream().anyMatch(visible -> visible == person),
+                "Selected client must be a canonical member of the displayed list.");
+        selectedPerson.set(person);
+    }
+
+    @Override
     public boolean isDataLoadingBlocked() {
         return dataLoadingBlocked;
     }
@@ -183,7 +202,8 @@ public class ModelManager implements Model {
         ModelManager candidate = new ModelManager(addressBook, userPrefs, commandToday, dataLoadingBlocked);
         candidate.activePredicate = activePredicate;
         candidate.showingFollowUps.set(showingFollowUps.get());
-        candidate.refreshDisplayedPersons();
+        // Person values are immutable and copied by reference into the candidate's full list.
+        candidate.refreshDisplayedPersons(selectedPerson.get());
         return candidate;
     }
 
@@ -196,6 +216,7 @@ public class ModelManager implements Model {
     public void commitFrom(Model candidate) {
         // Candidates originate from forkForCommand; their data is already validated.
         ModelManager commandModel = (ModelManager) requireNonNull(candidate);
+        int selectedIndex = commandModel.getSelectedPersonIndex();
         if (!addressBook.equals(commandModel.addressBook)) {
             addressBook.resetData(commandModel.addressBook);
         }
@@ -204,11 +225,18 @@ public class ModelManager implements Model {
         showingFollowUps.set(commandModel.showingFollowUps.get());
         today.set(commandModel.getToday());
         unsavedChanges = false;
-        refreshDisplayedPersons();
+        // An equal-valued replacement may skip resetData. Bind to the actual committed instance.
+        Person committedSelection = selectedIndex < 0 ? null : addressBook.getPersonList().get(selectedIndex);
+        refreshDisplayedPersons(committedSelection);
     }
 
     /** Rebuilds the derived view once without changing the full list's insertion order. */
     private void refreshDisplayedPersons() {
+        refreshDisplayedPersons(selectedPerson.get());
+    }
+
+    /** Rebuilds the view, retaining the requested canonical selection only while it remains visible. */
+    private void refreshDisplayedPersons(Person selection) {
         List<Person> visible = new ArrayList<>();
         for (Person person : addressBook.getPersonList()) {
             if (showingFollowUps.get() ? person.getFollowUp().isPresent() : activePredicate.test(person)) {
@@ -219,6 +247,18 @@ public class ModelManager implements Model {
             visible.sort(Comparator.comparing(person -> person.getFollowUp().orElseThrow().getDueDate()));
         }
         displayedPersons.setAll(visible);
+        selectedPerson.set(visible.stream().anyMatch(person -> person == selection) ? selection : null);
+    }
+
+    /** Returns the selected record's full-list position for one candidate publication, or -1. */
+    private int getSelectedPersonIndex() {
+        List<Person> persons = addressBook.getPersonList();
+        for (int i = 0; i < persons.size(); i++) {
+            if (persons.get(i) == selectedPerson.get()) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -237,6 +277,7 @@ public class ModelManager implements Model {
                 && displayedPersons.equals(otherModelManager.displayedPersons)
                 && showingFollowUps.get() == otherModelManager.showingFollowUps.get()
                 && getToday().equals(otherModelManager.getToday())
+                && Objects.equals(selectedPerson.get(), otherModelManager.selectedPerson.get())
                 && dataLoadingBlocked == otherModelManager.dataLoadingBlocked;
     }
 
