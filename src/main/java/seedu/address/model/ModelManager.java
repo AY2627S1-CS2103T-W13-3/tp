@@ -230,12 +230,16 @@ public class ModelManager implements Model {
         refreshDisplayedPersons(committedSelection);
     }
 
-    /** Rebuilds the derived view once without changing the full list's insertion order. */
+    /**
+     * Rebuilds the derived view once without changing the full list's insertion order.
+     */
     private void refreshDisplayedPersons() {
         refreshDisplayedPersons(selectedPerson.get());
     }
 
-    /** Rebuilds the view, retaining the requested canonical selection only while it remains visible. */
+    /**
+     * Rebuilds the view, retaining the requested canonical selection only while it remains visible.
+     */
     private void refreshDisplayedPersons(Person selection) {
         List<Person> visible = new ArrayList<>();
         for (Person person : addressBook.getPersonList()) {
@@ -250,7 +254,9 @@ public class ModelManager implements Model {
         selectedPerson.set(visible.stream().anyMatch(person -> person == selection) ? selection : null);
     }
 
-    /** Returns the selected record's full-list position for one candidate publication, or -1. */
+    /**
+     * Returns the selected record's full-list position for one candidate publication, or -1.
+     */
     private int getSelectedPersonIndex() {
         List<Person> persons = addressBook.getPersonList();
         for (int i = 0; i < persons.size(); i++) {

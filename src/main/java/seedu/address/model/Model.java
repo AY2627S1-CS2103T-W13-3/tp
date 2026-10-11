@@ -79,7 +79,9 @@ public interface Model {
     /** Returns whether the displayed list is in pending-follow-up mode. */
     ReadOnlyBooleanProperty showingFollowUpsProperty();
 
-    /** Returns the stable, read-only selected-client property; null means no selection. */
+    /**
+     * Returns the stable, read-only selected-client property; null means no selection.
+     */
     ReadOnlyObjectProperty<Person> selectedPersonProperty();
 
     /**

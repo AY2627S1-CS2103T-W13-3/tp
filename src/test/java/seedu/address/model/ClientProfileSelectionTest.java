@@ -160,6 +160,10 @@ public class ClientProfileSelectionTest {
         model.selectPerson(AMANDA);
 
         new AddCommand(JOHN).execute(model);
+        assertSame(AMANDA, model.selectedPersonProperty().get());
+        assertEquals(List.of(RACHEL, AMANDA, JOHN), model.getFilteredPersonList());
+        assertFalse(model.showingFollowUpsProperty().get());
+
         new ListCommand().execute(model);
 
         assertSame(AMANDA, model.selectedPersonProperty().get());
