@@ -36,6 +36,9 @@ public interface Logic {
     /** Returns whether the pending follow-ups view is showing. */
     ReadOnlyBooleanProperty showingFollowUpsProperty();
 
+    /** Returns the live, read-only selected-client property; null means no selection. */
+    ReadOnlyObjectProperty<Person> selectedPersonProperty();
+
     /** Returns whether invalid saved data has blocked client changes. */
     boolean isDataLoadingBlocked();
 
