@@ -6,7 +6,9 @@ import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.BENSON;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -15,7 +17,9 @@ import seedu.address.commons.exceptions.IllegalValueException;
 import seedu.address.model.person.Address;
 import seedu.address.model.person.Email;
 import seedu.address.model.person.Name;
+import seedu.address.model.person.Person;
 import seedu.address.model.person.Phone;
+import seedu.address.model.tag.Tag;
 
 public class JsonAdaptedPersonTest {
     private static final String INVALID_NAME = "R@chel";
@@ -36,6 +40,34 @@ public class JsonAdaptedPersonTest {
     public void toModelType_validPersonDetails_returnsPerson() throws Exception {
         JsonAdaptedPerson person = new JsonAdaptedPerson(BENSON);
         assertEquals(BENSON, person.toModelType());
+    }
+
+    @Test
+    public void toModelType_paddedValues_normalizesLikeCommandInput() throws Exception {
+        JsonAdaptedPerson stored = new JsonAdaptedPerson("  Ada  Lovelace  ", " 012345 ",
+                " Ada+Work@Example.com ", "  10 Main Street  ",
+                List.of(new JsonAdaptedTag(" ACTIVE "), new JsonAdaptedTag("active")));
+
+        Person loaded = stored.toModelType();
+        assertEquals("Ada  Lovelace", loaded.getName().fullName);
+        assertEquals("012345", loaded.getPhone().value);
+        assertEquals("Ada+Work@Example.com", loaded.getEmail().value);
+        assertEquals("10 Main Street", loaded.getAddress().value);
+        assertEquals(Set.of(new Tag("active")), loaded.getTags());
+    }
+
+    @Test
+    public void toModelType_nullTagEntry_throwsIllegalValueException() {
+        JsonAdaptedPerson stored = new JsonAdaptedPerson(VALID_NAME, VALID_PHONE, VALID_EMAIL,
+                VALID_ADDRESS, Arrays.asList((JsonAdaptedTag) null));
+        assertThrows(IllegalValueException.class, stored::toModelType);
+    }
+
+    @Test
+    public void toModelType_nullTagName_throwsIllegalValueException() {
+        JsonAdaptedPerson stored = new JsonAdaptedPerson(VALID_NAME, VALID_PHONE, VALID_EMAIL,
+                VALID_ADDRESS, List.of(new JsonAdaptedTag((String) null)));
+        assertThrows(IllegalValueException.class, Tag.MESSAGE_CONSTRAINTS, stored::toModelType);
     }
 
     @Test

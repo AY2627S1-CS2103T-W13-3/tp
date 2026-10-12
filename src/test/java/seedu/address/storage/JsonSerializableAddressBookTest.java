@@ -5,6 +5,8 @@ import static seedu.address.testutil.Assert.assertThrows;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +44,36 @@ public class JsonSerializableAddressBookTest {
                 JsonSerializableAddressBook.class).get();
         assertThrows(IllegalValueException.class, JsonSerializableAddressBook.MESSAGE_DUPLICATE_PERSON,
                 dataFromFile::toModelType);
+    }
+
+    @Test
+    public void toModelType_normalizedDuplicateEmail_rejectsWholeBook() {
+        JsonAdaptedPerson first = new JsonAdaptedPerson("Ada  Lovelace", "12345", "ADA@example.com",
+                "First Street", null);
+        JsonAdaptedPerson duplicate = new JsonAdaptedPerson("ada lovelace", "67890", "ada@EXAMPLE.com",
+                "Second Street", null);
+        JsonSerializableAddressBook stored = new JsonSerializableAddressBook(List.of(first, duplicate));
+
+        assertThrows(IllegalValueException.class, JsonSerializableAddressBook.MESSAGE_DUPLICATE_PERSON,
+                stored::toModelType);
+    }
+
+    @Test
+    public void toModelType_sameNameDifferentContacts_keepsBothClients() throws Exception {
+        JsonAdaptedPerson first = new JsonAdaptedPerson("Ada Lovelace", "12345", "ada1@example.com",
+                "First Street", null);
+        JsonAdaptedPerson second = new JsonAdaptedPerson("ada lovelace", "67890", "ada2@example.com",
+                "Second Street", null);
+
+        AddressBook loaded = new JsonSerializableAddressBook(List.of(first, second)).toModelType();
+        assertEquals(2, loaded.getPersonList().size());
+    }
+
+    @Test
+    public void toModelType_nullPersonEntry_throwsIllegalValueException() {
+        JsonSerializableAddressBook stored = new JsonSerializableAddressBook(
+                Arrays.asList((JsonAdaptedPerson) null));
+        assertThrows(IllegalValueException.class, stored::toModelType);
     }
 
 }
