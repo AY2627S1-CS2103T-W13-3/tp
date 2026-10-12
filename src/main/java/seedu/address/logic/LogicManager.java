@@ -102,6 +102,11 @@ public class LogicManager implements Logic {
     }
 
     @Override
+    public ReadOnlyObjectProperty<Person> selectedPersonProperty() {
+        return model.selectedPersonProperty();
+    }
+
+    @Override
     public boolean isDataLoadingBlocked() {
         return model.isDataLoadingBlocked();
     }

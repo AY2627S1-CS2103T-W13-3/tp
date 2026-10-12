@@ -2,6 +2,7 @@ package seedu.address.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.Messages.MESSAGE_CHANGES_BLOCKED;
@@ -120,6 +121,29 @@ public class LogicManagerTest {
 
         liveModel.commitFrom(liveModel.forkForCommand(today.plusDays(1)));
         assertEquals(today.plusDays(1), bridgedLogic.todayProperty().get());
+    }
+
+    @Test
+    public void selectedPersonProperty_reflectsPublishedLiveSelection() {
+        Person person = new PersonBuilder().build();
+        AddressBook addressBook = new AddressBook();
+        addressBook.addPerson(person);
+        ModelManager liveModel = new ModelManager(addressBook, new UserPrefs());
+        Logic bridgedLogic = new LogicManager(liveModel, storage);
+
+        assertSame(liveModel.selectedPersonProperty(), bridgedLogic.selectedPersonProperty());
+        assertNull(bridgedLogic.selectedPersonProperty().get());
+
+        Model candidate = liveModel.forkForCommand(liveModel.getToday());
+        candidate.selectPerson(candidate.getFilteredPersonList().get(0));
+        assertNull(bridgedLogic.selectedPersonProperty().get());
+
+        liveModel.commitFrom(candidate);
+        assertSame(liveModel.getFilteredPersonList().get(0), bridgedLogic.selectedPersonProperty().get());
+        assertSame(liveModel.selectedPersonProperty(), bridgedLogic.selectedPersonProperty());
+
+        liveModel.showPendingFollowUps();
+        assertNull(bridgedLogic.selectedPersonProperty().get());
     }
 
     @Test
