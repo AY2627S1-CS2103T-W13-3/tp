@@ -25,6 +25,7 @@ import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.SetFollowUpCommand;
+import seedu.address.logic.commands.ViewCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.model.person.Person;
@@ -35,6 +36,27 @@ import seedu.address.testutil.PersonUtil;
 public class AddressBookParserTest {
 
     private final AddressBookParser parser = new AddressBookParser();
+
+    @Test
+    public void parseCommand_view_routesInNormalAndBlockedSessions() throws Exception {
+        for (boolean blocked : List.of(false, true)) {
+            assertEquals(new ViewCommand(INDEX_FIRST_PERSON), parser.parseCommand(" view 0001 ", blocked));
+            assertThrows(ParseException.class, "Invalid command format!\nUsage: view INDEX", () ->
+                    parser.parseCommand("view 0 extra", blocked));
+            assertThrows(ParseException.class, "Index must be a positive integer from 1 to 2147483647.", () ->
+                    parser.parseCommand("view 0", blocked));
+            assertThrows(ParseException.class, "Unknown command.", () -> parser.parseCommand("VIEW 1", blocked));
+        }
+    }
+
+    @Test
+    public void parseCommand_view_invalidCharactersTakeGlobalPriority() {
+        for (String character : List.of("\t", "\n", "\r", "\u0000", "\u007f", "\u0085", "\u2028", "\u2029")) {
+            assertThrows(ParseException.class,
+                    "Use one command line and ordinary spaces. Control characters are not allowed.", () ->
+                    parser.parseCommand("view 0 extra" + character, true));
+        }
+    }
 
     @Test
     public void parseCommand_add() throws Exception {
