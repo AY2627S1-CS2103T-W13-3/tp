@@ -59,6 +59,28 @@ public class ViewCommandTest {
     }
 
     @Test
+    public void execute_differentlyNamedClients_reportsSelectedClientsName() throws Exception {
+        Person amanda = new PersonBuilder(second).withName("Amanda Lee").build();
+        AddressBook addressBook = new AddressBook();
+        addressBook.addPerson(first);
+        addressBook.addPerson(amanda);
+        Model model = new ModelManager(addressBook, new UserPrefs(), TODAY, false);
+        LogicManager logic = createLogic(model);
+
+        assertEquals("Showing client: Amanda Lee", logic.execute("view 02").getFeedbackToUser());
+        assertSame(amanda, model.selectedPersonProperty().get());
+        assertEquals("Showing client: Rachel Lim", logic.execute("view 1").getFeedbackToUser());
+        assertSame(first, model.selectedPersonProperty().get());
+
+        model.showPendingFollowUps();
+        assertEquals(List.of(amanda, first), model.getFilteredPersonList());
+        assertEquals("Showing client: Amanda Lee", logic.execute("view 1").getFeedbackToUser());
+        assertSame(amanda, model.selectedPersonProperty().get());
+        assertEquals(List.of(amanda, first), model.getFilteredPersonList());
+        assertFalse(model.hasUnsavedChanges());
+    }
+
+    @Test
     public void execute_invalidDisplayedIndex_preservesSelectionAndState() throws Exception {
         Model model = createModel(false);
         model.updateFilteredPersonList(person -> person == second);

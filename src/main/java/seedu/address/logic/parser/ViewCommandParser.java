@@ -5,7 +5,9 @@ import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import seedu.address.logic.commands.ViewCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
 
-/** Parses a single displayed-list index for the view command. */
+/**
+ * Parses a single displayed-list index for the view command.
+ */
 public final class ViewCommandParser implements Parser<ViewCommand> {
     /**
      * Checks the one-token shape before delegating index syntax to the shared parser.
