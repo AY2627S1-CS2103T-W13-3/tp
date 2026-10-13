@@ -102,6 +102,23 @@ public class AddressBookParserTest {
     }
 
     @Test
+    public void parseCommand_find_validatesGloballyBeforeParsingInNormalAndBlockedSessions() throws Exception {
+        for (boolean blocked : List.of(false, true)) {
+            assertEquals(new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice", "Bob"))),
+                    parser.parseCommand(" find   Alice  Bob ", blocked));
+            assertThrows(ParseException.class, "Invalid command format!\nUsage: find KEYWORD [MORE_KEYWORDS]...", () ->
+                    parser.parseCommand("find   ", blocked));
+            assertThrows(ParseException.class, "Unknown command.", () -> parser.parseCommand("FIND Alice", blocked));
+            for (String character : List.of("\t", "\n", "\r", "\u0000", "\u007f", "\u0085",
+                    "\u2028", "\u2029")) {
+                assertThrows(ParseException.class,
+                        "Use one command line and ordinary spaces. Control characters are not allowed.", () ->
+                        parser.parseCommand("find " + character, blocked));
+            }
+        }
+    }
+
+    @Test
     public void parseCommand_help() throws Exception {
         assertTrue(parser.parseCommand(HelpCommand.COMMAND_WORD) instanceof HelpCommand);
         assertTrue(parser.parseCommand(HelpCommand.COMMAND_WORD + " 3") instanceof HelpCommand);
