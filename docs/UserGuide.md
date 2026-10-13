@@ -201,7 +201,7 @@ Shape errors take priority over index syntax. A rejected delete leaves data, the
 
 ### Keeping the same client profile open `[planned; pending integration]`
 
-The selection model is implemented, but the `view` command and profile panel are not available in this increment. The following describes the planned behaviour once those features are integrated; it is not a list of commands you can use to open a profile yet.
+The `view` command and selection model are implemented. The dedicated profile panel is pending integration. You can use `view INDEX` to select a client and receive confirmation feedback; the following describes how the visible profile will behave once the panel is integrated.
 
 Your open profile will follow the client, even when their row number changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
 
