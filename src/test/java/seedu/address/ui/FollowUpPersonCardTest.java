@@ -14,16 +14,15 @@ import seedu.address.testutil.PersonBuilder;
 
 public class FollowUpPersonCardTest {
 
-    private static final LocalDate TODAY = LocalDate.of(2026, 10, 7);
+    private static final LocalDate TODAY = LocalDate.of(2026, 10, 12);
 
     @Test
-    public void createFollowUpDisplay_personWithoutFollowUp_showsNone() {
-        Person person = new PersonBuilder().withoutFollowUp().build();
+    public void createFollowUpDisplay_ordinaryRowWithFollowUp_showsNoFollowUpDetails() {
+        Person person = personWithFollowUp(TODAY, "Call client");
 
-        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY);
+        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY, false);
 
         assertFalse(display.hasFollowUp());
-        assertEquals("Follow-up: None", display.noneText());
         assertEquals("", display.dueText());
         assertEquals("", display.actionText());
         assertEquals("", display.statusText());
@@ -31,15 +30,32 @@ public class FollowUpPersonCardTest {
     }
 
     @Test
+    public void createFollowUpDisplay_ordinaryRowWithoutFollowUp_showsNoNoneSummary() {
+        Person person = new PersonBuilder().withoutFollowUp().build();
+
+        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY, false);
+
+        assertFalse(display.hasFollowUp());
+        assertEquals("", display.dueText());
+    }
+
+    @Test
+    public void createFollowUpDisplay_pendingRowWithoutFollowUp_showsNothing() {
+        Person person = new PersonBuilder().withoutFollowUp().build();
+
+        assertFalse(PersonCard.createFollowUpDisplay(person, TODAY, true).hasFollowUp());
+    }
+
+    @Test
     public void createFollowUpDisplay_overdueFollowUp_showsExactFieldsAndStatus() {
         Person person = personWithFollowUp(TODAY.minusDays(1), "Call client");
 
-        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY);
+        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY, true);
 
         assertTrue(display.hasFollowUp());
-        assertEquals("Due: 2026-10-06", display.dueText());
+        assertEquals("Due: 2026-10-11", display.dueText());
         assertEquals("Action: Call client", display.actionText());
-        assertEquals("Status: OVERDUE", display.statusText());
+        assertEquals("OVERDUE", display.statusText());
         assertEquals("follow-up-status-overdue", display.statusStyleClass());
     }
 
@@ -47,11 +63,11 @@ public class FollowUpPersonCardTest {
     public void createFollowUpDisplay_dueTodayFollowUp_showsDueTodayStatus() {
         Person person = personWithFollowUp(TODAY, "Send quotation");
 
-        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY);
+        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY, true);
 
-        assertEquals("Due: 2026-10-07", display.dueText());
+        assertEquals("Due: 2026-10-12", display.dueText());
         assertEquals("Action: Send quotation", display.actionText());
-        assertEquals("Status: DUE TODAY", display.statusText());
+        assertEquals("DUE TODAY", display.statusText());
         assertEquals("follow-up-status-due-today", display.statusStyleClass());
     }
 
@@ -59,11 +75,11 @@ public class FollowUpPersonCardTest {
     public void createFollowUpDisplay_upcomingFollowUp_showsUpcomingStatus() {
         Person person = personWithFollowUp(TODAY.plusDays(1), "Review policy");
 
-        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY);
+        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY, true);
 
-        assertEquals("Due: 2026-10-08", display.dueText());
+        assertEquals("Due: 2026-10-13", display.dueText());
         assertEquals("Action: Review policy", display.actionText());
-        assertEquals("Status: UPCOMING", display.statusText());
+        assertEquals("UPCOMING", display.statusText());
         assertEquals("follow-up-status-upcoming", display.statusStyleClass());
     }
 
@@ -71,9 +87,9 @@ public class FollowUpPersonCardTest {
     public void createFollowUpDisplay_suppliedDateChanges_recalculatesWithoutChangingFollowUp() {
         Person person = personWithFollowUp(TODAY, "Call client");
 
-        assertEquals("Status: UPCOMING", PersonCard.createFollowUpDisplay(person, TODAY.minusDays(1)).statusText());
-        assertEquals("Status: DUE TODAY", PersonCard.createFollowUpDisplay(person, TODAY).statusText());
-        assertEquals("Status: OVERDUE", PersonCard.createFollowUpDisplay(person, TODAY.plusDays(1)).statusText());
+        assertEquals("UPCOMING", PersonCard.createFollowUpDisplay(person, TODAY.minusDays(1), true).statusText());
+        assertEquals("DUE TODAY", PersonCard.createFollowUpDisplay(person, TODAY, true).statusText());
+        assertEquals("OVERDUE", PersonCard.createFollowUpDisplay(person, TODAY.plusDays(1), true).statusText());
         assertEquals(TODAY, person.getFollowUp().orElseThrow().getDueDate());
     }
 
@@ -82,7 +98,7 @@ public class FollowUpPersonCardTest {
         String description = "A".repeat(200);
         Person person = personWithFollowUp(TODAY.plusDays(1), description);
 
-        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY);
+        PersonCard.FollowUpDisplay display = PersonCard.createFollowUpDisplay(person, TODAY, true);
 
         assertEquals("Action: " + description, display.actionText());
     }

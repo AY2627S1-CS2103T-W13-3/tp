@@ -244,6 +244,18 @@ This mapping matters for an identical follow-up replacement. The candidate may c
 
 These tests establish the model boundary. End-to-end checks for the `view` route, rendered profile updates, save-failure preservation of the profile and saved bytes, and restart behaviour remain part of the dependent Logic/command/UI work. Once integrated, manually verify that reordering retains the open client, filter exclusion closes the profile, returning to `list` does not reopen it, and deleting a same-name neighbour never switches the profile. This increment does not claim that those UI checks have run.
 
+### Client workspace and pending-list rendering
+
+`MainWindow` places `PersonListPanel` and the profile placeholder in a horizontal `SplitPane`. It passes four `Logic` values to the list: the filtered list, `todayProperty()`, `showingFollowUpsProperty()` and `selectedPersonProperty()`. The UI only reads these values and never samples the clock. The `ClientProfilePanel` is added to `clientProfilePlaceholder` when that component is integrated.
+
+`PersonListPanel` keeps one panel-level listener on the date, mode and selection properties. A change refreshes the visible cells and the empty-list text. Each cell rebuilds its `PersonCard` from `updateItem` and `updateIndex`. A reused cell that moves therefore gets the right number, and an empty cell clears its graphic, so no stale badge or highlight remains.
+
+`PersonCard(person, index, today, showingFollowUps)` renders an ordinary row (index, name, phone and email) or a pending row, which adds the due date, action and textual status badge. The three-argument constructor renders an ordinary row. `createFollowUpDisplay` is a pure function from person, date and mode to the row text and style, so the row content is unit-tested without starting JavaFX.
+
+The viewed row comes from model selection only. `PersonListPanel.isViewed` compares object identity, so a same-name or value-equal record is never highlighted by mistake. Selection in the JavaFX `ListView` is styled like an ordinary row and never writes back to the model.
+
+A failed load shows `Messages.MESSAGE_LOAD_WARNING` in a separate `loadWarning` label that is visible for the whole session. Command results replace only the result display. `MainWindow` logs only whether a command succeeded or failed, never the feedback text, because feedback contains contact and action details.
+
 ### Client profile panel
 
 `ClientProfilePanel` receives Logic's read-only selected-client and published-date properties. It listens to both and renders the immutable `Person` without selecting, saving or sampling the device clock. A selected client displays name and labeled contact fields; `Tag.formatTags` supplies the sorted lowercase tags. The follow-up status comes from `FollowUp.getStatus(today)`, so a published date change updates the status even when the selected record does not change.
@@ -361,7 +373,7 @@ _{Explain here how the data archiving feature will be implemented}_
 * personally keeps track of client contact details and the next action they need to take for each client
 * uses a personal computer to manage client details and follow ups
 * needs to review which client follow ups are due, upcoming, or overdue
-* types quickly and prefers typed commands to mouse interactions 
+* types quickly and prefers typed commands to mouse interactions
 
 **Value proposition**: Policy Harbour helps individual insurance agents keep client contact details and one pending next action per client organised in a keyboard driven desktop app, making follow ups easier to review and manage.
 
@@ -395,16 +407,16 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 ### Use cases
 
-(For all use cases below, the **System** is the `PolicyHabour` and the **Actor** is the `Insurance Agent `, unless specified otherwise)
+(For all use cases below, the **System** is the `PolicyHabour` and the **Actor** is the `Insurance Agent`, unless specified otherwise)
 
 **Use case: UC01 - Retrieve Client Profile**
 
 **MSS**
 
-1.  Agent chooses to view all client. 
+1. Agent chooses to view all client.
 2. System displays client list with index for each client.  
 3. Agent selects the desired client from the list.  
-4. System displays the client’s full contact details and pending follow-ups, if any. 
+4. System displays the client’s full contact details and pending follow-ups, if any.
 
     Use case ends.
 
@@ -412,12 +424,12 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 
-1.  User chooses to add new client profile.  
+1. User chooses to add new client profile.  
 2. System requests for details of new client.  
 3. User enters the requested details.  
 4. System request for confirmation.  
-5. User confirms it. 
-6. System saves new client record and displays the updated client list. 
+5. User confirms it.
+6. System saves new client record and displays the updated client list.
 
     Use case ends.
 
@@ -425,43 +437,41 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 * 3a. Sysem detects an error in the entered data.  
 
-   * 3a1. System request for correct data.  
-   * 3a2. User enters new data. 
+  * 3a1. System request for correct data.  
+  * 3a2. User enters new data.
 
    Steps 3a1-3a2 are repeated until the data entered are correct.
 
    Use case resumes from step 4.
 
+* a. At any time, User chooses to cancel the record.
 
-* a. At any time, User chooses to cancel the record. 
+  * a1. System requests to confirm the cancellation.  
+  * a2. User confirms the cancellation.
 
-    * a1. System requests to confirm the cancellation.  
-    * a2. User confirms the cancellation. 
-
-
-      Use case ends. 
+      Use case ends.
 
 **Use case: UC03 - Delete Client Record**
 
 **MSS**
 
-1.  User performs Retrieve Client Profile (UC01) to select desired client.
+1. User performs Retrieve Client Profile (UC01) to select desired client.
 2. User request to delete the desired client.
-3. System deletes the desired client. record and any associated pending follow-up and saves the changes. 
+3. System deletes the desired client. record and any associated pending follow-up and saves the changes.
 4. System displays the updated client list.  
 
-   User case ends 
+   User case ends
 
 **Use case: UC04 - Record Client Follow-Up**
 
 **MSS**
 
-1.  User performs Retrieve Client Profile (UC01) to select desired client
+1. User performs Retrieve Client Profile (UC01) to select desired client
 2. User chooses to add new Client Follow-up for desired client
-3. System request for details of new followup 
-4. User enters requested details 
+3. System request for details of new followup
+4. User enters requested details
 5. System request for confirmation
-6. User confirms it 
+6. User confirms it
 7. System records and saves the follow-up and displays the updated desired client information
 
     Use case ends.
@@ -470,30 +480,28 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 * 4a. Sysem detects an error in the entered data.  
 
-   * 4a1. System request for correct data.  
-   * 4a2. User enters new data. 
+  * 4a1. System request for correct data.  
+  * 4a2. User enters new data.
 
    Steps 4a1-4a2 are repeated until the   data entered are correct.
 
    Use case resumes from step 5.
 
+* a. At any time, User chooses to cancel the record.
 
-* a. At any time, User chooses to cancel the record. 
+  * a1. System requests to confirm the cancellation.  
+  * a2. User confirms the cancellation.
 
-    * a1. System requests to confirm the cancellation.  
-    * a2. User confirms the cancellation. 
-
-
-      Use case ends. 
+      Use case ends.
 
 **Use case: UC05 - Clear Client Follow-Up**
 
 **MSS**
 
-1.  User performs Retrieve Client Profile (UC01) to select desired client
-2. User chooses the respective client follow-up to deleted 
-3. System deletes the respective client follow-up and saves the changes 
-4. System displays updated desired client information 
+1. User performs Retrieve Client Profile (UC01) to select desired client
+2. User chooses the respective client follow-up to deleted
+3. System deletes the respective client follow-up and saves the changes
+4. System displays updated desired client information
 
     Use case ends.
 
@@ -534,7 +542,6 @@ _{More to be added}_
 * **Overdue**: A pending follow up whose due date is before today
 * **Due today**: A pending follow up whose due date is today
 * **Upcoming**: A pending follow up whose due date is after today
-
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -617,6 +624,17 @@ Run each scenario in a fresh writable test folder with an empty client dataset a
    1. Enter `followups`, then `delete 1`. Expected: the second-added Rachel (earlier due date) is removed with its action; pending mode remains active with the other Rachel.
 
 Injected I/O failure and non-transitive replacement conflicts are automated in `ClientRecordCommandsTest` and `UniquePersonListTest`. A save failure must leave both the displayed state and saved bytes unchanged. The profile, UI layout and startup warning require their owners' separate manual checks.
+
+### Workspace layout and pending rows
+
+Use synthetic data in a fresh folder. These steps are for the built JAR.
+
+1. Row modes: add two clients and record a follow-up for one. `list` shows only the index, name, phone and email in each row. `followups` shows that client's row with its due date, action and status badge.
+1. Status order: load a saved file containing overdue, today and future follow-ups, including two on the same date. `followups` shows `OVERDUE`, then `DUE TODAY`, then `UPCOMING`. Rows are in date order, ties stay in insertion order and numbering is continuous.
+1. Reused rows: switch between `list` and `followups` several times and scroll. No ordinary row shows a badge, and an empty list shows the correct empty message.
+1. Row clicks: click and arrow through rows. No profile opens and no row shows `VIEWING`.
+1. Load warning: start with a malformed `data/addressbook.json`. The red warning stays visible after `list`, `followups` and a rejected `add`.
+1. Resizing: narrow the window and drag the divider. Both panes stay usable, and long emails and actions wrap instead of overlapping.
 
 ### Saving data
 
