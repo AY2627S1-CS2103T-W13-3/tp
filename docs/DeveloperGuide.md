@@ -11,6 +11,7 @@ title: Developer Guide
 
 * PolicyHarbor adapts [AddressBook Level 3](https://github.com/se-edu/addressbook-level3), retaining its Java/JavaFX architecture and test conventions.
 * Ayush Jain used OpenAI Codex to assist with the client-record validation, duplicate detection, tag formatting, add/delete parsing and messages, associated tests, and the related User/Developer Guide sections in this increment.
+* Josthan Wong used OpenAI Codex to assist with the view command, parser and routing, name-search alignment, unsupported legacy route rejection, associated tests and compatibility updates, and his related User/Developer Guide sections.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -186,6 +187,40 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 The merged `LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, index and save failures preserve the live data, list mode/order and date; successful read-only commands do not save. This increment tests that existing transaction boundary with client commands instead of introducing another execution path. UI selection and excluded legacy command routes are outside this package.
 
 Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, index boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, pending/filter indices, follow-up targeting and injected save failures. Parser tests cover syntax separately from command displayed-range checks.
+
+### View parsing, name search and supported command routing
+
+This package adds `ViewCommand` and `ViewCommandParser` and aligns `FindCommand`, `FindCommandParser` and `AddressBookParser`. It consumes the existing shared index helper and selected-person model API. The command route and Logic selection bridge are implemented; the dedicated profile panel is pending integration. The selection-model section below records its earlier foundation increment.
+
+#### View execution and error precedence
+
+`ViewCommandParser` trims outer ordinary spaces (U+0020) and requires exactly one token. Missing or additional tokens produce `Invalid command format!` followed by a newline and `Usage: view INDEX`, before any index syntax check. It then calls `ParserUtil.parseIndex`, accepting ASCII digits with arbitrarily many leading zeroes and a numeric value in `1..2147483647`. Invalid syntax propagates the shared message unchanged: `Index must be a positive integer from 1 to 2147483647.`. It does not duplicate shared validation or wrap every parsing error as a usage error.
+
+At execution, `ViewCommand` obtains `Model.getFilteredPersonList()` and checks the target against its current size. An index beyond the displayed list produces `The client index provided is invalid.`. Otherwise it passes the exact displayed `Person` instance to `Model.selectPerson` and returns an ordinary `CommandResult` containing `Showing client: NAME`. The name is feedback, not a selection identity key. No command-result field, callback or UI event is added.
+
+The current list is authoritative in full, search and pending modes. Selection does not change data, order, mode or the dirty flag. Through the existing `LogicManager` execution path, the command selects on an isolated candidate; successful publication transfers selection and the sampled date without saving client data. A failed parse or range check publishes nothing. The command never samples a date itself.
+
+#### Name-search behavior
+
+`FindCommandParser` reports the exact usage `Usage: find KEYWORD [MORE_KEYWORDS]...` for empty arguments. After global validation, it trims only outer U+0020 and splits keywords on runs of ordinary spaces. Quotes and punctuation remain literal tokens. `NameContainsKeywordsPredicate` retains whole-word, case-insensitive OR matching against names; it adds no substring, tag or contact search.
+
+`FindCommand` applies that predicate to the full dataset with `updateFilteredPersonList`, leaving pending mode and restoring insertion-order results. Each client appears once regardless of repeated keywords. It uses the existing shared count message, `%1$d client(s) listed!`. The model retains selection only if its exact record remains visible; search does not explicitly select any record or mark data dirty.
+
+#### Dispatcher and loading protection
+
+`AddressBookParser` rejects C0/C1 controls and U+2028/U+2029 on raw input, trims ordinary spaces, and rejects an empty line with `Enter a command.`. Command words are case-sensitive. Its supported routes are `add`, `delete`, `view`, `find`, `list`, `followup` and `followups`.
+
+The mutation gate contains only `add`, `delete` and singular `followup`. In a failed-load session these routes report the existing changes-blocked diagnostic before command-specific parsing. Queries remain available, including normal view argument validation and the range error against an empty displayed list. Typed `edit`, standalone `clear`, `help` and `exit` reach the unknown-command result, `Unknown command.`, in both normal and blocked sessions. Global raw-character errors still have priority. `followup INDEX clear` remains a supported mutation.
+
+Legacy command classes, their direct unit tests, the GUI Help menu and the window close handler remain available for their separate uses; removal applies to typed dispatch. The two older Logic/workflow tests were updated under Josthan's approved compatibility exception: unsupported routes now assert parse rejection, while supported mutations retain their failed-save state and file-preservation checks.
+
+#### Automated evidence
+
+`ViewCommandParserTest` covers shape-before-syntax precedence, ASCII index boundaries and long leading-zero runs. `ViewCommandTest` uses date `2026-10-12` and two permitted same-name clients to verify exact displayed-record selection in full/search/pending modes, unchanged list/data/mode, failure preservation, and selection/date publication through Logic without a storage write.
+
+`FindCommandParserTest`, `FindCommandTest` and `AddressBookParserTest` cover literal usage/result text, ordinary-space splitting, whole-word OR matching, insertion order, repeated keywords, all-data search after filtering/pending mode, selection reconciliation and global validation. Dispatcher tests reject all four unsupported routes in normal and blocked sessions and retain singular follow-up clearing. `LogicManagerTest` and `FollowUpWorkflowIntegrationTest` provide compatibility evidence for blocked-session rejection and preservation of state and saved bytes.
+
+Rendered profile behavior, focus/timer date-refresh removal and successful-feedback logging cleanup require their owners' integration work. Command tests do not certify those UI or carryover requirements.
 
 ### Client-profile selection model
 
@@ -521,6 +556,29 @@ testers are expected to do more *exploratory* testing.
        Expected: The most recent window size and location are retained.
 
 1. _{ more test cases …​ }_
+
+### View, name search and unsupported routes
+
+Use a fresh writable folder with the application's JAR and Java 25. These are manual instructions, not a claim that the packaged GUI has been tested. The current branch exposes view selection through feedback; full-profile rendering must be checked after the profile panel is integrated.
+
+1. Displayed-list selection:
+   1. Add `add n/Rachel Lim p/001 e/first@example.com a/Blk 1` and `add n/Amanda Lee p/002 e/second@example.com a/Blk 2`.
+   1. Enter `list`, then `view 02`. Expected: `Showing client: Amanda Lee`; both rows retain their order and numbering.
+   1. Enter `find Rachel`, then `view 1`. Expected: `Showing client: Rachel Lim`; only Rachel remains in the current list.
+   1. Enter `view 2`. Expected: `The client index provided is invalid.` even though the full dataset has two clients.
+   1. Enter `list`. Record Rachel's follow-up for device-today + 2 days and Amanda's for device-today + 1 day using `followup INDEX d/DATE m/ACTION`. Enter `followups`, then `view 0001`. Expected: `Showing client: Amanda Lee`; pending order remains Amanda then Rachel.
+1. View error precedence:
+   1. Enter `view` and `view 0 extra`. Expected: `Invalid command format!` and `Usage: view INDEX` on the next line.
+   1. Enter `view 0` and `view 2147483648`. Expected: `Index must be a positive integer from 1 to 2147483647.`.
+   1. Enter `view 2147483647`. Expected: `The client index provided is invalid.`. Selection and list state stay unchanged after each failure; selection/date preservation is also asserted by `ViewCommandTest`.
+1. Search semantics (same two-client dataset):
+   1. From pending mode, enter `find lim AMANDA Lim`. Expected: `2 client(s) listed!`, Rachel then Amanda, with each record shown once in ordinary search mode.
+   1. Enter `find Rach`, `find "Rachel"`, `find Rachel,` and `find first@example.com`. Expected for each: `0 client(s) listed!`.
+   1. Enter `find`. Expected: `Invalid command format!` and `Usage: find KEYWORD [MORE_KEYWORDS]...` on the next line.
+1. Unsupported command words:
+   1. Enter `edit 1 n/Changed`, `clear`, `help` and `exit`. Expected for each: `Unknown command.`; the app stays open and data remains unchanged.
+   1. Enter `list`, then `followup 1 clear`. Expected: Rachel's follow-up is cleared successfully; clearing one follow-up remains supported.
+   1. Close with the window's close button. The same unsupported-route messages in a blocked-load session, and global control-character priority, are covered by automated parser/Logic tests.
 
 ### Client creation, duplicates and deletion
 

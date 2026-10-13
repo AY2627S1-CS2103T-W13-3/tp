@@ -23,7 +23,7 @@ AddressBook Level 3 (AB3) is a **desktop application for managing contacts, opti
    A GUI similar to the one below should appear in a few seconds. Note how the app contains some sample data.<br>
    ![Ui](images/Ui.png)
 
-1. Type a command in the command box and press Enter to execute it. For example, type **`help`** and press Enter to open the help window.<br>
+1. Type a command in the command box and press Enter to execute it. For example, type **`list`** and press Enter to show the full client list.<br>
    Some example commands you can try:
 
    * `list` : Lists all contacts.
@@ -32,9 +32,9 @@ AddressBook Level 3 (AB3) is a **desktop application for managing contacts, opti
 
    * `delete 3` : Deletes the 3rd contact shown in the current list.
 
-   * `clear` : Deletes all contacts.
+   * `view 1` : Selects the first client shown, if the list is non-empty.
 
-   * `exit` : Exits the app.
+   Close the application using the window's close button.
 
 1. Refer to the [Features](#features) section below for details of each command.
 
@@ -58,19 +58,19 @@ AddressBook Level 3 (AB3) is a **desktop application for managing contacts, opti
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
-* Extraneous parameters for commands that take no parameters, such as `help`, `list`, `exit`, and `clear`, are ignored.<br>
-  For example, `help 123` is interpreted as `help`.
+* Extraneous ordinary text after `list` and `followups` is ignored.<br>
+  For example, `list 123` is interpreted as `list`. Indexed commands such as `view` require their stated arguments.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </div>
 
-### Viewing help: `help`
+### Supported commands
 
-Shows a message explaining how to access the help page.
+Command words are case-sensitive. The supported words are `add`, `delete`, `view`, `find`, `list`, `followup` and `followups`.
 
-![help message](images/helpMessage.png)
+Typed `edit`, standalone `clear`, `help` and `exit` are unsupported and return exactly `Unknown command.`, even when saved data could not be loaded. Use `followup INDEX clear` to clear one client's follow-up; this remains supported. Close the application with the window's close button. The GUI Help menu and `F1` shortcut remain separate from typed commands.
 
-Format: `help`
+Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected before command recognition or argument validation. Blank input returns `Enter a command.`. For example, `VIEW 1` returns `Unknown command.` because `view` must be lowercase.
 
 
 ### Adding a client: `add`
@@ -122,38 +122,54 @@ Shows a list of all persons in the address book.
 
 Format: `list`
 
-### Editing a person: `edit`
+### Selecting a client: `view`
 
-Edits an existing person in the address book.
+Selects the client at an index in the **currently displayed list** and returns `Showing client: NAME`, using the stored name without a trailing period. For Rachel Lim, the feedback is `Showing client: Rachel Lim`.
 
-Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]…​`
+Format: `view INDEX`
 
-* Edits the person at the specified `INDEX`. The index refers to the index number shown in the displayed person list. The index **must be a positive integer** 1, 2, 3, …​
-* At least one of the optional fields must be provided.
-* Existing values will be updated to the input values.
-* When editing tags, all of the person's existing tags are removed; adding tags is not cumulative.
-* To remove all of a person's tags, enter `t/` without a tag after it.
+Supply exactly one index containing digits `0`–`9`, with a value from `1` to `2147483647`. Leading zeroes are allowed, including long runs of zeroes: `view 02` and `view 0002` both mean `view 2`. The index must refer to an existing displayed row.
+
+The command keeps client data, list mode, row order and numbering unchanged and does not save. After `find`, use search-result indices; after `followups`, use pending-list indices rather than full-list positions. Two same-name clients remain separate records even though their success feedback uses the same name.
 
 Examples:
-*  `edit 1 p/91234567 e/johndoe@example.com` Edits the phone number and email address of the 1st person to be `91234567` and `johndoe@example.com` respectively.
-*  `edit 2 n/Betsy Crower t/` Edits the name of the 2nd person to be `Betsy Crower` and clears all existing tags.
 
-### Locating persons by name: `find`
+* `list` then `view 2` selects the second client in the full list, if present.
+* `find Rachel` then `view 1` selects the first matching Rachel, if present.
+* `followups` then `view 01` selects the first displayed pending client, if present.
 
-Finds persons whose names contain any of the given keywords.
+| Input problem | Exact result |
+| --- | --- |
+| Missing index or extra tokens, such as `view 0 extra` | `Invalid command format!` followed by a newline and `Usage: view INDEX` |
+| One invalid index token, such as `0`, `-1`, `1.5`, `abc` or `2147483648` | `Index must be a positive integer from 1 to 2147483647.` |
+| Valid index beyond the displayed list | `The client index provided is invalid.` |
 
-Format: `find KEYWORD [MORE_KEYWORDS]`
+Missing or extra tokens take priority over index syntax; valid syntax is checked before the displayed-list range. A failed view preserves the previous selection, list and displayed date. In a failed-load session, `view` is still allowed: a valid index produces the range error against the empty list rather than a mutation-blocked message.
 
-* The search is case-insensitive; for example, `hans` matches `Hans`.
-* Keyword order does not matter; for example, `Hans Bo` matches `Bo Hans`.
-* The search considers only names.
-* Only full words match; for example, `Han` does not match `Hans`.
-* Persons matching at least one keyword are returned (an `OR` search); for example, `Hans Bo` returns `Hans Gruber` and `Bo Yang`.
+**Integration status:** this branch implements the command and selected-client state. The dedicated profile panel is pending integration, so selection currently produces the feedback above without displaying a full client profile. The later profile panel will display the selected record's details.
 
-Examples:
-* `find John` returns `john` and `John Doe`
-* `find alex david` returns `Alex Yeoh`, `David Li`<br>
-  ![result for 'find alex david'](images/findAlexDavidResult.png)
+### Locating clients by name: `find`
+
+Searches all clients' names, including clients hidden by a prior search or pending list, and displays matches in their original insertion order. It leaves pending mode and returns `COUNT client(s) listed!`, for example `2 client(s) listed!` or `0 client(s) listed!`.
+
+Format: `find KEYWORD [MORE_KEYWORDS]...`
+
+* Matching is case-insensitive: `rachel` matches `Rachel`.
+* Only whole words match: `Rach` does not match `Rachel`.
+* A client matching any keyword appears once (an OR search). Keyword order and repeated keywords do not change the result order.
+* Only names are searched; phone, email, address and tags are not searched.
+* Separate keywords with ordinary spaces. Multiple ordinary spaces are allowed. Quotes and punctuation are literal: `find "Rachel"` and `find Rachel,` do not match the name `Rachel Lim`.
+
+For a dataset containing Rachel Lim and Amanda Lee, `find rachel AMANDA` returns both in insertion order. `find Lim` returns Rachel Lim; `find Rach` returns no matches unless another client has that exact name word.
+
+A missing keyword produces exactly these two lines:
+
+```text
+Invalid command format!
+Usage: find KEYWORD [MORE_KEYWORDS]...
+```
+
+Search does not change client data or save it. The selected client remains selected only while present in the results; searching them out clears selection. A later search does not automatically select them again.
 
 ### Deleting a client: `delete`
 
@@ -201,18 +217,6 @@ Your open profile will follow the client, even when their row number changes. Tw
 
 Once a profile closes because its client leaves the list, returning to the full list will not reopen it. You will need another successful `view` command. Reopening the application will also start without an open profile. A failed command or failed save must leave the previous profile unchanged; this requires the later command and profile integration checks.
 
-### Clearing all entries: `clear`
-
-Clears all entries from the address book.
-
-Format: `clear`
-
-### Exiting the program: `exit`
-
-Exits the program.
-
-Format: `exit`
-
 ### Saving the data
 
 AddressBook automatically saves data after every command. You do not need to save manually.
@@ -242,7 +246,7 @@ _Details coming soon ..._
 ## Known issues
 
 1. **When using multiple screens**, if you move the application to a secondary screen, and later switch to using only the primary screen, the GUI will open off-screen. The remedy is to delete the `preferences.json` file created by the application before running the application again.
-2. **If you minimize the Help Window** and then run the `help` command (or use the `Help` menu, or the keyboard shortcut `F1`) again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
+2. **If you minimize the Help Window** and then use the `Help` menu or the keyboard shortcut `F1` again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -251,9 +255,12 @@ _Details coming soon ..._
 Action | Format, Examples
 --------|------------------
 **Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
-**Clear** | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
-**Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]…​`<br> e.g., `edit 2 n/James Lee e/jameslee@example.com`
-**Find** | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
+**View** | `view INDEX`<br> e.g., `view 02` (selection implemented; profile panel pending integration)
+**Find** | `find KEYWORD [MORE_KEYWORDS]...`<br> e.g., `find James Jake`
 **List** | `list`
-**Help** | `help`
+**Record or replace follow-up** | `followup INDEX d/DATE m/DESCRIPTION`
+**Clear follow-up** | `followup INDEX clear`
+**Pending follow-ups** | `followups`
+
+Typed `edit`, standalone `clear`, `help` and `exit` return `Unknown command.`. Use the window's close button to exit.
