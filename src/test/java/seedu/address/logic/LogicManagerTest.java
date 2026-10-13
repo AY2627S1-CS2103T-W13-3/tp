@@ -154,9 +154,9 @@ public class LogicManagerTest {
         String addCommand = AddCommand.COMMAND_WORD + NAME_DESC_AMY + PHONE_DESC_AMY
                 + EMAIL_DESC_AMY + ADDRESS_DESC_AMY;
         assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute(addCommand));
-        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("clear"));
+        assertThrows(ParseException.class, "Unknown command.", () -> blockedLogic.execute("clear"));
         assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("delete 1"));
-        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
+        assertThrows(ParseException.class, "Unknown command.", () ->
                 blockedLogic.execute("edit 1 " + NAME_DESC_AMY));
         assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("followup 1 clear"));
     }

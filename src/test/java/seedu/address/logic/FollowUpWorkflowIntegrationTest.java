@@ -74,7 +74,7 @@ public class FollowUpWorkflowIntegrationTest {
     }
 
     @Test
-    public void failedSaves_preserveLiveDataViewDateAndFile() throws Exception {
+    public void failedSavesAndUnsupportedCommands_preserveLiveDataViewDateAndFile() throws Exception {
         Path file = testFolder.resolve("book.json");
         Person rachel = new PersonBuilder().withName("Rachel Lim")
                 .withFollowUp(new FollowUp(TODAY.plusDays(1), "Call")).build();
@@ -94,10 +94,15 @@ public class FollowUpWorkflowIntegrationTest {
             }
         };
         LogicManager logic = new LogicManager(model, failingStorage, clock);
+        List<String> unsupportedCommands = List.of("edit 1 n/Updated Rachel", "clear", "help", "exit");
         for (String command : List.of("add n/Bob p/92345678 e/bob@example.com a/Street",
                 "delete 1", "edit 1 n/Updated Rachel", "followup 1 d/2026-10-06 m/Replace",
-                "followup 1 clear", "clear")) {
-            assertThrows(CommandException.class, LogicManager.MESSAGE_SAVE_FAILED, () -> logic.execute(command));
+                "followup 1 clear", "clear", "help", "exit")) {
+            if (unsupportedCommands.contains(command)) {
+                assertThrows(ParseException.class, "Unknown command.", () -> logic.execute(command));
+            } else {
+                assertThrows(CommandException.class, LogicManager.MESSAGE_SAVE_FAILED, () -> logic.execute(command));
+            }
             assertEquals(TODAY, model.getToday());
             assertTrue(model.showingFollowUpsProperty().get());
             assertEquals(List.of("Rachel Lim"), names(model.getFilteredPersonList()));
