@@ -131,7 +131,8 @@
     -fx-background-radius: 3;
 }
 
-.list-cell .viewed-marker {
+/* Extra .label class outranks the later white .list-cell .label rule. */
+.list-cell .label.viewed-marker {
     -fx-text-fill: #1d1d1d;
 }
 
