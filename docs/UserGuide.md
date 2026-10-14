@@ -62,7 +62,29 @@ AddressBook Level 3 (AB3) is a **desktop application for managing contacts, opti
   For example, `list 123` is interpreted as `list`. Indexed commands such as `view` require their stated arguments.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
+
 </div>
+
+### Reading the workspace
+
+The window keeps the command box, the result of your last command and, when relevant, a red saved-data warning at the top. Below them, the workspace is split into two panes. Drag the divider to resize them.
+
+* **Left pane: the numbered client list.** This is the list that indexed commands such as `delete 2` and `followup 2 clear` act on. It shows all clients after `list`, matching clients after `find` and clients with pending follow-ups after `followups`.
+* **Right pane: the client profile.** It is reserved for the full details of one client opened with `view` `[planned; pending integration]`.
+
+Rows in the full list and in search results show only the row number, name, phone and email. Rows in the pending list also show the due date, the action and one status badge:
+
+| Badge | Meaning |
+| --- | --- |
+| `OVERDUE` | The due date is before today. |
+| `DUE TODAY` | The due date is today. |
+| `UPCOMING` | The due date is after today. |
+
+Pending rows are ordered by due date, so overdue rows come first, then today's, then upcoming ones. Clients due on the same date keep the order in which they were added. Row numbers always run continuously from 1.
+
+The row of the client whose profile is open is outlined and marked `VIEWING`. Clicking or using the arrow keys on a row does not open or change a profile; only typed commands do. When a list is empty, it shows `No clients to display.` or, for `followups`, `There are no pending follow-ups.`
+
+If saved data could not be loaded at startup, a warning stays above the command box for the whole session, whatever command you run. Close the app and restore a valid saved copy to clear it.
 
 ### Supported commands
 
@@ -71,7 +93,6 @@ Command words are case-sensitive. The supported words are `add`, `delete`, `view
 Typed `edit`, standalone `clear`, `help` and `exit` are unsupported and return exactly `Unknown command.`, even when saved data could not be loaded. Use `followup INDEX clear` to clear one client's follow-up; this remains supported. Close the application with the window's close button. The GUI Help menu and `F1` shortcut remain separate from typed commands.
 
 Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected before command recognition or argument validation. Blank input returns `Enter a command.`. For example, `VIEW 1` returns `Unknown command.` because `view` must be lowercase.
-
 
 ### Adding a client: `add`
 
@@ -255,7 +276,7 @@ _Details coming soon ..._
 ## Command summary
 
 Action | Format, Examples
---------|------------------
+-------- | ------------------
 **Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **View** | `view INDEX`<br> e.g., `view 02` (selection implemented; profile panel pending integration)

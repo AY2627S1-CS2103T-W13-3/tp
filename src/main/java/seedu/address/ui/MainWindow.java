@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.input.KeyCombination;
@@ -40,6 +41,9 @@ public class MainWindow extends UiPart<Stage> {
     private HelpWindow helpWindow;
 
     @FXML
+    private Label loadWarning;
+
+    @FXML
     private StackPane commandBoxPlaceholder;
 
     @FXML
@@ -47,6 +51,9 @@ public class MainWindow extends UiPart<Stage> {
 
     @FXML
     private StackPane personListPanelPlaceholder;
+
+    @FXML
+    private StackPane clientProfilePlaceholder;
 
     @FXML
     private StackPane resultDisplayPlaceholder;
@@ -117,11 +124,18 @@ public class MainWindow extends UiPart<Stage> {
      */
     void fillInnerParts() {
         personListPanel = new PersonListPanel(logic.getFilteredPersonList(), logic.todayProperty(),
-                logic.showingFollowUpsProperty());
+                logic.showingFollowUpsProperty(), logic.selectedPersonProperty());
         personListPanelPlaceholder.getChildren().add(personListPanel.getRoot());
 
+        // clientProfilePlaceholder receives ClientProfilePanel once that component is merged.
+
+        boolean showLoadWarning = logic.isDataLoadingBlocked();
+        loadWarning.setText(Messages.MESSAGE_LOAD_WARNING);
+        loadWarning.setVisible(showLoadWarning);
+        loadWarning.setManaged(showLoadWarning);
+
         resultDisplay = new ResultDisplay();
-        resultDisplay.setFeedbackToUser(initialFeedback(logic.isDataLoadingBlocked()));
+        resultDisplay.setFeedbackToUser(ListCommand.MESSAGE_SUCCESS);
         resultDisplayPlaceholder.getChildren().add(resultDisplay.getRoot());
 
         StatusBarFooter statusBarFooter = new StatusBarFooter(dataFilePath);
@@ -175,15 +189,6 @@ public class MainWindow extends UiPart<Stage> {
         return personListPanel;
     }
 
-    /** The loading warning remains visible even after read-only commands or errors. */
-    static String feedbackWithLoadWarning(boolean loadingBlocked, String feedback) {
-        return loadingBlocked ? Messages.MESSAGE_LOAD_WARNING + "\n" + feedback : feedback;
-    }
-
-    static String initialFeedback(boolean loadingBlocked) {
-        return loadingBlocked ? Messages.MESSAGE_LOAD_WARNING : ListCommand.MESSAGE_SUCCESS;
-    }
-
     /**
      * Executes the command and returns the result.
      *
@@ -192,9 +197,9 @@ public class MainWindow extends UiPart<Stage> {
     private CommandResult executeCommand(String commandText) throws CommandException, ParseException {
         try {
             CommandResult commandResult = logic.execute(commandText);
-            logger.info("Result: " + commandResult.getFeedbackToUser());
-            resultDisplay.setFeedbackToUser(feedbackWithLoadWarning(logic.isDataLoadingBlocked(),
-                    commandResult.getFeedbackToUser()));
+            // Feedback can contain client contact/action details, so it is never logged.
+            logger.info("Command succeeded.");
+            resultDisplay.setFeedbackToUser(commandResult.getFeedbackToUser());
 
             if (commandResult.isShowHelp()) {
                 handleHelp();
@@ -207,7 +212,7 @@ public class MainWindow extends UiPart<Stage> {
             return commandResult;
         } catch (CommandException | ParseException e) {
             logger.info("An error occurred while executing a command.");
-            resultDisplay.setFeedbackToUser(feedbackWithLoadWarning(logic.isDataLoadingBlocked(), e.getMessage()));
+            resultDisplay.setFeedbackToUser(e.getMessage());
             throw e;
         }
     }
