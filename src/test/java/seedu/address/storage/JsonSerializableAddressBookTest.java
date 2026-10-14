@@ -59,6 +59,18 @@ public class JsonSerializableAddressBookTest {
     }
 
     @Test
+    public void toModelType_normalizedDuplicatePhoneWithDifferentEmails_rejectsWholeBook() {
+        JsonAdaptedPerson first = new JsonAdaptedPerson("Ada  Lovelace", "12345", "ada1@example.com",
+                "First Street", null);
+        JsonAdaptedPerson duplicate = new JsonAdaptedPerson("ada lovelace", " 12345 ", "ada2@example.com",
+                "Second Street", null);
+        JsonSerializableAddressBook stored = new JsonSerializableAddressBook(List.of(first, duplicate));
+
+        assertThrows(IllegalValueException.class, JsonSerializableAddressBook.MESSAGE_DUPLICATE_PERSON,
+                stored::toModelType);
+    }
+
+    @Test
     public void toModelType_sameNameDifferentContacts_keepsBothClients() throws Exception {
         JsonAdaptedPerson first = new JsonAdaptedPerson("Ada Lovelace", "12345", "ada1@example.com",
                 "First Street", null);
