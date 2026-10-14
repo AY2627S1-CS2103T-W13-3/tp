@@ -244,6 +244,14 @@ This mapping matters for an identical follow-up replacement. The candidate may c
 
 These tests establish the model boundary. End-to-end checks for the `view` route, rendered profile updates, save-failure preservation of the profile and saved bytes, and restart behaviour remain part of the dependent Logic/command/UI work. Once integrated, manually verify that reordering retains the open client, filter exclusion closes the profile, returning to `list` does not reopen it, and deleting a same-name neighbour never switches the profile. This increment does not claim that those UI checks have run.
 
+### Client profile panel
+
+`ClientProfilePanel` receives Logic's read-only selected-client and published-date properties. It listens to both and renders the immutable `Person` without selecting, saving or sampling the device clock. A selected client displays name and labeled contact fields; `Tag.formatTags` supplies the sorted lowercase tags. The follow-up status comes from `FollowUp.getStatus(today)`, so a published date change updates the status even when the selected record does not change.
+
+The panel's FXML contains a scrollable, read-only layout with wrapping address and action labels. Its scoped CSS is loaded by that FXML; it does not modify the shared theme owned by the workspace PR. On deselection the panel hides all client fields, clears their text and shows `No client selected.`. When a selected client's action clears, it hides the date, action and status and shows `Follow-up: None`.
+
+`ClientProfilePanelTest` checks exact profile text, sorted tags, the no-selection and no-action states, and overdue/due-today/upcoming values from a fixed date. Those pure display tests do not prove visual wrapping or window composition. Inspect the rendered pane after Kin Chong connects it to the workspace and test long address/action values at a narrow window width.
+
 ### \[Proposed\] Undo/redo feature
 
 #### Proposed Implementation

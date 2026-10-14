@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" minWidth="220" styleClass="client-profile-panel"
+            xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+  <stylesheets>
+    <URL value="@ClientProfilePanel.css" />
+  </stylesheets>
+  <content>
+    <VBox spacing="10" fillWidth="true">
+      <padding>
+        <Insets top="16" right="16" bottom="16" left="16" />
+      </padding>
+      <Label fx:id="noSelectionMessage" styleClass="profile-empty" text="No client selected." />
+      <VBox fx:id="profileDetails" spacing="8" fillWidth="true">
+        <Label fx:id="name" styleClass="profile-name" wrapText="true" maxWidth="1.7976931348623157E308" />
+        <Label fx:id="phone" styleClass="profile-field" wrapText="true" maxWidth="1.7976931348623157E308" />
+        <Label fx:id="email" styleClass="profile-field" wrapText="true" maxWidth="1.7976931348623157E308" />
+        <Label fx:id="address" styleClass="profile-field" wrapText="true" maxWidth="1.7976931348623157E308" />
+        <Label fx:id="tags" styleClass="profile-field" wrapText="true" maxWidth="1.7976931348623157E308" />
+        <Label fx:id="followUpNone" styleClass="profile-field" />
+        <VBox fx:id="followUpDetails" spacing="8" fillWidth="true">
+          <Label fx:id="followUpDate" styleClass="profile-field" wrapText="true"
+                 maxWidth="1.7976931348623157E308" />
+          <Label fx:id="followUpAction" styleClass="profile-field" wrapText="true"
+                 maxWidth="1.7976931348623157E308" />
+          <Label fx:id="followUpStatus" styleClass="profile-status" wrapText="true"
+                 maxWidth="1.7976931348623157E308" />
+        </VBox>
+      </VBox>
+    </VBox>
+  </content>
+</ScrollPane>
