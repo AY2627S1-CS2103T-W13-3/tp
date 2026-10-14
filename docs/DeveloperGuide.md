@@ -188,9 +188,15 @@ The merged `LogicManager` executes against a candidate, saves dirty data, then p
 
 Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, index boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, pending/filter indices, follow-up targeting and injected save failures. Parser tests cover syntax separately from command displayed-range checks.
 
+### Saved client loading
+
+`JsonAdaptedPerson` validates saved contact fields using the domain types after removing outer ordinary spaces, matching command input. `JsonAdaptedTag` validates tags before `Tag` converts them to lowercase; collecting them into a set removes case variants. Missing tags become an empty set. Optional follow-ups, including overdue dates, use the existing follow-up adapter.
+
+`JsonSerializableAddressBook` converts every record before installing the list through `AddressBook.setPersons`. That central collection operation checks every pair with `Person.isDuplicateOf`, including the non-transitive case. Missing entries, invalid values and duplicates become loading failures. `JsonAddressBookStorage` translates them to `DataLoadingException`; `MainApp` then starts with an empty, mutation-blocked model while leaving the saved file unchanged. A repaired file loads on the next startup.
+
 ### View parsing, name search and supported command routing
 
-This package adds `ViewCommand` and `ViewCommandParser` and aligns `FindCommand`, `FindCommandParser` and `AddressBookParser`. It consumes the existing shared index helper and selected-person model API. The command route and Logic selection bridge are implemented; the dedicated profile panel is pending integration. The selection-model section below records its earlier foundation increment.
+This package adds `ViewCommand` and `ViewCommandParser` and aligns `FindCommand`, `FindCommandParser` and `AddressBookParser`. It consumes the existing shared index helper and selected-person model API. The command route, Logic selection bridge and dedicated profile panel are implemented. The selection-model section below records its earlier foundation increment.
 
 #### View execution and error precedence
 

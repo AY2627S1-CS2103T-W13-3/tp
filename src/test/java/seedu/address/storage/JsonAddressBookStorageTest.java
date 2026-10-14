@@ -15,15 +15,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import seedu.address.commons.exceptions.DataLoadingException;
+import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.AddressBook;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
+import seedu.address.model.tag.Tag;
 
 public class JsonAddressBookStorageTest {
     private static final Path TEST_DATA_FOLDER = Paths.get("src", "test", "data", "JsonAddressBookStorageTest");
@@ -137,6 +141,69 @@ public class JsonAddressBookStorageTest {
         Person legacy = new JsonAddressBookStorage(legacyFile).readAddressBook().orElseThrow()
                 .getPersonList().get(0);
         assertTrue(legacy.getFollowUp().isEmpty());
+    }
+
+    @Test
+    public void readAddressBook_paddedContactsAndTags_normalizesWithoutLosingOverdueFollowUp() throws Exception {
+        Path file = testFolder.resolve("normalized.json");
+        JsonAdaptedPerson overdue = new JsonAdaptedPerson("  Ada  Lovelace  ", " 012345 ",
+                " Ada+Work@Example.com ", "  10 Main Street  ",
+                List.of(new JsonAdaptedTag(" ACTIVE "), new JsonAdaptedTag("active")),
+                new JsonAdaptedFollowUp("2020-01-02", "  Call client  "));
+        JsonAdaptedPerson sameName = new JsonAdaptedPerson("ada lovelace", "67890",
+                "other@example.com", "Second Street", null);
+        Files.writeString(file, JsonUtil.toJsonString(
+                new JsonSerializableAddressBook(List.of(overdue, sameName))));
+
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(file);
+        ReadOnlyAddressBook loaded = storage.readAddressBook().orElseThrow();
+        assertEquals(2, loaded.getPersonList().size());
+        Person first = loaded.getPersonList().get(0);
+        assertEquals("Ada  Lovelace", first.getName().fullName);
+        assertEquals("012345", first.getPhone().value);
+        assertEquals("Ada+Work@Example.com", first.getEmail().value);
+        assertEquals("10 Main Street", first.getAddress().value);
+        assertEquals(Set.of(new Tag("active")), first.getTags());
+        assertEquals(new FollowUp(LocalDate.of(2020, 1, 2), "Call client"), first.getFollowUp().orElseThrow());
+        assertTrue(loaded.getPersonList().get(1).getTags().isEmpty());
+        assertTrue(loaded.getPersonList().get(1).getFollowUp().isEmpty());
+
+        storage.saveAddressBook(loaded);
+        assertEquals(new AddressBook(loaded), new AddressBook(storage.readAddressBook().orElseThrow()));
+    }
+
+    @Test
+    public void readAddressBook_invalidEntries_rejectsWholeFileWithoutChangingBytes() throws Exception {
+        Path file = testFolder.resolve("invalid-contacts.json");
+        String valid = "{\"name\":\"Ada Lovelace\",\"phone\":\"12345\","
+                + "\"email\":\"ada@example.com\",\"address\":\"First Street\"}";
+        String[] invalidFiles = {
+            "{\"persons\":null}",
+            "{\"persons\":[" + valid + ",null]}",
+            "{\"persons\":[" + valid + ",{\"name\":\"Bob\",\"phone\":\"1\","
+                    + "\"email\":\"bob@example.com\",\"address\":\"Second Street\"}]}",
+            "{\"persons\":[" + valid + ",{\"name\":\"Bob\",\"phone\":\"67890\","
+                    + "\"email\":\"bob@example.com\",\"address\":\"Second Street\",\"tags\":[null]}]}"
+        };
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(file);
+        for (String invalidFile : invalidFiles) {
+            Files.writeString(file, invalidFile);
+            assertThrows(DataLoadingException.class, storage::readAddressBook);
+            assertEquals(invalidFile, Files.readString(file));
+        }
+    }
+
+    @Test
+    public void readAddressBook_normalizedDuplicate_rejectsWholeFile() throws Exception {
+        Path file = testFolder.resolve("duplicate-contacts.json");
+        String original = "{\"persons\":[{\"name\":\"Ada  Lovelace\",\"phone\":\"12345\","
+                + "\"email\":\"ADA@example.com\",\"address\":\"First Street\"},"
+                + "{\"name\":\"ada lovelace\",\"phone\":\"67890\","
+                + "\"email\":\"ada@EXAMPLE.com\",\"address\":\"Second Street\"}]}";
+        Files.writeString(file, original);
+
+        assertThrows(DataLoadingException.class, new JsonAddressBookStorage(file)::readAddressBook);
+        assertEquals(original, Files.readString(file));
     }
 
     @Test

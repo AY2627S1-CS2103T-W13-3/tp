@@ -2,6 +2,7 @@ package seedu.address;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
@@ -61,6 +62,25 @@ public class MainAppTest {
         logic.execute("followups");
         assertTrue(logic.isDataLoadingBlocked());
         assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () -> logic.execute("followup 1 clear"));
+        assertEquals(original, Files.readString(file));
+    }
+
+    @Test
+    public void invalidSavedClient_blocksStartupWithoutReplacingOtherRecords() throws Exception {
+        Path file = testFolder.resolve("invalid-client.json");
+        String original = "{\"persons\":[{\"name\":\"Ada\",\"phone\":\"12345\","
+                + "\"email\":\"ada@example.com\",\"address\":\"First Street\"},"
+                + "{\"name\":\"Bob\",\"phone\":\"1\",\"email\":\"bob@example.com\","
+                + "\"address\":\"Second Street\"}]}";
+        Files.writeString(file, original);
+        Storage storage = storage(file);
+
+        Model model = new MainApp().initModelManager(storage, new UserPrefs());
+        assertTrue(model.isDataLoadingBlocked());
+        assertTrue(model.getAddressBook().getPersonList().isEmpty());
+        assertNull(model.selectedPersonProperty().get());
+        LogicManager logic = new LogicManager(model, storage);
+        assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () -> logic.execute("delete 1"));
         assertEquals(original, Files.readString(file));
     }
 
