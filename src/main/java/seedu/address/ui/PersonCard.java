@@ -1,11 +1,9 @@
 package seedu.address.ui;
 
 import java.time.LocalDate;
-import java.util.Comparator;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -14,11 +12,15 @@ import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
 
 /**
- * A UI component that displays information of a {@code Person}.
+ * A UI component that displays one numbered row of the current client list.
+ * Full/search rows show only contact essentials; pending rows add the follow-up details.
  */
 public class PersonCard extends UiPart<Region> {
 
+    static final String VIEWED_STYLE_CLASS = "viewed-client";
+
     private static final String FXML = "PersonListCard.fxml";
+    private static final FollowUpDisplay NO_FOLLOW_UP = new FollowUpDisplay(false, "", "", "", "");
 
     /**
      * Note: Certain keywords such as "location" and "resources" are reserved keywords in JavaFX.
@@ -39,13 +41,9 @@ public class PersonCard extends UiPart<Region> {
     @FXML
     private Label phone;
     @FXML
-    private Label address;
-    @FXML
     private Label email;
     @FXML
-    private FlowPane tags;
-    @FXML
-    private Label followUpNone;
+    private Label viewedMarker;
     @FXML
     private VBox followUpDetails;
     @FXML
@@ -56,24 +54,24 @@ public class PersonCard extends UiPart<Region> {
     private Label followUpStatus;
 
     /**
-     * Creates a {@code PersonCard} with the given {@code Person} and index to display.
+     * Creates an ordinary (full/search) row for {@code person}.
      */
     public PersonCard(Person person, int displayedIndex, LocalDate today) {
+        this(person, displayedIndex, today, false);
+    }
+
+    /**
+     * Creates a row for {@code person}; pending rows also show the follow-up date, action and status.
+     */
+    public PersonCard(Person person, int displayedIndex, LocalDate today, boolean showingFollowUps) {
         super(FXML);
         this.person = person;
         id.setText(displayedIndex + ". ");
         name.setText(person.getName().fullName);
         phone.setText(person.getPhone().value);
-        address.setText(person.getAddress().value);
         email.setText(person.getEmail().value);
-        person.getTags().stream()
-                .sorted(Comparator.comparing(tag -> tag.tagName))
-                .forEach(tag -> tags.getChildren().add(new Label(tag.tagName)));
 
-        FollowUpDisplay followUpDisplay = createFollowUpDisplay(person, today);
-        followUpNone.setText(followUpDisplay.noneText());
-        followUpNone.setVisible(!followUpDisplay.hasFollowUp());
-        followUpNone.setManaged(!followUpDisplay.hasFollowUp());
+        FollowUpDisplay followUpDisplay = createFollowUpDisplay(person, today, showingFollowUps);
         followUpDetails.setVisible(followUpDisplay.hasFollowUp());
         followUpDetails.setManaged(followUpDisplay.hasFollowUp());
         followUpDueDate.setText(followUpDisplay.dueText());
@@ -85,11 +83,23 @@ public class PersonCard extends UiPart<Region> {
     }
 
     /**
-     * Builds the text and style values used to render a person's follow-up.
+     * Marks this row as the client currently open in the profile panel.
      */
-    static FollowUpDisplay createFollowUpDisplay(Person person, LocalDate today) {
-        if (person.getFollowUp().isEmpty()) {
-            return new FollowUpDisplay(false, "Follow-up: None", "", "", "", "");
+    public void setViewed(boolean isViewed) {
+        viewedMarker.setVisible(isViewed);
+        viewedMarker.setManaged(isViewed);
+        cardPane.getStyleClass().remove(VIEWED_STYLE_CLASS);
+        if (isViewed) {
+            cardPane.getStyleClass().add(VIEWED_STYLE_CLASS);
+        }
+    }
+
+    /**
+     * Builds the follow-up text and style for a row. Only pending rows show follow-up details.
+     */
+    static FollowUpDisplay createFollowUpDisplay(Person person, LocalDate today, boolean showingFollowUps) {
+        if (!showingFollowUps || person.getFollowUp().isEmpty()) {
+            return NO_FOLLOW_UP;
         }
 
         FollowUp followUp = person.getFollowUp().orElseThrow();
@@ -101,15 +111,14 @@ public class PersonCard extends UiPart<Region> {
         };
         return new FollowUpDisplay(
                 true,
-                "",
                 "Due: " + followUp.getDueDate(),
                 "Action: " + followUp.getDescription(),
-                "Status: " + status.getDisplayName(),
+                status.getDisplayName(),
                 statusStyleClass);
     }
 
-    /** Text and style values for a follow-up section in a person card. */
-    record FollowUpDisplay(boolean hasFollowUp, String noneText, String dueText, String actionText,
+    /** Text and style values for the follow-up section of a pending row. */
+    record FollowUpDisplay(boolean hasFollowUp, String dueText, String actionText,
                            String statusText, String statusStyleClass) {
     }
 }

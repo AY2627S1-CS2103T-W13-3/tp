@@ -1,6 +1,5 @@
 package seedu.address.logic.parser;
 
-import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseSuccess;
 
@@ -17,7 +16,8 @@ public class FindCommandParserTest {
 
     @Test
     public void parse_emptyArg_throwsParseException() {
-        assertParseFailure(parser, "     ", String.format(MESSAGE_INVALID_COMMAND_FORMAT, FindCommand.MESSAGE_USAGE));
+        assertParseFailure(parser, "", "Invalid command format!\nUsage: find KEYWORD [MORE_KEYWORDS]...");
+        assertParseFailure(parser, "     ", "Invalid command format!\nUsage: find KEYWORD [MORE_KEYWORDS]...");
     }
 
     @Test
@@ -27,8 +27,15 @@ public class FindCommandParserTest {
                 new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice", "Bob")));
         assertParseSuccess(parser, "Alice Bob", expectedFindCommand);
 
-        // multiple whitespaces between keywords
-        assertParseSuccess(parser, " \n Alice \n \t Bob  \t", expectedFindCommand);
+        // Only ordinary spaces separate keywords after global character validation.
+        assertParseSuccess(parser, "   Alice   Bob  ", expectedFindCommand);
+    }
+
+    @Test
+    public void parse_quotesPunctuationAndNonOrdinarySpaces_remainLiteral() {
+        assertParseSuccess(parser, "\"Alice Bob\" Alice, Alice\u00a0Bob",
+                new FindCommand(new NameContainsKeywordsPredicate(List.of("\"Alice", "Bob\"",
+                        "Alice,", "Alice\u00a0Bob"))));
     }
 
 }

@@ -1,0 +1,35 @@
+.client-profile-panel,
+.client-profile-panel > .viewport {
+    -fx-background-color: #303437;
+}
+
+.client-profile-panel .profile-empty,
+.client-profile-panel .profile-field {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-text-fill: white;
+}
+
+.client-profile-panel .profile-name {
+    -fx-font-family: "Segoe UI Semibold";
+    -fx-font-size: 20px;
+    -fx-text-fill: white;
+}
+
+.client-profile-panel .profile-status {
+    -fx-font-family: "Segoe UI Semibold";
+    -fx-font-size: 13px;
+    -fx-text-fill: white;
+}
+
+.client-profile-panel .profile-status-overdue {
+    -fx-text-fill: #ffadad;
+}
+
+.client-profile-panel .profile-status-due-today {
+    -fx-text-fill: #ffe09a;
+}
+
+.client-profile-panel .profile-status-upcoming {
+    -fx-text-fill: #b6f0c4;
+}
