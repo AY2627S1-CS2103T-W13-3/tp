@@ -201,7 +201,9 @@ Shape errors take priority over index syntax. A rejected delete leaves data, the
 
 ### Keeping the same client profile open `[planned; pending integration]`
 
-The `view` command and selection model are implemented. The dedicated profile panel is pending integration. You can use `view INDEX` to select a client and receive confirmation feedback; the following describes how the visible profile will behave once the panel is integrated.
+The `view` command, selection model and dedicated profile panel are implemented, but the main window still awaits panel integration. You can use `view INDEX` to select a client and receive confirmation feedback; the following describes the visible profile once it is connected to the workspace.
+
+The profile will show the selected client's name, phone, email, address and tags. Tags appear in lowercase alphabetical order, or as `None` when there are no tags. A pending follow-up will show its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it will show `Follow-up: None`; with no selected client it will show `No client selected.`
 
 Your open profile will follow the client, even when their row number changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
 
