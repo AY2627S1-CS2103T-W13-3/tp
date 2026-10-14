@@ -3,7 +3,7 @@ layout: page
 title: User Guide
 ---
 
-AddressBook Level 3 (AB3) is a **desktop application for managing contacts, optimized for use through a Command Line Interface (CLI)** while retaining the benefits of a Graphical User Interface (GUI). If you type quickly, AB3 can help you manage contacts faster than traditional GUI applications.
+PolicyHarbor is a desktop application for managing clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results.
 
 * Table of Contents
 {:toc}
@@ -15,22 +15,21 @@ AddressBook Level 3 (AB3) is a **desktop application for managing contacts, opti
 1. Ensure that Java `25` or later is installed on your computer.<br>
    **Mac users:** Ensure you have the precise JDK version prescribed [here](https://se-education.org/guides/tutorials/javaInstallationMac.html).
 
-1. Download the latest `.jar` file from [here](https://github.com/se-edu/addressbook-level3/releases).
+1. Download the latest `addressbook.jar` from the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases) when a release is available.
 
-1. Copy the file to the folder you want to use as the _home folder_ for your AddressBook.
+1. Copy the file to the folder where you want PolicyHarbor to store its data.
 
 1. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar addressbook.jar`.<br>
-   A GUI similar to the one below should appear in a few seconds. Note how the app contains some sample data.<br>
-   ![Ui](images/Ui.png)
+   The client list is empty on first launch. Add a client to get started.
 
 1. Type a command in the command box and press Enter to execute it. For example, type **`list`** and press Enter to show the full client list.<br>
    Some example commands you can try:
 
-   * `list` : Lists all contacts.
+   * `list` : Lists all clients.
 
-   * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01` : Adds a contact named `John Doe` to the Address Book.
+   * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01` : Adds a client named `John Doe`.
 
-   * `delete 3` : Deletes the 3rd contact shown in the current list.
+   * `delete 1` : Deletes the first client shown in the current list.
 
    * `view 1` : Selects the first client shown, if the list is non-empty.
 
@@ -137,9 +136,9 @@ These shape errors take priority over repeated required prefixes. After shape an
 
 Changes are saved before they appear in the list. If saving fails, the previous data and list remain and the result says `Changes could not be saved. No changes were kept. Try the command again.` If saved data could not be loaded at startup, adding clients is blocked to protect that file.
 
-### Listing all persons: `list`
+### Listing all clients: `list`
 
-Shows a list of all persons in the address book.
+Shows all clients in insertion order and returns `Listed all clients.`. The open profile stays selected if its client is in the list.
 
 Format: `list`
 
@@ -240,13 +239,33 @@ Your open profile will follow the client, even when their row number changes. Tw
 
 Once a profile closes because its client leaves the list, returning to the full list will not reopen it. You will need another successful `view` command. Reopening the application also starts without an open profile. A failed command or failed save leaves the previous profile unchanged.
 
+### Recording or replacing a follow-up: `followup`
+
+Records one pending action for the client at an index in the **currently displayed list**, or replaces that client's existing action.
+
+Format: `followup INDEX d/DATE m/DESCRIPTION`
+
+Use a calendar date in `YYYY-MM-DD` format. A new or replacement date may be today or later; past dates are rejected with `Follow-up date cannot be in the past.` An already saved follow-up can become overdue as time passes. The description must contain 1–200 printable English ASCII characters after outer ordinary spaces are removed. Its internal spaces are retained.
+
+For example, `followup 2 d/2099-12-15 m/Discuss renewal options` records the action for the second displayed client, provided that date has not passed. Success reports `Follow-up for NAME recorded for DATE.` or `Follow-up for NAME updated to DATE.` The list and profile refresh immediately. In the pending list, changing the due date may move the client to another row; the open profile stays with that client.
+
+An invalid displayed index is reported before an invalid date or description. Invalid input and failed saves leave the previous follow-up and list unchanged.
+
+### Clearing a follow-up: `followup INDEX clear`
+
+Removes the pending action for the client at an index in the **currently displayed list**. Success reports `Follow-up for NAME cleared.` If the client has no pending action, the result is `This client has no pending follow-up.` In pending mode, a cleared client disappears from the list; in the full list or search results, the client remains visible. A failed save preserves the action.
+
+### Showing pending follow-ups: `followups`
+
+Shows only clients with pending actions, ordered by ascending due date. Clients with the same due date retain their original insertion order. The feedback is `Pending follow-ups`, or `There are no pending follow-ups.` if none remain. Use the indices **shown in this list** for `view`, `delete` and singular `followup`. `list` returns to the full list, and `find` searches all clients even if they were hidden in pending mode.
+
 ### Saving the data
 
 PolicyHarbor automatically saves successful changes to client data. Commands that only change the displayed list do not rewrite the data file.
 
 ### Editing the data file
 
-Client data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users can update it directly by editing that file.
+Client data is saved automatically as `data/addressbook.json` relative to the folder from which you run `java -jar addressbook.jar`. Advanced users can update it directly by editing that file.
 
 <div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
 If the data file contains an invalid client or duplicate clients, PolicyHarbor starts with an empty displayed list and blocks client changes. It does not overwrite or partly load the invalid file. Correct the file or restore a backup, then restart the app. Back up the file before editing it.<br>
@@ -262,7 +281,7 @@ _Details coming soon ..._
 ## FAQ
 
 **Q**: How do I transfer my data to another computer?<br>
-**A**: Install the app on the other computer and overwrite the data file it creates with the data file from your previous AddressBook home folder.
+**A**: Place the JAR on the other computer, run it once, then close it. Copy `data/addressbook.json` from the old JAR folder into the new JAR folder's `data` directory, replacing the new file. Back up the new file first if it contains clients.
 
 --------------------------------------------------------------------------------------------------------------------
 
