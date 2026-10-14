@@ -70,7 +70,7 @@ AddressBook Level 3 (AB3) is a **desktop application for managing contacts, opti
 The window keeps the command box, the result of your last command and, when relevant, a red saved-data warning at the top. Below them, the workspace is split into two panes. Drag the divider to resize them.
 
 * **Left pane: the numbered client list.** This is the list that indexed commands such as `delete 2` and `followup 2 clear` act on. It shows all clients after `list`, matching clients after `find` and clients with pending follow-ups after `followups`.
-* **Right pane: the client profile.** It is reserved for the full details of one client opened with `view` `[planned; pending integration]`.
+* **Right pane: the client profile.** It shows the full details of one client opened with `view`.
 
 Rows in the full list and in search results show only the row number, name, phone and email. Rows in the pending list also show the due date, the action and one status badge:
 
@@ -167,7 +167,7 @@ Examples:
 
 Missing or extra tokens take priority over index syntax; valid syntax is checked before the displayed-list range. A failed view preserves the previous selection, list and displayed date. In a failed-load session, `view` is still allowed: a valid index produces the range error against the empty list rather than a mutation-blocked message.
 
-**Integration status:** this branch implements the command and selected-client state. The dedicated profile panel is pending integration, so selection currently produces the feedback above without displaying a full client profile. The later profile panel will display the selected record's details.
+On success, `view` opens the selected client's full profile in the right pane and marks the matching row `VIEWING`.
 
 ### Locating clients by name: `find`
 
@@ -220,15 +220,15 @@ Deleted client: Rachel Lim; Phone: 001; Email: Rachel@example.com; Address: Blk 
 
 Shape errors take priority over index syntax. A rejected delete leaves data, the current list and date unchanged. A save failure also keeps the previous state and reports `Changes could not be saved. No changes were kept. Try the command again.` Deletion is blocked if saved data could not be loaded at startup.
 
-### Keeping the same client profile open `[planned; pending integration]`
+### Keeping the same client profile open
 
-The `view` command, selection model and dedicated profile panel are implemented, but the main window still awaits panel integration. You can use `view INDEX` to select a client and receive confirmation feedback; the following describes the visible profile once it is connected to the workspace.
+Use `view INDEX` to select a client in the currently displayed list. The right pane updates with that client's details.
 
-The profile will show the selected client's name, phone, email, address and tags. Tags appear in lowercase alphabetical order, or as `None` when there are no tags. A pending follow-up will show its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it will show `Follow-up: None`; with no selected client it will show `No client selected.`
+The profile shows the selected client's name, phone, email, address and tags. Tags appear in lowercase alphabetical order, or as `None` when there are no tags. A pending follow-up shows its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it shows `Follow-up: None`; with no selected client it shows `No client selected.`
 
 Your open profile will follow the client, even when their row number changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
 
-| Change | Planned result for your open profile |
+| Change | Result for your open profile |
 | --- | --- |
 | Show the full list or add a client | Keep the same client open. |
 | Search or show pending follow-ups | Keep the client open only if they remain in the displayed list; otherwise close the profile. |
@@ -238,7 +238,7 @@ Your open profile will follow the client, even when their row number changes. Tw
 | Delete the open client | Close their profile; do not open the client who inherits their row number. |
 | Delete another client or change another client's follow-up | Keep the same client open despite any renumbering. |
 
-Once a profile closes because its client leaves the list, returning to the full list will not reopen it. You will need another successful `view` command. Reopening the application will also start without an open profile. A failed command or failed save must leave the previous profile unchanged; this requires the later command and profile integration checks.
+Once a profile closes because its client leaves the list, returning to the full list will not reopen it. You will need another successful `view` command. Reopening the application also starts without an open profile. A failed command or failed save leaves the previous profile unchanged.
 
 ### Saving the data
 
@@ -279,7 +279,7 @@ Action | Format, Examples
 -------- | ------------------
 **Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
-**View** | `view INDEX`<br> e.g., `view 02` (selection implemented; profile panel pending integration)
+**View** | `view INDEX`<br> e.g., `view 02`
 **Find** | `find KEYWORD [MORE_KEYWORDS]...`<br> e.g., `find James Jake`
 **List** | `list`
 **Record or replace follow-up** | `followup INDEX d/DATE m/DESCRIPTION`

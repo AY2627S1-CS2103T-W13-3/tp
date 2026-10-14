@@ -127,7 +127,9 @@ public class MainWindow extends UiPart<Stage> {
                 logic.showingFollowUpsProperty(), logic.selectedPersonProperty());
         personListPanelPlaceholder.getChildren().add(personListPanel.getRoot());
 
-        // clientProfilePlaceholder receives ClientProfilePanel once that component is merged.
+        ClientProfilePanel clientProfilePanel = new ClientProfilePanel(logic.selectedPersonProperty(),
+                logic.todayProperty());
+        clientProfilePlaceholder.getChildren().add(clientProfilePanel.getRoot());
 
         boolean showLoadWarning = logic.isDataLoadingBlocked();
         loadWarning.setText(Messages.MESSAGE_LOAD_WARNING);
