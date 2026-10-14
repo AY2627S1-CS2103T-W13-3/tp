@@ -226,7 +226,7 @@ Legacy command classes, their direct unit tests, the GUI Help menu and the windo
 
 `FindCommandParserTest`, `FindCommandTest` and `AddressBookParserTest` cover literal usage/result text, ordinary-space splitting, whole-word OR matching, insertion order, repeated keywords, all-data search after filtering/pending mode, selection reconciliation and global validation. Dispatcher tests reject all four unsupported routes in normal and blocked sessions and retain singular follow-up clearing. `LogicManagerTest` and `FollowUpWorkflowIntegrationTest` provide compatibility evidence for blocked-session rejection and preservation of state and saved bytes.
 
-Rendered profile behavior, focus/timer date-refresh removal and successful-feedback logging cleanup require their owners' integration work. Command tests do not certify those UI or carryover requirements.
+Command tests alone do not certify rendered profile behavior. The workspace and profile sections below describe the integrated UI and its separate checks.
 
 ### Client-profile selection model
 
@@ -248,11 +248,11 @@ This mapping matters for an identical follow-up replacement. The candidate may c
 
 `ClientProfileSelectionTest` covers model-level selection transitions using a fixed date of `2026-10-12`: same-name records, pending reordering, filter exclusion, follow-up clearing, deletion, candidate isolation and equal-value replacement. Canonical-object assertions distinguish correct record tracking from value equality. The existing model and pending-list suites provide regression coverage for the authoritative displayed list and stable due-date ordering.
 
-These tests establish the model boundary. End-to-end checks for the `view` route, rendered profile updates, save-failure preservation of the profile and saved bytes, and restart behaviour remain part of the dependent Logic/command/UI work. Once integrated, manually verify that reordering retains the open client, filter exclusion closes the profile, returning to `list` does not reopen it, and deleting a same-name neighbour never switches the profile. This increment does not claim that those UI checks have run.
+These tests establish the model boundary. `ClientProfileWorkflowIntegrationTest` adds real-command checks for pending reordering, filter exclusion, full-list and pending-list clearing, failed-save preservation, and restart. Visual profile updates and window resizing still require manual verification.
 
 ### Client workspace and pending-list rendering
 
-`MainWindow` places `PersonListPanel` and the profile placeholder in a horizontal `SplitPane`. It passes four `Logic` values to the list: the filtered list, `todayProperty()`, `showingFollowUpsProperty()` and `selectedPersonProperty()`. The UI only reads these values and never samples the clock. The `ClientProfilePanel` is added to `clientProfilePlaceholder` when that component is integrated.
+`MainWindow` places `PersonListPanel` and `ClientProfilePanel` in the two placeholders of a horizontal `SplitPane`. It passes the filtered list, `todayProperty()`, `showingFollowUpsProperty()` and `selectedPersonProperty()` to the list, and the selected-person and date properties to the profile. The UI only reads these values and never samples the clock.
 
 `PersonListPanel` keeps one panel-level listener on the date, mode and selection properties. A change refreshes the visible cells and the empty-list text. Each cell rebuilds its `PersonCard` from `updateItem` and `updateIndex`. A reused cell that moves therefore gets the right number, and an empty cell clears its graphic, so no stale badge or highlight remains.
 
@@ -268,7 +268,7 @@ A failed load shows `Messages.MESSAGE_LOAD_WARNING` in a separate `loadWarning` 
 
 The panel's FXML contains a scrollable, read-only layout with wrapping address and action labels. Its scoped CSS is loaded by that FXML; it does not modify the shared theme owned by the workspace PR. On deselection the panel hides all client fields, clears their text and shows `No client selected.`. When a selected client's action clears, it hides the date, action and status and shows `Follow-up: None`.
 
-`ClientProfilePanelTest` checks exact profile text, sorted tags, the no-selection and no-action states, and overdue/due-today/upcoming values from a fixed date. Those pure display tests do not prove visual wrapping or window composition. Inspect the rendered pane after Kin Chong connects it to the workspace and test long address/action values at a narrow window width.
+`ClientProfilePanelTest` checks exact profile text, sorted tags, the no-selection and no-action states, and overdue/due-today/upcoming values from a fixed date. `ClientProfileWorkflowIntegrationTest` checks the selection and saved-data boundaries through real commands and storage. These tests do not prove visual wrapping or window composition; inspect the rendered pane at a narrow window width with long address and action values.
 
 ### \[Proposed\] Undo/redo feature
 
@@ -629,7 +629,7 @@ Run each scenario in a fresh writable test folder with an empty client dataset a
    1. Add the two Rachel records. Record a follow-up for row 1 at device-today + 2 days and row 2 at device-today + 1 day using `followup INDEX d/DATE m/ACTION`.
    1. Enter `followups`, then `delete 1`. Expected: the second-added Rachel (earlier due date) is removed with its action; pending mode remains active with the other Rachel.
 
-Injected I/O failure and non-transitive replacement conflicts are automated in `ClientRecordCommandsTest` and `UniquePersonListTest`. A save failure must leave both the displayed state and saved bytes unchanged. The profile, UI layout and startup warning require their owners' separate manual checks.
+Injected I/O failure and non-transitive replacement conflicts are automated in `ClientRecordCommandsTest` and `UniquePersonListTest`. `ClientProfileWorkflowIntegrationTest` also checks that failed saves retain the selected client, list order, mode, date and saved bytes. The profile layout and startup warning still require manual checks.
 
 ### Workspace layout and pending rows
 
@@ -638,7 +638,8 @@ Use synthetic data in a fresh folder. These steps are for the built JAR.
 1. Row modes: add two clients and record a follow-up for one. `list` shows only the index, name, phone and email in each row. `followups` shows that client's row with its due date, action and status badge.
 1. Status order: load a saved file containing overdue, today and future follow-ups, including two on the same date. `followups` shows `OVERDUE`, then `DUE TODAY`, then `UPCOMING`. Rows are in date order, ties stay in insertion order and numbering is continuous.
 1. Reused rows: switch between `list` and `followups` several times and scroll. No ordinary row shows a badge, and an empty list shows the correct empty message.
-1. Row clicks: click and arrow through rows. No profile opens and no row shows `VIEWING`.
+1. Profile selection: enter `view 1`, then `view 2`. The right pane changes to the selected client's complete profile and the matching row shows `VIEWING`. Click and arrow through other rows; neither action changes the open profile.
+1. Profile transitions: while viewing a client with a follow-up, replace the action and check that the right pane updates. Clear it in the full list and check `Follow-up: None`. In pending mode, clear the viewed client's action and check `No client selected.`; `list` must not reopen it.
 1. Load warning: start with a malformed `data/addressbook.json`. The red warning stays visible after `list`, `followups` and a rejected `add`.
 1. Resizing: narrow the window and drag the divider. Both panes stay usable, and long emails and actions wrap instead of overlapping.
 
