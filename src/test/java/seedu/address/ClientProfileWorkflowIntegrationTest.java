@@ -203,8 +203,9 @@ public class ClientProfileWorkflowIntegrationTest {
         }
         logic.execute("followups");
         assertEquals(10, model.getFilteredPersonList().size());
-        assertEquals("Client 50", model.getFilteredPersonList().get(0).getName().fullName);
-        assertEquals("Client 5", model.getFilteredPersonList().get(9).getName().fullName);
+        assertEquals(List.of("Client 50", "Client 45", "Client 40", "Client 35", "Client 30",
+                "Client 25", "Client 20", "Client 15", "Client 10", "Client 5"),
+                model.getFilteredPersonList().stream().map(person -> person.getName().fullName).toList());
         logic.execute("view 0000000001");
         assertEquals("Client 50", model.selectedPersonProperty().get().getName().fullName);
 
