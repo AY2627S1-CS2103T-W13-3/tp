@@ -291,7 +291,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 ## Troubleshooting and known limitations
 
-* **The app will not start on a Mac:** use the [prescribed Zulu Java 25 + FX runtime](https://se-education.org/guides/tutorials/javaInstallationMac.html) and check `java -version` in the terminal you use to launch it. A different Java distribution can fail to load JavaFX or its native libraries.
+* **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar addressbook.jar`. A different active Java installation may cause JavaFX loading errors.
 * **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
 * **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.3.
 
