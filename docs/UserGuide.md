@@ -15,11 +15,11 @@ PolicyHarbor v1.3 is a desktop application for individual insurance agents to ma
 1. Ensure that Java `25` is installed on your computer.<br>
    **Mac users:** Ensure you have the precise JDK version prescribed [here](https://se-education.org/guides/tutorials/javaInstallationMac.html).
 
-1. Download the latest `addressbook.jar` from the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases).
+1. Download the latest `PolicyHarbor.jar` from the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases).
 
 1. Copy the file to the folder where you want PolicyHarbor to store its data.
 
-1. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar addressbook.jar`.<br>
+1. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar PolicyHarbor.jar`.<br>
    The client list is empty on first launch. Add a client to get started.
 
 1. Enter each command below separately, pressing Enter after each one:
@@ -273,7 +273,7 @@ Close the app before copying `data/addressbook.json` to a backup location. Resto
 
 ### Editing the data file
 
-Client data is saved automatically as `data/addressbook.json` relative to the folder from which you run `java -jar addressbook.jar`. Advanced users can update it directly by editing that file.
+Client data is saved automatically as `data/addressbook.json` relative to the folder from which you run `java -jar PolicyHarbor.jar`. Advanced users can update it directly by editing that file.
 
 <div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
 If the data file contains an invalid client or duplicate clients, PolicyHarbor starts with an empty displayed list and blocks client changes. It does not overwrite or partly load the invalid file. Correct the file or restore a backup, then restart the app. Back up the file before editing it.<br>
@@ -291,7 +291,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 ## Troubleshooting and known limitations
 
-* **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar addressbook.jar`. A different active Java installation may cause JavaFX loading errors.
+* **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar PolicyHarbor.jar`. A different active Java installation may cause JavaFX loading errors.
 * **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
 * **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.3.
 

@@ -433,7 +433,7 @@ Test the packaged JAR in a fresh writable folder with Java 25 (the prescribed Zu
 
 ### Startup, persistence and basic workflow
 
-1. Launch `java -jar addressbook.jar` from the JAR's folder. Expect an empty list, `No client selected.` and no loading warning.
+1. Launch `java -jar PolicyHarbor.jar` from the JAR's folder. Expect an empty list, `No client selected.` and no loading warning.
 2. Enter these commands separately:
 
    ```text
