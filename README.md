@@ -4,36 +4,33 @@
 
 **Clients. Follow-ups. Made simple.**
 
-PolicyHarbor is a desktop application being developed for individual insurance agents to manage client contact details and keep track of their next follow-up. It combines typed commands with a graphical interface, helping agents who prefer the keyboard retrieve client information and review pending actions in one place.
+PolicyHarbor v1.3 is a desktop client and follow-up manager for individual insurance agents who prefer typed commands. Keep client contact details and their next action together, then review what is overdue, due today or upcoming.
 
-Whether the next step is sending a quotation, discussing a policy renewal or arranging an annual review, PolicyHarbor is designed to keep the client and the action together.
+![PolicyHarbor showing pending follow-ups and a selected client profile](docs/images/Ui.png)
 
-## Intended interface
+## What you can do
 
-![PolicyHarbor UI mockup showing the command box, client list, client profile and pending follow-ups](docs/images/Ui.png)
+- Add, list, search and delete clients, including distinct clients with the same name.
+- Open a complete client profile with `view INDEX`, including contact details, sorted tags and the pending action.
+- Record, replace or clear one dated follow-up per client.
+- Review pending actions in due-date order with `OVERDUE`, `DUE TODAY` and `UPCOMING` badges.
+- Save changes automatically to local JSON and reload them after restarting. Failed saves preserve the previous state; invalid saved files open a protected session.
 
-*Mockup of the intended product. PolicyHarbor is under active development; the interface and planned features below do not describe a completed release.*
+The MVP supports one pending action per client. Multiple actions, follow-up history, notifications and typed contact editing are outside v1.3.
 
-## Planned core features
+## Get started
 
-The first release focuses on the everyday client follow-up workflow:
+Install Java 25; Mac users should use the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html). Download `addressbook.jar` from the [team's releases](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases), open a terminal in its folder and run:
 
-| Feature | What it will let you do |
-| --- | --- |
-| Add clients | Record a client or prospect's name, phone number, email and address. |
-| List clients | Review all clients, including those without a pending follow-up. |
-| View a profile | See a client's full contact details and next action. |
-| Manage follow-ups | Record or replace one pending action per client, with a due date and short description, or clear it when it is no longer needed. |
-| Review pending actions | List follow-ups by due date, with overdue, due-today and upcoming status labels. |
-| Delete clients | Remove a client record and its associated follow-up. |
-| Save automatically | Keep client records and pending follow-ups locally between sessions. |
+```bash
+java -jar addressbook.jar
+```
 
-Name search and client tags are optional additions to the initial scope. The MVP focuses on one next action per client; multiple follow-ups, follow-up history and notifications are outside that scope.
+The first launch is empty. See the [User Guide](docs/UserGuide.md#quick-start) for a short walkthrough.
 
 ## Documentation and development
 
-PolicyHarbor is built with Java and JavaFX. The documentation is being updated alongside the application as the planned workflow is implemented.
-
+- [Product website](https://ay2627s1-cs2103t-w13-3.github.io/tp/)
 - [User Guide](docs/UserGuide.md)
 - [Developer Guide](docs/DeveloperGuide.md)
 - [Development Setup](docs/SettingUp.md)
@@ -42,7 +39,7 @@ PolicyHarbor is built with Java and JavaFX. The documentation is being updated a
 
 ## Acknowledgements
 
-This project is based on the AddressBook-Level3 project created by the [SE-EDU initiative](https://se-education.org).
+PolicyHarbor evolves [AddressBook Level 3](https://github.com/se-edu/addressbook-level3), created by the [SE-EDU initiative](https://se-education.org). It retains AB3's Java/JavaFX architecture and test conventions. See the Developer Guide for acknowledgements of AI assistance.
 
 ## License
 

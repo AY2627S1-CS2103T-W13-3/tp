@@ -3,34 +3,34 @@ layout: page
 title: Testing guide
 ---
 
-* Table of Contents
-{:toc}
+## Run automated checks
 
---------------------------------------------------------------------------------------------------------------------
+Use Java 25; on Mac select the [prescribed Zulu JDK+FX](https://se-education.org/guides/tutorials/javaInstallationMac.html) for both Gradle and the IDE.
 
-## Running tests
+```bash
+./gradlew check coverage
+```
 
-You can run tests in two ways.
+On Windows use `gradlew.bat`. `check` runs the JUnit suite and Checkstyle. Reports are under `build/reports/tests/test`, `build/reports/checkstyle` and `build/reports/jacoco`. On macOS/Linux also run `.github/run-checks.sh` and `git diff --check`.
 
-* **Method 1: Using IntelliJ JUnit test runner**
-  * To run all tests, right-click on the `src/test/java` folder and choose `Run 'All Tests'`
-  * To run a subset of tests, you can right-click on a test package,
-    test class, or a test and choose `Run 'ABC'`
-* **Method 2: Using Gradle**
-  * Open a console and run the command `gradlew clean test` (Mac/Linux: `./gradlew clean test`)
+During development, run a focused class with:
 
-<div markdown="span" class="alert alert-secondary">:link: **Link**: Read [this Gradle Tutorial from the se-edu/guides](https://se-education.org/guides/tutorials/gradle.html) to learn more about using Gradle.
-</div>
+```bash
+./gradlew test --tests 'seedu.address.logic.commands.ViewCommandTest'
+```
 
---------------------------------------------------------------------------------------------------------------------
+A focused run does not establish whole-suite coverage. Run the full suite before reporting overall results. Use `clean` when stale build outputs are a concern; it is not required for every test run.
 
-## Types of tests
+IntelliJ can run a class, package or `src/test/java` through its JUnit runner. Ensure its configured JDK matches Gradle's.
 
-This project has three types of tests:
+## Test responsibilities
 
-1. *Unit tests* target the lowest-level methods and classes.<br>
-   For example: `seedu.address.commons.StringUtilTest`
-1. *Integration tests* check how multiple code units work together; the individual units are assumed to work.<br>
-   For example: `seedu.address.storage.StorageManagerTest`
-1. *Hybrid tests* combine unit and integration testing. These tests check both the individual units and how they work together.<br>
-   For example: `seedu.address.logic.LogicManagerTest`
+| Level | What it checks | Examples |
+| --- | --- | --- |
+| Unit | Domain constraints, parsers and pure display values | `FollowUpTest`, `ViewCommandParserTest`, `ClientProfilePanelTest` |
+| Integration | Model transitions and cooperating components | `ClientProfileSelectionTest`, `LogicManagerTest`, `JsonAddressBookStorageTest` |
+| Workflow | Real command routing, persistence, failure preservation and restart | `ClientRecordCommandsTest`, `ClientProfileWorkflowIntegrationTest` |
+
+Tests use fixed dates and temporary data folders. Storage failure tests inject write/move failures rather than relying on OS permissions. Keep successful and rejected commands' data/view assertions together.
+
+Pure display-function tests do not prove FXML binding, focus, wrapping or scaling. Follow the Developer Guide's [manual testing appendix](DeveloperGuide.md#appendix-instructions-for-manual-testing) against the actual JAR before a release, and record the tested platform/runtime and remaining gaps.

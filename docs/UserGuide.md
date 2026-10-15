@@ -3,7 +3,7 @@ layout: page
 title: User Guide
 ---
 
-PolicyHarbor is a desktop application for managing clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results.
+PolicyHarbor v1.3 is a desktop application for individual insurance agents to manage clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results.
 
 * Table of Contents
 {:toc}
@@ -12,28 +12,28 @@ PolicyHarbor is a desktop application for managing clients and their follow-ups.
 
 ## Quick start
 
-1. Ensure that Java `25` or later is installed on your computer.<br>
+1. Ensure that Java `25` is installed on your computer.<br>
    **Mac users:** Ensure you have the precise JDK version prescribed [here](https://se-education.org/guides/tutorials/javaInstallationMac.html).
 
-1. Download the latest `addressbook.jar` from the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases) when a release is available.
+1. Download the latest `addressbook.jar` from the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases).
 
 1. Copy the file to the folder where you want PolicyHarbor to store its data.
 
 1. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar addressbook.jar`.<br>
    The client list is empty on first launch. Add a client to get started.
 
-1. Type a command in the command box and press Enter to execute it. For example, type **`list`** and press Enter to show the full client list.<br>
-   Some example commands you can try:
+1. Enter each command below separately, pressing Enter after each one:
 
-   * `list` : Lists all clients.
+   ```text
+   add n/Rachel Lim p/91234567 e/rachel@example.com a/Blk 123 t/health
+   view 1
+   followup 1 d/2099-12-15 m/Discuss renewal options
+   followups
+   ```
 
-   * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01` : Adds a client named `John Doe`.
+   Rachel's contact details appear in the profile pane. Her action appears in the pending list with an `UPCOMING` badge. The example uses a future date; for your own actions use today or a later date in `YYYY-MM-DD` format.
 
-   * `delete 1` : Deletes the first client shown in the current list.
-
-   * `view 1` : Selects the first client shown, if the list is non-empty.
-
-   Close the application using the window's close button.
+1. Close the window and run the JAR again from the same folder. Rachel and her follow-up are restored; enter `view 1` to reopen her profile.
 
 1. Refer to the [Features](#features) section below for details of each command.
 
@@ -65,6 +65,10 @@ PolicyHarbor is a desktop application for managing clients and their follow-ups.
 </div>
 
 ### Reading the workspace
+
+[![Pending follow-ups and the selected client profile](images/Ui.png)](images/Ui.png)
+
+*Actual v1.3 workspace with fictional clients. Open the image to enlarge it.*
 
 The window keeps the command box, the result of your last command and, when relevant, a red saved-data warning at the top. Below them, the workspace is split into two panes. Drag the divider to resize them.
 
@@ -132,7 +136,7 @@ Invalid command format!
 Usage: add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...
 ```
 
-These shape errors take priority over repeated required prefixes. After shape and repeated-prefix checks, values are checked in this order: name, phone, email, address, then tags. Duplicate checking comes after validation. An unrecognized prefix inside a field remains literal text: for example, `z/unit` inside an address is allowed, while the same text inside a phone makes the phone invalid.
+If several fields are invalid, correct the reported error and submit the command again. Fields are checked in the order name, phone, email, address, then tags. An unrecognized prefix inside a field remains literal text: for example, `z/unit` inside an address is allowed, while the same text inside a phone makes the phone invalid.
 
 Changes are saved before they appear in the list. If saving fails, the previous data and list remain and the result says `Changes could not be saved. No changes were kept. Try the command again.` If saved data could not be loaded at startup, adding clients is blocked to protect that file.
 
@@ -167,6 +171,8 @@ Examples:
 Missing or extra tokens take priority over index syntax; valid syntax is checked before the displayed-list range. A failed view preserves the previous selection, list and displayed date. In a failed-load session, `view` is still allowed: a valid index produces the range error against the empty list rather than a mutation-blocked message.
 
 On success, `view` opens the selected client's full profile in the right pane and marks the matching row `VIEWING`.
+
+[![Full client list with Rachel Lim's contact details and follow-up](images/ClientProfile.png)](images/ClientProfile.png)
 
 ### Locating clients by name: `find`
 
@@ -261,7 +267,9 @@ Shows only clients with pending actions, ordered by ascending due date. Clients 
 
 ### Saving the data
 
-PolicyHarbor automatically saves successful changes to client data. Commands that only change the displayed list do not rewrite the data file.
+PolicyHarbor automatically saves successful client and follow-up changes. `list`, `find`, `view` and `followups` do not rewrite the data file. You do not need a save command. The selected profile is session-only.
+
+Close the app before copying `data/addressbook.json` to a backup location. Restore a backup while the app is closed, then restart from the JAR folder.
 
 ### Editing the data file
 
@@ -272,20 +280,21 @@ If the data file contains an invalid client or duplicate clients, PolicyHarbor s
 Names, addresses, phone numbers, email addresses and tags follow the same validation rules used when adding a client. Outer ordinary spaces are removed; tags are stored in lowercase without duplicates. Missing tags mean no tags. Existing valid overdue follow-ups are preserved.
 </div>
 
-### Archiving data files `[coming in v2.0]`
-
-_Details coming soon ..._
-
 --------------------------------------------------------------------------------------------------------------------
 
 ## FAQ
 
 **Q**: How do I transfer my data to another computer?<br>
-**A**: Place the JAR on the other computer, run it once, then close it. Copy `data/addressbook.json` from the old JAR folder into the new JAR folder's `data` directory, replacing the new file. Back up the new file first if it contains clients.
+**A**: Close the app on both computers. Place the JAR in a writable folder on the new computer and create a `data` subfolder. Copy the old `data/addressbook.json` into it, backing up any existing destination file first. Run the JAR from the new folder with Java 25.
 
 --------------------------------------------------------------------------------------------------------------------
 
-## Known issues
+## Troubleshooting and known limitations
+
+* **The app will not start on a Mac:** use the [prescribed Zulu Java 25 + FX runtime](https://se-education.org/guides/tutorials/javaInstallationMac.html) and check `java -version` in the terminal you use to launch it. A different Java distribution can fail to load JavaFX or its native libraries.
+* **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
+* **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.3.
+
 
 1. **When using multiple screens**, if you move the application to a secondary screen, and later switch to using only the primary screen, the GUI will open off-screen. The remedy is to delete the `preferences.json` file created by the application before running the application again.
 2. **If you minimize the Help Window** and then use the `Help` menu or the keyboard shortcut `F1` again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
