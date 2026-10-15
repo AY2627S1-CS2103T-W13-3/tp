@@ -9,16 +9,14 @@ For product questions and bug reports, use the [team issue tracker](https://gith
 
 ## Project team
 
-Responsibilities below summarize the v1.3 implementation contributions; all members contribute reviews and testing.
-
 ### Josthan Wong
 
 <img src="images/josthan12.png" width="200px" alt="Josthan Wong">
 
 [[github](https://github.com/josthan12)]
 
-* Role: Developer and Tester
-* Responsibilities: Command parsing/routing, client profile retrieval and name search.
+* Role: Developer
+* Responsibilities: TBC
 
 ### Ayush Jain
 
@@ -26,8 +24,8 @@ Responsibilities below summarize the v1.3 implementation contributions; all memb
 
 [[github](https://github.com/Ayushjain8541)]
 
-* Role: Developer and Tester
-* Responsibilities: Client/follow-up domain rules, mutation commands and release preparation.
+* Role: Developer
+* Responsibilities: TBC
 
 ### Gwen Lim
 
@@ -35,8 +33,8 @@ Responsibilities below summarize the v1.3 implementation contributions; all memb
 
 [[github](https://github.com/gwenlim89)]
 
-* Role: Developer and Tester
-* Responsibilities: Displayed-list model, pending ordering and profile-selection lifecycle.
+* Role: Developer
+* Responsibilities: TBC
 
 ### Kin Chong
 
@@ -44,8 +42,8 @@ Responsibilities below summarize the v1.3 implementation contributions; all memb
 
 [[github](https://github.com/wkc75)]
 
-* Role: Developer and Tester
-* Responsibilities: Client workspace, pending-action rows and status presentation.
+* Role: Developer
+* Responsibilities: TBC
 
 ### Somaaditya Samal
 
@@ -53,5 +51,5 @@ Responsibilities below summarize the v1.3 implementation contributions; all memb
 
 [[github](https://github.com/SomaadityaSamal)]
 
-* Role: Developer and Tester
-* Responsibilities: Persistence and execution integration, client profile panel and workflow verification.
+* Role: Developer
+* Responsibilities: TBC
