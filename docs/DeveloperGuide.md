@@ -121,7 +121,7 @@ How the parsing works:
 
 The `Model` component,
 
-* stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object).
+* stores the client data i.e., all `Person` objects (which are contained in a `UniquePersonList` object).
 * derives one displayed list for full, search or pending mode and exposes a stable unmodifiable `ObservableList<Person>`.
 * exposes read-only properties for the current date, pending-list mode and selected canonical client; these are session state and are not serialized.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
@@ -135,7 +135,7 @@ The `Model` component,
 
 The `Storage` component,
 
-* can save both address book data and user preference data in JSON format, and read them back into corresponding objects.
+* can save both client data and user preference data in JSON format, and read them back into corresponding objects.
 * is implemented by `StorageManager`, which delegates the actual JSON file access to `JsonAddressBookStorage` and `JsonUserPrefsStorage` (one class per data file).
 * depends on some classes in the `Model` component (because the `Storage` component's job is to save/retrieve objects that belong to the `Model`)
 
@@ -170,7 +170,7 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 
 ### Client command parsing and publication
 
-`AddCommandParser` retains the existing tokenizer. It checks required prefixes and preamble before repeated required prefixes, then validates name, phone, email, address and tags in that order. Unrecognized prefixes remain part of the current field value. The model's whole-address-book duplicate check follows parsing, even when the client is hidden by a filter. Successful addition resets the view to the full insertion-order list.
+`AddCommandParser` retains the existing tokenizer. It checks required prefixes and preamble before repeated required prefixes, then validates name, phone, email, address and tags in that order. Unrecognized prefixes remain part of the current field value. The model's check for duplicates across all client records follows parsing, even when the client is hidden by a filter. Successful addition resets the view to the full insertion-order list.
 
 `DeleteCommandParser` checks for exactly one ordinary-space-separated token before calling `ParserUtil.parseIndex`. The shared helper accepts ASCII digits, trims outer U+0020, removes leading zeroes before bounded conversion and rejects values outside `1..2147483647` without leaking `NumberFormatException`. `FollowUpParserUtil` and `ViewCommandParser` use the same helper. Delete resolves an index against `Model.getFilteredPersonList`, retaining the active mode and deleting the full record with its action.
 
@@ -250,7 +250,7 @@ Selection follows the exact record, never its name, duplicate relation or displa
 
 After the caller has successfully saved any dirty candidate, `commitFrom(candidate)` publishes its data, mode, date and selection while retaining the live observable objects. It maps the selected candidate record's full-list position to the corresponding committed live record. This position is used only within that publication; it is not a persistent ID or a displayed row number.
 
-This mapping matters for an identical follow-up replacement. The candidate may contain a new `Person` object with equal values, while publication skips resetting the value-equal live address book. Publishing the candidate object directly would leave selection pointing outside the live list. Mapping to the committed live record retains a canonical visible selection whether the data was reset or retained.
+This mapping matters for an identical follow-up replacement. The candidate may contain a new `Person` object with equal values, while publication skips resetting the live client data when it has equal values. Publishing the candidate object directly would leave selection pointing outside the live list. Mapping to the committed live record retains a canonical visible selection whether the data was reset or retained.
 
 #### Selection transition evidence
 
@@ -433,7 +433,7 @@ Test the packaged JAR in a fresh writable folder with Java 25 (the prescribed Zu
 
 ### Startup, persistence and basic workflow
 
-1. Launch `java -jar addressbook.jar` from the JAR's folder. Expect an empty list, `No client selected.` and no loading warning.
+1. Launch `java -jar PolicyHarbor.jar` from the JAR's folder. Expect an empty list, `No client selected.` and no loading warning.
 2. Enter these commands separately:
 
    ```text

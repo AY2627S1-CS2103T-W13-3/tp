@@ -20,10 +20,10 @@ The MVP supports one pending action per client. Multiple actions, follow-up hist
 
 ## Get started
 
-Install Java 25; Mac users should use the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html). Download `addressbook.jar` from the [team's releases](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases), open a terminal in its folder and run:
+Install Java 25; Mac users should use the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html). Download `PolicyHarbor.jar` from the [team's releases](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases), open a terminal in its folder and run:
 
 ```bash
-java -jar addressbook.jar
+java -jar PolicyHarbor.jar
 ```
 
 The first launch is empty. See the [User Guide](docs/UserGuide.md#quick-start) for a short walkthrough.

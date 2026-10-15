@@ -19,7 +19,7 @@ The following commands perform common Gradle tasks.
 * **`clean`**: Deletes the files created during the previous build tasks (e.g. files in the `build` folder).<br>
   For example: `./gradlew clean`
 
-* **`shadowJar`**: Uses the Shadow plugin to create the fat JAR file `build/libs/addressbook.jar`.<br>
+* **`shadowJar`**: Uses the Shadow plugin to create the fat JAR file `build/libs/PolicyHarbor.jar`.<br>
   For example: `./gradlew shadowJar`
 
 * **`run`**: Builds and runs the application.<br>
@@ -76,10 +76,10 @@ Release from the tested team `master` commit. Do not upload a JAR built with a l
 1. Set `MainApp.VERSION` and the window title to the intended version; review branding, command documentation and `docs/images/Ui.png` against the product.
 1. Use Java 25. On Mac, activate the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html) for building and running.
 1. Run `./gradlew check coverage shadowJar`, then `.github/run-checks.sh` and `git diff --check` (Windows: `gradlew.bat`; repository shell checks run on macOS/Linux or CI).
-1. Copy `build/libs/addressbook.jar` into a fresh writable folder. From that folder run `java -jar addressbook.jar` and check the [manual workflow](DeveloperGuide.md#appendix-instructions-for-manual-testing), including save/restart. Keep synthetic screenshot data separate from personal data.
+1. Copy `build/libs/PolicyHarbor.jar` into a fresh writable folder. From that folder run `java -jar PolicyHarbor.jar` and check the [manual workflow](DeveloperGuide.md#appendix-instructions-for-manual-testing), including save/restart. Keep synthetic screenshot data separate from personal data.
 1. Capture actual product screenshots showing the full profile and pending action statuses. Replace the website mockup and embed screenshots in the release description.
 1. Create tag `v1.3` (or the next release version) at the exact tested commit in the team repository. [Create a GitHub release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) with itemized changes compared with AB3, runtime instructions and the JAR attached. For an MVP release, publish it as a normal release rather than a prerelease.
-1. Download the uploaded JAR and verify startup. Compare its SHA-256 with the local artifact (`shasum -a 256 addressbook.jar` on Mac, `sha256sum` on Linux, or `Get-FileHash` in PowerShell).
+1. Download the uploaded JAR and verify startup. Compare its SHA-256 with the local artifact (`shasum -a 256 PolicyHarbor.jar` on Mac, `sha256sum` on Linux, or `Get-FileHash` in PowerShell).
 1. After publishing, ensure completed issues/PRs are assigned to the iteration milestone, move any incomplete items to a later milestone, and close the completed milestone. Preserve PR source branches.
 
 CI uses Zulu JDK+FX on Windows, macOS and Linux. CI builds/tests are useful evidence but do not replace running the exact uploaded JAR or checking its GUI.
