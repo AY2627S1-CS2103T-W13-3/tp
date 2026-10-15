@@ -7,7 +7,7 @@ title: PolicyHarbor
 
 **Clients. Follow-ups. Made simple.**
 
-PolicyHarbor v1.3 helps individual insurance agents manage client contacts and one pending follow-up per client through typed commands and a graphical workspace.
+PolicyHarbor v1.3.1 helps individual insurance agents manage client contacts and one pending follow-up per client through typed commands and a graphical workspace.
 
 [![Pending actions and a complete client profile in PolicyHarbor](images/Ui.png)](images/Ui.png)
 

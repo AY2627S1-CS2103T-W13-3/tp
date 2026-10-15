@@ -95,9 +95,9 @@ public class ClientRecordCommandsTest {
     public void execute_addNormalizedDuplicates_rejectsAfterValidationWithoutSaving() throws Exception {
         model.showPendingFollowUps();
         assertRejectedWithoutChanges("add n/RACHEL   LIM p/001 e/new@example.com a/Another address",
-                CommandException.class, "This client already exists in Policy Harbour.");
+                CommandException.class, "This client already exists in PolicyHarbor.");
         assertRejectedWithoutChanges("add n/rachel lim p/999 e/RACHEL@EXAMPLE.COM a/Another address",
-                CommandException.class, "This client already exists in Policy Harbour.");
+                CommandException.class, "This client already exists in PolicyHarbor.");
         assertRejectedWithoutChanges("add n/Rachel Lim p/001 e/bad a/Blk 1",
                 ParseException.class, "Email format is not supported. Example: rachel.lim+work@example.com.");
     }
@@ -174,7 +174,7 @@ public class ClientRecordCommandsTest {
     public void execute_addAfterSearch_checksWholeAddressBookForDuplicates() throws Exception {
         model.updateFilteredPersonList(new NameContainsKeywordsPredicate(List.of("Nobody")));
         assertRejectedWithoutChanges("add n/Rachel Lim p/001 e/new@example.com a/Another address",
-                CommandException.class, "This client already exists in Policy Harbour.");
+                CommandException.class, "This client already exists in PolicyHarbor.");
     }
 
     private void assertRejectedWithoutChanges(String input, Class<? extends Throwable> exception, String message)

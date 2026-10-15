@@ -25,7 +25,7 @@ public class AddCommand extends Command {
             + PREFIX_ADDRESS + "ADDRESS [" + PREFIX_TAG + "TAG]...";
 
     public static final String MESSAGE_SUCCESS = "New client added: %1$s";
-    public static final String MESSAGE_DUPLICATE_PERSON = "This client already exists in Policy Harbour.";
+    public static final String MESSAGE_DUPLICATE_PERSON = "This client already exists in PolicyHarbor.";
 
     private final Person toAdd;
 
