@@ -185,6 +185,52 @@ public class ClientProfileWorkflowIntegrationTest {
                 .orElseThrow().getStatus(TODAY).getDisplayName());
     }
 
+    @Test
+    public void manyClients_pendingIndicesAndRejectedCommandsKeepCorrectRecords() throws Exception {
+        Path file = testFolder.resolve("many-clients.json");
+        Model model = model();
+        LogicManager logic = new LogicManager(model, storage(file), clock());
+
+        for (int index = 1; index <= 50; index++) {
+            logic.execute("add n/Client " + index + " p/" + (1000 + index)
+                    + " e/client" + index + "@example.com a/Test address " + index);
+        }
+        assertEquals(50, model.getFilteredPersonList().size());
+        for (int index = 5; index <= 50; index += 5) {
+            int daysUntilDue = 11 - index / 5;
+            logic.execute("followup " + index + " d/" + TODAY.plusDays(daysUntilDue)
+                    + " m/" + "x".repeat(200));
+        }
+        logic.execute("followups");
+        assertEquals(10, model.getFilteredPersonList().size());
+        assertEquals("Client 50", model.getFilteredPersonList().get(0).getName().fullName);
+        assertEquals("Client 5", model.getFilteredPersonList().get(9).getName().fullName);
+        logic.execute("view 0000000001");
+        assertEquals("Client 50", model.selectedPersonProperty().get().getName().fullName);
+
+        List<Person> pendingBeforeFailure = List.copyOf(model.getFilteredPersonList());
+        byte[] savedBeforeFailure = Files.readAllBytes(file);
+        assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DATE, () ->
+                logic.execute("followup 1 d/2026-02-30 m/Call"));
+        assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
+                logic.execute("followup 1 d/2026-10-13 m/" + "x".repeat(201)));
+        assertThrows(CommandException.class, "Follow-up date cannot be in the past.", () ->
+                logic.execute("followup 1 d/2026-10-11 m/Call"));
+        assertThrows(CommandException.class, "The client index provided is invalid.", () ->
+                logic.execute("followup 11 d/2026-02-30 m/Call"));
+        assertEquals(pendingBeforeFailure, model.getFilteredPersonList());
+        assertEquals("Client 50", model.selectedPersonProperty().get().getName().fullName);
+        assertArrayEquals(savedBeforeFailure, Files.readAllBytes(file));
+
+        logic.execute("delete 1");
+        assertEquals(9, model.getFilteredPersonList().size());
+        assertNull(model.selectedPersonProperty().get());
+        logic.execute("list");
+        assertEquals(49, model.getFilteredPersonList().size());
+        assertFalse(model.getFilteredPersonList().stream()
+                .anyMatch(person -> person.getName().fullName.equals("Client 50")));
+    }
+
     private Model model(Person... people) {
         AddressBook book = new AddressBook();
         for (Person person : people) {

@@ -182,7 +182,7 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 
 `AddCommandParser` retains the existing tokenizer. It checks required prefixes and preamble before repeated required prefixes, then validates name, phone, email, address and tags in that order. Unrecognized prefixes remain part of the current field value. The model's whole-address-book duplicate check follows parsing, even when the client is hidden by a filter. Successful addition resets the view to the full insertion-order list.
 
-`DeleteCommandParser` checks for exactly one ordinary-space-separated token before calling `ParserUtil.parseIndex`. The shared helper accepts ASCII digits, trims outer U+0020, removes leading zeroes before bounded conversion and rejects values outside `1..2147483647` without leaking `NumberFormatException`. `FollowUpParserUtil` delegates to it. The future view parser can consume the same helper. Delete resolves an index against `Model.getFilteredPersonList`, retaining the active mode and deleting the full record with its action.
+`DeleteCommandParser` checks for exactly one ordinary-space-separated token before calling `ParserUtil.parseIndex`. The shared helper accepts ASCII digits, trims outer U+0020, removes leading zeroes before bounded conversion and rejects values outside `1..2147483647` without leaking `NumberFormatException`. `FollowUpParserUtil` and `ViewCommandParser` use the same helper. Delete resolves an index against `Model.getFilteredPersonList`, retaining the active mode and deleting the full record with its action.
 
 The merged `LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, index and save failures preserve the live data, list mode/order and date; successful read-only commands do not save. This increment tests that existing transaction boundary with client commands instead of introducing another execution path. UI selection and excluded legacy command routes are outside this package.
 
@@ -248,7 +248,7 @@ This mapping matters for an identical follow-up replacement. The candidate may c
 
 `ClientProfileSelectionTest` covers model-level selection transitions using a fixed date of `2026-10-12`: same-name records, pending reordering, filter exclusion, follow-up clearing, deletion, candidate isolation and equal-value replacement. Canonical-object assertions distinguish correct record tracking from value equality. The existing model and pending-list suites provide regression coverage for the authoritative displayed list and stable due-date ordering.
 
-These tests establish the model boundary. `ClientProfileWorkflowIntegrationTest` adds real-command checks for pending reordering, filter exclusion, full-list and pending-list clearing, failed-save preservation, and restart. Visual profile updates and window resizing still require manual verification.
+These tests establish the model boundary. `ClientProfileWorkflowIntegrationTest` adds real-command checks for pending reordering, filter exclusion, full-list and pending-list clearing, failed-save preservation, restart, and a 50-client command sequence with rejected input and saved-byte checks. The manual testing appendix covers visual profile updates and window resizing.
 
 ### Client workspace and pending-list rendering
 
@@ -566,21 +566,24 @@ testers are expected to do more *exploratory* testing.
 
    1. Download the JAR file and copy it into an empty folder.
 
-   1. Double-click the JAR file.<br>
-      Expected: The GUI opens with a set of sample contacts. The window size may not be optimal.
+   1. Open a terminal in that folder and run `java -jar addressbook.jar`.<br>
+      Expected: The GUI opens with an empty client list, `No client selected.` in the profile pane, and no saved-data warning.
 
 1. Saving window preferences
 
    1. Resize the window to an optimal size. Move the window to a different location. Close the window.
 
-   1. Relaunch the app by double-clicking the JAR file.<br>
+   1. Relaunch the app from that folder with `java -jar addressbook.jar`.<br>
        Expected: The most recent window size and location are retained.
 
-1. _{ more test cases …​ }_
+1. Fresh launch after data creation
+
+   1. Add a synthetic client, close the window, then relaunch the JAR from the same folder.<br>
+      Expected: The client reappears with the same contact details. No profile is open until a successful `view` command.
 
 ### View, name search and unsupported routes
 
-Use a fresh writable folder with the application's JAR and Java 25. These are manual instructions, not a claim that the packaged GUI has been tested. The current branch exposes view selection through feedback; full-profile rendering must be checked after the profile panel is integrated.
+Use a fresh writable folder with the application's JAR and Java 25. Check both command feedback and the client list/profile panes. Dates in the steps below are relative to the device's current date.
 
 1. Displayed-list selection:
    1. Add `add n/Rachel Lim p/001 e/first@example.com a/Blk 1` and `add n/Amanda Lee p/002 e/second@example.com a/Blk 2`.
@@ -629,7 +632,7 @@ Run each scenario in a fresh writable test folder with an empty client dataset a
    1. Add the two Rachel records. Record a follow-up for row 1 at device-today + 2 days and row 2 at device-today + 1 day using `followup INDEX d/DATE m/ACTION`.
    1. Enter `followups`, then `delete 1`. Expected: the second-added Rachel (earlier due date) is removed with its action; pending mode remains active with the other Rachel.
 
-Injected I/O failure and non-transitive replacement conflicts are automated in `ClientRecordCommandsTest` and `UniquePersonListTest`. `ClientProfileWorkflowIntegrationTest` also checks that failed saves retain the selected client, list order, mode, date and saved bytes. The profile layout and startup warning still require manual checks.
+Injected I/O failure and non-transitive replacement conflicts are automated in `ClientRecordCommandsTest` and `UniquePersonListTest`. `ClientProfileWorkflowIntegrationTest` also checks that failed saves retain the selected client, list order, mode, date and saved bytes. The profile layout and startup warning need a window-level check.
 
 ### Workspace layout and pending rows
 
@@ -642,11 +645,24 @@ Use synthetic data in a fresh folder. These steps are for the built JAR.
 1. Profile transitions: while viewing a client with a follow-up, replace the action and check that the right pane updates. Clear it in the full list and check `Follow-up: None`. In pending mode, clear the viewed client's action and check `No client selected.`; `list` must not reopen it.
 1. Load warning: start with a malformed `data/addressbook.json`. The red warning stays visible after `list`, `followups` and a rejected `add`.
 1. Resizing: narrow the window and drag the divider. Both panes stay usable, and long emails and actions wrap instead of overlapping.
+1. Long content: add a client with a long valid email, a long address and tags, then record a 200-character follow-up. Open the profile and pending list, scroll, and resize both panes. All fields must remain readable without overlapping the next row or the command box.
+1. Repeated navigation: create at least 50 synthetic clients, including several same-name clients with distinct phone numbers and emails. Repeatedly switch among `list`, `find NAME` and `followups`; open profiles, scroll to both ends, and resize the window. Each displayed index must continue to target its visible client, and `VIEWING` must follow the selected client rather than its former row number.
 
 ### Saving data
 
-1. Dealing with missing/corrupted data files
+1. Missing data file
 
-   1. _{Explain how to simulate missing or corrupted data files and state the expected behavior.}_
+   1. In a separate test folder, remove `data/addressbook.json` before first launch and run `java -jar addressbook.jar`.<br>
+      Expected: The app opens with an empty list, without a warning. Add a synthetic client and close the app; `data/addressbook.json` is created and contains that client.
 
-1. _{ more test cases …​ }_
+1. Corrupted data file
+
+   1. Close the app, back up `data/addressbook.json`, replace its contents with malformed JSON, and relaunch.<br>
+      Expected: An empty list and the red saved-data warning appear. `list`, `find` and `followups` still work against the empty displayed list; `add`, `delete` and `followup` report that changes are blocked. The malformed file is not overwritten.
+   1. Restore the valid backup and relaunch.<br>
+      Expected: The original clients reappear, the warning is gone and changes work again.
+
+1. Failed save
+
+   1. In a disposable test folder, make the `data` directory unwritable after creating a client, then try an `add`, `delete` or `followup` change.<br>
+      Expected: `Changes could not be saved. No changes were kept. Try the command again.` The visible list, open profile and saved file remain unchanged. Restore write access before continuing.
