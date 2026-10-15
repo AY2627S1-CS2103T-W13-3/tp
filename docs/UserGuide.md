@@ -3,7 +3,7 @@ layout: page
 title: User Guide
 ---
 
-PolicyHarbor v1.3 is a desktop application for individual insurance agents to manage clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results.
+PolicyHarbor v1.3.1 is a desktop application for individual insurance agents to manage clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results.
 
 * Table of Contents
 {:toc}
@@ -68,7 +68,7 @@ PolicyHarbor v1.3 is a desktop application for individual insurance agents to ma
 
 [![Pending follow-ups and the selected client profile](images/Ui.png)](images/Ui.png)
 
-*Actual v1.3 workspace with fictional clients. Open the image to enlarge it.*
+*PolicyHarbor workspace with fictional clients. Open the image to enlarge it.*
 
 The window keeps the command box, the result of your last command and, when relevant, a red saved-data warning at the top. Below them, the workspace is split into two panes. Drag the divider to resize them.
 
@@ -121,7 +121,7 @@ Examples, entered into a list without these clients:
 
 * `add n/Rachel Lim p/001 e/Rachel@example.com a/Blk 123 t/HEALTH t/active t/health` adds Rachel and displays `Tags: [active] [health]`.
 * `add n/Rachel Lim p/002 e/other@example.com a/新加坡 🏠` adds a second Rachel because both contact details differ.
-* `add n/RACHEL  LIM p/001 e/new@example.com a/Another address` fails with `This client already exists in Policy Harbour.` because the first Rachel has the same normalized name and phone.
+* `add n/RACHEL  LIM p/001 e/new@example.com a/Another address` fails with `This client already exists in PolicyHarbor.` because the first Rachel has the same normalized name and phone.
 
 Success text includes the name, phone, email, address and sorted lowercase bracketed tags separated by spaces. Without tags, it ends in `Tags: None`. For example:
 
@@ -293,7 +293,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 * **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar PolicyHarbor.jar`. A different active Java installation may cause JavaFX loading errors.
 * **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
-* **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.3.
+* **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.3.1.
 
 
 1. **When using multiple screens**, if you move the application to a secondary screen, and later switch to using only the primary screen, the GUI will open off-screen. The remedy is to delete the `preferences.json` file created by the application before running the application again.

@@ -22,9 +22,9 @@ public class Messages {
             "Use one command line and ordinary spaces. Control characters are not allowed.";
     public static final String MESSAGE_EMPTY_COMMAND = "Enter a command.";
     public static final String MESSAGE_LOAD_WARNING = "Saved data could not be loaded. Client changes are blocked "
-            + "to protect your saved data. Close Policy Harbour and restore a valid saved copy before trying again.";
+            + "to protect your saved data. Close PolicyHarbor and restore a valid saved copy before trying again.";
     public static final String MESSAGE_CHANGES_BLOCKED = "Client changes are blocked because saved data could not be "
-            + "loaded. Close Policy Harbour and restore valid saved data.";
+            + "loaded. Close PolicyHarbor and restore valid saved data.";
 
     /**
      * Returns an error message indicating the duplicate prefixes.
