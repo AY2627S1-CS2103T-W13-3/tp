@@ -1,70 +1,36 @@
 @startuml
 !include style.puml
-skinparam ArrowFontStyle plain
-
-box Logic LOGIC_COLOR_T1
-participant ":LogicManager" as LogicManager LOGIC_COLOR
-participant ":AddressBookParser" as AddressBookParser LOGIC_COLOR
-participant ":DeleteCommandParser" as DeleteCommandParser LOGIC_COLOR
-participant "d:DeleteCommand" as DeleteCommand LOGIC_COLOR
-participant "r:CommandResult" as CommandResult LOGIC_COLOR
-end box
-
-box Model MODEL_COLOR_T1
-participant "m:Model" as Model MODEL_COLOR
-end box
-
-[-> LogicManager : execute("delete 1")
-activate LogicManager
-
-LogicManager -> AddressBookParser : parseCommand("delete 1")
-activate AddressBookParser
-
-create DeleteCommandParser
-AddressBookParser -> DeleteCommandParser
-activate DeleteCommandParser
-
-DeleteCommandParser --> AddressBookParser
-deactivate DeleteCommandParser
-
-AddressBookParser -> DeleteCommandParser : parse("1")
-activate DeleteCommandParser
-
-create DeleteCommand
-DeleteCommandParser -> DeleteCommand
-activate DeleteCommand
-
-DeleteCommand --> DeleteCommandParser :
-deactivate DeleteCommand
-
-DeleteCommandParser --> AddressBookParser : d
-deactivate DeleteCommandParser
-'Hidden arrow to position the destroy marker below the end of the activation bar.
-DeleteCommandParser -[hidden]-> AddressBookParser
-destroy DeleteCommandParser
-
-AddressBookParser --> LogicManager : d
-deactivate AddressBookParser
-
-LogicManager -> DeleteCommand : execute(m)
-activate DeleteCommand
-
-DeleteCommand -> Model : deletePerson(1)
-activate Model
-
-Model --> DeleteCommand
-deactivate Model
-
-create CommandResult
-DeleteCommand -> CommandResult
-activate CommandResult
-
-CommandResult --> DeleteCommand
-deactivate CommandResult
-
-DeleteCommand --> LogicManager : r
-deactivate DeleteCommand
-
-[<--LogicManager
-deactivate LogicManager
+participant ":LogicManager" as logic LOGIC_COLOR
+participant ":AddressBookParser" as parser LOGIC_COLOR
+participant ":DeleteCommandParser" as deleteParser LOGIC_COLOR
+participant "command:DeleteCommand" as command LOGIC_COLOR
+participant "live:Model" as live MODEL_COLOR
+participant "candidate:Model" as candidate MODEL_COLOR
+participant ":Storage" as storage STORAGE_COLOR
+[-> logic : execute("delete 1")
+logic -> parser : parseCommand("delete 1", blocked)
+parser -> deleteParser : parse(" 1")
+deleteParser --> parser : command
+parser --> logic : command
+logic -> live : forkForCommand(today)
+live --> logic : candidate
+logic -> command : execute(candidate)
+command -> candidate : getFilteredPersonList()
+candidate --> command : displayedPersons
+note over command : Resolve index 1 to the displayed record
+command -> candidate : deletePerson(person)
+command --> logic : result:CommandResult
+logic -> candidate : hasUnsavedChanges()
+candidate --> logic : true
+logic -> candidate : getAddressBook()
+candidate --> logic : candidateData
+logic -> storage : saveAddressBook(candidateData)
+alt Save succeeds
+    storage --> logic
+    logic -> live : commitFrom(candidate)
+    [<-- logic : result
+else Save fails
+    storage --> logic : IOException
+    [<-- logic : CommandException
+end
 @enduml

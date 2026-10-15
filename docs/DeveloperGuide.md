@@ -10,8 +10,7 @@ title: Developer Guide
 ## **Acknowledgements**
 
 * PolicyHarbor adapts [AddressBook Level 3](https://github.com/se-edu/addressbook-level3), retaining its Java/JavaFX architecture and test conventions.
-* Ayush Jain used OpenAI Codex to assist with the client-record validation, duplicate detection, tag formatting, add/delete parsing and messages, associated tests, and the related User/Developer Guide sections in this increment.
-* Josthan Wong used OpenAI Codex to assist with the view command, parser and routing, name-search alignment, unsupported legacy route rejection, associated tests and compatibility updates, and his related User/Developer Guide sections.
+* All team members used ChatGPT for general assistance during the project.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -38,7 +37,7 @@ The following provides a quick overview of the main components and their interac
 
 **Main components of the architecture**
 
-**`Main`** (consisting of classes [`Main`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/seedu/address/Main.java) and [`MainApp`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/seedu/address/MainApp.java)) is in charge of the app launch and shut down.
+**`Main`** (consisting of classes [`Main`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/Main.java) and [`MainApp`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/MainApp.java)) is in charge of the app launch and shut down.
 
 * At app launch, it initializes the other components in the correct sequence, and connects them up with each other.
 * At shut down, it shuts down the other components and invokes cleanup methods where necessary.
@@ -71,13 +70,13 @@ The sections below give more details of each component.
 
 ### UI component
 
-The **API** of this component is specified in [`Ui.java`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/seedu/address/ui/Ui.java)
+The **API** of this component is specified in [`Ui.java`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/ui/Ui.java)
 
 ![Structure of the UI Component](images/UiClassDiagram.png)
 
-The UI consists of a `MainWindow` and its parts, such as `CommandBox`, `ResultDisplay`, `PersonListPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
+The UI consists of a `MainWindow` and its parts, including `CommandBox`, `ResultDisplay`, `PersonListPanel`, `ClientProfilePanel` and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
 
-The `UI` component uses the JavaFX UI framework. The layouts of these UI parts are defined in matching `.fxml` files in `src/main/resources/view`. For example, [`MainWindow.fxml`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/resources/view/MainWindow.fxml) specifies the layout of [`MainWindow`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/seedu/address/ui/MainWindow.java).
+The `UI` component uses the JavaFX UI framework. The layouts of these UI parts are defined in matching `.fxml` files in `src/main/resources/view`. For example, [`MainWindow.fxml`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/resources/view/MainWindow.fxml) specifies the layout of [`MainWindow`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/ui/MainWindow.java).
 
 The `UI` component,
 
@@ -88,7 +87,7 @@ The `UI` component,
 
 ### Logic component
 
-**API** : [`Logic.java`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/seedu/address/logic/Logic.java)
+**API** : [`Logic.java`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/logic/Logic.java)
 
 Here's a (partial) class diagram of the `Logic` component:
 
@@ -98,16 +97,12 @@ The sequence diagram below illustrates the interactions within the `Logic` compo
 
 ![Interactions Inside the Logic Component for the `delete 1` Command](images/DeleteSequenceDiagram.png)
 
-<div markdown="span" class="alert alert-info">:information_source: **Note:** The lifeline for `DeleteCommandParser` should end at the destroy marker (X), but due to a limitation of PlantUML, it continues to the end of the diagram.
-</div>
-
 How the `Logic` component works:
 
 1. When `Logic` is called upon to execute a command, the command is passed to an `AddressBookParser` object, which in turn creates a parser that matches the command (e.g., `DeleteCommandParser`) and uses it to parse the command.
-1. This results in a `Command` object (more precisely, an object of one of its subclasses e.g., `DeleteCommand`) which is executed by the `LogicManager`.
-1. The command can communicate with the `Model` when it is executed (e.g. to delete a person).<br>
-   Note that although this is shown as a single step in the diagram above for simplicity, the code can require several interactions between the command object and the `Model` to complete the operation.
-1. The result of the command execution is encapsulated as a `CommandResult` object which is returned from `Logic`.
+1. `LogicManager` samples a command date and forks an isolated model candidate. The parsed command executes against that candidate.
+1. Dirty client data is saved before the candidate is published with `Model.commitFrom`. A parse, command or save failure discards the candidate and leaves the live state unchanged.
+1. A successful read-only command publishes list/selection/date changes without saving. Its `CommandResult` supplies the feedback text returned to the UI.
 
 Here are the other classes in `Logic` (omitted from the class diagram above) that are used for parsing a user command:
 
@@ -120,26 +115,21 @@ How the parsing works:
 
 ### Model component
 
-**API** : [`Model.java`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/seedu/address/model/Model.java)
+**API** : [`Model.java`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/model/Model.java)
 
 <img src="images/ModelClassDiagram.png" width="450" />
 
 The `Model` component,
 
 * stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object).
-* stores the `Person` objects selected by the current filter, such as search results, in a separate _filtered_ list. It exposes this list as an unmodifiable `ObservableList<Person>` that the UI can observe and bind to, so the UI updates when the list changes.
+* derives one displayed list for full, search or pending mode and exposes a stable unmodifiable `ObservableList<Person>`.
+* exposes read-only properties for the current date, pending-list mode and selected canonical client; these are session state and are not serialized.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
-<div markdown="span" class="alert alert-info">:information_source: **Note:** The alternative, arguably more object-oriented, design below keeps a unique list of tags in `AddressBook`, and each `Person` references tags from that list. This lets `AddressBook` maintain one `Tag` object per unique tag instead of each `Person` holding its own `Tag` objects.<br>
-
-<img src="images/BetterModelClassDiagram.png" width="450" />
-
-</div>
-
 ### Storage component
 
-**API** : [`Storage.java`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/seedu/address/storage/Storage.java)
+**API** : [`Storage.java`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/storage/Storage.java)
 
 <img src="images/StorageClassDiagram.png" width="550" />
 
@@ -172,7 +162,7 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 * `setPerson` resolves the target by full value equality, excludes only that full-list slot and checks the replacement against every other record before updating. Matching the old target does not bypass those checks.
 * Follow-up-only replacements retain the contact fields and remain valid. Two same-name clients can coexist and be replaced or deleted independently.
 
-`AddressBook` delegates to this collection path. The existing model, command candidates and storage conversion therefore reuse the same rejection rule. Storage adapter alignment and profile selection belong to their separate packages; this increment introduces no persistent ID or profile API.
+`AddressBook` delegates to this collection path. Model mutations, command candidates and storage loading reuse the same rejection rule. No persistent client ID is introduced; selection tracks canonical immutable record instances.
 
 **Alternatives considered:** name-only rejection prevents legitimate same-name clients. Redefining `Person.equals`/`hashCode` around duplicate rejection would violate equality's transitivity. Both are unsuitable. `Person.isSamePerson` retains exact stored-name matching for legacy callers; it is neither the duplicate predicate nor a stable record-identity key. `equals`/`hashCode` still include all stored fields and follow-up.
 
@@ -184,7 +174,7 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 
 `DeleteCommandParser` checks for exactly one ordinary-space-separated token before calling `ParserUtil.parseIndex`. The shared helper accepts ASCII digits, trims outer U+0020, removes leading zeroes before bounded conversion and rejects values outside `1..2147483647` without leaking `NumberFormatException`. `FollowUpParserUtil` and `ViewCommandParser` use the same helper. Delete resolves an index against `Model.getFilteredPersonList`, retaining the active mode and deleting the full record with its action.
 
-The merged `LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, index and save failures preserve the live data, list mode/order and date; successful read-only commands do not save. This increment tests that existing transaction boundary with client commands instead of introducing another execution path. UI selection and excluded legacy command routes are outside this package.
+`LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, index and save failures preserve live data, list mode/order, selection and date; successful read-only commands do not save.
 
 Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, index boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, pending/filter indices, follow-up targeting and injected save failures. Parser tests cover syntax separately from command displayed-range checks.
 
@@ -194,9 +184,27 @@ Tests cover domain partitions, exact messages, validation precedence, normalized
 
 `JsonSerializableAddressBook` converts every record before installing the list through `AddressBook.setPersons`. That central collection operation checks every pair with `Person.isDuplicateOf`, including the non-transitive case. Missing entries, invalid values and duplicates become loading failures. `JsonAddressBookStorage` translates them to `DataLoadingException`; `MainApp` then starts with an empty, mutation-blocked model while leaving the saved file unchanged. A repaired file loads on the next startup.
 
+A saved record uses the following JSON shape. Tags are strings, not objects; omit `followUp` (or use `null`) when no action is pending. Do not add session selection or a computed status to the file.
+
+```json
+{
+  "persons": [{
+    "name": "Rachel Lim",
+    "phone": "91234567",
+    "email": "rachel@example.com",
+    "address": "Blk 123",
+    "tags": ["active", "health"],
+    "followUp": {
+      "dueDate": "2099-12-15",
+      "description": "Discuss renewal options"
+    }
+  }]
+}
+```
+
 ### View parsing, name search and supported command routing
 
-This package adds `ViewCommand` and `ViewCommandParser` and aligns `FindCommand`, `FindCommandParser` and `AddressBookParser`. It consumes the existing shared index helper and selected-person model API. The command route, Logic selection bridge and dedicated profile panel are implemented. The selection-model section below records its earlier foundation increment.
+`ViewCommand`, `ViewCommandParser`, `FindCommand` and `AddressBookParser` use the shared index helper and model selection API. `Logic.selectedPersonProperty()` delegates to the live model, allowing the workspace and profile to observe the same selection.
 
 #### View execution and error precedence
 
@@ -218,7 +226,7 @@ The current list is authoritative in full, search and pending modes. Selection d
 
 The mutation gate contains only `add`, `delete` and singular `followup`. In a failed-load session these routes report the existing changes-blocked diagnostic before command-specific parsing. Queries remain available, including normal view argument validation and the range error against an empty displayed list. Typed `edit`, standalone `clear`, `help` and `exit` reach the unknown-command result, `Unknown command.`, in both normal and blocked sessions. Global raw-character errors still have priority. `followup INDEX clear` remains a supported mutation.
 
-Legacy command classes, their direct unit tests, the GUI Help menu and the window close handler remain available for their separate uses; removal applies to typed dispatch. The two older Logic/workflow tests were updated under Josthan's approved compatibility exception: unsupported routes now assert parse rejection, while supported mutations retain their failed-save state and file-preservation checks.
+Legacy command classes, their direct unit tests, the GUI Help menu and the window close handler remain available for their separate uses; removal applies to typed dispatch. Compatibility tests assert parse rejection for unsupported routes and retain failed-save/file-preservation checks for supported mutations.
 
 #### Automated evidence
 
@@ -230,7 +238,7 @@ Command tests alone do not certify rendered profile behavior. The workspace and 
 
 ### Client-profile selection model
 
-PR 2 adds session selection to `Model` and `ModelManager`. It supplies the model foundation for the later Logic bridge, `view` command and profile panel; those user-facing integrations are not delivered by this increment.
+`Model` and `ModelManager` own session selection. The integrated `view` command, Logic bridge and profile pane use this state instead of JavaFX row highlighting.
 
 `Model.selectedPersonProperty()` returns one stable `ReadOnlyObjectProperty<Person>`. Its nullable value is the selected canonical record, with `null` meaning no selection. `Model.selectPerson(Person)` accepts a non-null object that is actually present in the current displayed list. An equal-valued copy is not a canonical member. Selection changes view state without marking client data dirty; the property does not expose a writable UI setter.
 
@@ -244,7 +252,7 @@ After the caller has successfully saved any dirty candidate, `commitFrom(candida
 
 This mapping matters for an identical follow-up replacement. The candidate may contain a new `Person` object with equal values, while publication skips resetting the value-equal live address book. Publishing the candidate object directly would leave selection pointing outside the live list. Mapping to the committed live record retains a canonical visible selection whether the data was reset or retained.
 
-#### Selection transition evidence and integration boundary
+#### Selection transition evidence
 
 `ClientProfileSelectionTest` covers model-level selection transitions using a fixed date of `2026-10-12`: same-name records, pending reordering, filter exclusion, follow-up clearing, deletion, candidate isolation and equal-value replacement. Canonical-object assertions distinguish correct record tracking from value equality. The existing model and pending-list suites provide regression coverage for the authoritative displayed list and stable due-date ordering.
 
@@ -266,97 +274,31 @@ A failed load shows `Messages.MESSAGE_LOAD_WARNING` in a separate `loadWarning` 
 
 `ClientProfilePanel` receives Logic's read-only selected-client and published-date properties. It listens to both and renders the immutable `Person` without selecting, saving or sampling the device clock. A selected client displays name and labeled contact fields; `Tag.formatTags` supplies the sorted lowercase tags. The follow-up status comes from `FollowUp.getStatus(today)`, so a published date change updates the status even when the selected record does not change.
 
-The panel's FXML contains a scrollable, read-only layout with wrapping address and action labels. Its scoped CSS is loaded by that FXML; it does not modify the shared theme owned by the workspace PR. On deselection the panel hides all client fields, clears their text and shows `No client selected.`. When a selected client's action clears, it hides the date, action and status and shows `Follow-up: None`.
+The panel's FXML contains a scrollable, read-only layout with wrapping address and action labels. Its scoped CSS is loaded by that FXML; shared workspace styles remain in `DarkTheme.css`. On deselection the panel hides all client fields, clears their text and shows `No client selected.`. When a selected client's action clears, it hides the date, action and status and shows `Follow-up: None`.
 
 `ClientProfilePanelTest` checks exact profile text, sorted tags, the no-selection and no-action states, and overdue/due-today/upcoming values from a fixed date. `ClientProfileWorkflowIntegrationTest` checks the selection and saved-data boundaries through real commands and storage. These tests do not prove visual wrapping or window composition; inspect the rendered pane at a narrow window width with long address and action values.
 
-### \[Proposed\] Undo/redo feature
+### Follow-up state and date handling
 
-#### Proposed Implementation
+`Person` contains an optional immutable `FollowUp` with a `LocalDate` due date and an action description. Recording or replacing an action creates a new `Person` that preserves every contact field and tag; clearing removes the optional action. There is no action history or completion flag.
 
-The proposed undo/redo mechanism is facilitated by `VersionedAddressBook`. It extends `AddressBook` with an undo/redo history, stored internally as an `addressBookStateList` and `currentStatePointer`. Additionally, it implements the following operations:
+`FollowUpCommandParser` recognizes either `followup INDEX clear` or one date and one description prefix. Commands resolve the index against the current displayed list before validating a new date/action. New actions cannot be dated before the candidate's sampled date. Stored overdue actions remain valid: JSON conversion checks calendar/description validity without imposing a today-based restriction.
 
-* `VersionedAddressBook#commit()` — Saves the current address book state in its history.
-* `VersionedAddressBook#undo()` — Restores the previous address book state from its history.
-* `VersionedAddressBook#redo()` — Restores a previously undone address book state from its history.
+`showPendingFollowUps()` includes every client with an action and sorts by due date. Stable sorting preserves full-list insertion order on equal dates. Chronological order naturally groups overdue, due-today and upcoming actions. `FollowUpStatus` derives those labels from the due date and published date; neither status nor the selected client is stored in JSON.
 
-These operations are exposed in the `Model` interface as `Model#commitAddressBook()`, `Model#undoAddressBook()` and `Model#redoAddressBook()` respectively.
+`LogicManager` samples its injected clock once per command candidate. The date is published only when that command succeeds. Separately, `MainApp` refreshes the live date on startup, window focus and a one-minute timer, so statuses update across midnight without a command. A failed command does not itself advance the date; independent focus/timer refreshes can still occur. `MainAppTest` and `LogicManagerTest` cover these two date paths.
 
-Given below is an example usage scenario and how the undo/redo mechanism behaves at each step.
+### Save-before-publish boundary
 
-Step 1. The user launches the application for the first time. The `VersionedAddressBook` will be initialized with the initial address book state, and the `currentStatePointer` pointing to that single address book state.
+`LogicManager.execute` follows this sequence:
 
-![UndoRedoState0](images/UndoRedoState0.png)
+1. Parse against the startup loading gate.
+2. Fork an isolated candidate with the sampled date.
+3. Execute the command against the candidate.
+4. Save the candidate only when its data is dirty.
+5. Publish its data, preferences, mode, date and selection to the live model.
 
-Step 2. The user executes `delete 5` command to delete the 5th person in the address book. The `delete` command calls `Model#commitAddressBook()`, causing the modified state of the address book after the `delete 5` command executes to be saved in the `addressBookStateList`, and the `currentStatePointer` is shifted to the newly inserted address book state.
-
-![UndoRedoState1](images/UndoRedoState1.png)
-
-Step 3. The user executes `add n/David …​` to add a new person. The `add` command also calls `Model#commitAddressBook()`, causing another modified address book state to be saved into the `addressBookStateList`.
-
-![UndoRedoState2](images/UndoRedoState2.png)
-
-<div markdown="span" class="alert alert-info">:information_source: **Note:** If a command fails its execution, it will not call `Model#commitAddressBook()`, so the address book state will not be saved into the `addressBookStateList`.
-
-</div>
-
-Step 4. The user now decides that adding the person was a mistake, and decides to undo that action by executing the `undo` command. The `undo` command will call `Model#undoAddressBook()`, which will shift the `currentStatePointer` once to the left, pointing it to the previous address book state, and restores the address book to that state.
-
-![UndoRedoState3](images/UndoRedoState3.png)
-
-<div markdown="span" class="alert alert-info">:information_source: **Note:** If the `currentStatePointer` is at index 0, pointing to the initial AddressBook state, then there are no previous AddressBook states to restore. The `undo` command uses `Model#canUndoAddressBook()` to check if this is the case. If so, it will return an error to the user rather
-than attempting to perform the undo.
-
-</div>
-
-The following sequence diagram shows how an undo operation goes through the `Logic` component:
-
-![UndoSequenceDiagram](images/UndoSequenceDiagram-Logic.png)
-
-<div markdown="span" class="alert alert-info">:information_source: **Note:** The lifeline for `UndoCommand` should end at the destroy marker (X), but due to a limitation of PlantUML, it continues to the end of the diagram.
-
-</div>
-
-Similarly, how an undo operation goes through the `Model` component is shown below:
-
-![UndoSequenceDiagram](images/UndoSequenceDiagram-Model.png)
-
-The `redo` command does the opposite — it calls `Model#redoAddressBook()`, which shifts the `currentStatePointer` once to the right, pointing to the previously undone state, and restores the address book to that state.
-
-<div markdown="span" class="alert alert-info">:information_source: **Note:** If the `currentStatePointer` is at index `addressBookStateList.size() - 1`, pointing to the latest address book state, then there are no undone AddressBook states to restore. The `redo` command uses `Model#canRedoAddressBook()` to check if this is the case. If so, it will return an error to the user rather than attempting to perform the redo.
-
-</div>
-
-Step 5. The user then decides to execute the command `list`. Commands that do not modify the address book, such as `list`, will usually not call `Model#commitAddressBook()`, `Model#undoAddressBook()` or `Model#redoAddressBook()`. Thus, the `addressBookStateList` remains unchanged.
-
-![UndoRedoState4](images/UndoRedoState4.png)
-
-Step 6. The user executes `clear`, which calls `Model#commitAddressBook()`. Since the `currentStatePointer` is not pointing at the end of the `addressBookStateList`, all address book states after the `currentStatePointer` will be purged. Reason: It no longer makes sense to redo the `add n/David …​` command. This is the behavior that most modern desktop applications follow.
-
-![UndoRedoState5](images/UndoRedoState5.png)
-
-The following activity diagram summarizes what happens when a user executes a new command:
-
-<img src="images/CommitActivityDiagram.png" width="250" />
-
-#### Design considerations
-
-**Aspect: How undo & redo execute:**
-
-* **Alternative 1 (current choice):** Saves the entire address book.
-  * Pros: Easy to implement.
-  * Cons: May have performance issues in terms of memory usage.
-
-* **Alternative 2:** Individual command knows how to undo/redo by
-  itself.
-  * Pros: Will use less memory (e.g. for `delete`, just save the person being deleted).
-  * Cons: We must ensure that the implementation of each individual command is correct.
-
-_{more aspects and alternatives to be added}_
-
-### \[Proposed\] Data archiving
-
-_{Explain here how the data archiving feature will be implemented}_
+A save failure becomes `CommandException` with `MESSAGE_SAVE_FAILED`; no candidate state is published. `JsonAddressBookStorage` writes a sibling temporary file, then replaces the destination with an atomic move. On failure it attempts to remove the temporary file and preserves the existing destination. Unsupported atomic replacement is reported as a save failure, rather than falling back to a partial write. See `JsonAddressBookStorageTest` for write/move failure coverage.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -377,149 +319,85 @@ _{Explain here how the data archiving feature will be implemented}_
 
 * is an individual insurance agent who manages their own client and prospect records
 * personally keeps track of client contact details and the next action they need to take for each client
-* uses a personal computer to manage client details and follow ups
-* needs to review which client follow ups are due, upcoming, or overdue
+* uses a personal computer to manage client details and follow-ups
+* needs to review which client follow-ups are due, upcoming, or overdue
 * types quickly and prefers typed commands to mouse interactions
 
-**Value proposition**: Policy Harbour helps individual insurance agents keep client contact details and one pending next action per client organised in a keyboard driven desktop app, making follow ups easier to review and manage.
+**Value proposition**: PolicyHarbor helps individual insurance agents keep client contact details and one pending next action per client organised in a keyboard driven desktop app, making follow-ups easier to review and manage.
 
 ### User stories
 
-Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unlikely to have) - `*`
+These stories are delivered in v1.3. The MVP deliberately limits each client to one pending action.
 
-| Priority | As a …​                           | I want to …​                                                | So that I can…​                                   |
-| -------- | --------------------------------- | ----------------------------------------------------------- | ------------------------------------------------- |
-| `* * *`  | insurance agent                   | add a client or prospect with their contact details         | keep their information in one place               |
-| `* * *`  | insurance agent                   | view my client list                                         | see the clients and prospects I manage            |
-| `* * *`  | insurance agent                   | view a selected client's complete profile                   | review relevant context before contacting them    |
-| `* * *`  | insurance agent                   | delete an incorrect client record                           | prevent inaccurate records from causing confusion |
-| `* * *`  | insurance agent                   | access my saved information after restarting the app        | retain my work between sessions                   |
-| `* * *`  | insurance agent                   | record a follow up and its due date                         | remember a promised action                        |
-| `* * *`  | insurance agent                   | see follow ups that are due soon                            | plan my upcoming work                             |
-| `* * *`  | insurance agent                   | see overdue follow ups                                      | address missed commitments promptly               |
-| `* * *`  | insurance agent                   | mark a completed follow up as complete                      | know it no longer needs attention                 |
-| `* * *`  | insurance agent                   | receive a clear explanation when I enter an invalid command | correct it without risking my records             |
-| `* *`    | insurance agent                   | archive former or inactive clients                          | keep them out of my active portfolio              |
-| `* *`    | insurance agent                   | filter clients using relevant criteria                      | focus on the records I need                       |
-| `* *`    | insurance agent                   | identify clients I have not contacted recently              | avoid overlooking long-term relationships         |
-| `* *`    | insurance agent                   | reschedule a client's follow up                             | reflect an agreed change to our plans             |
-| `* *`    | insurance agent                   | record client preferences and circumstances                 | provide personalised, continuous service          |
-| `* *`    | insurance agent                   | identify client records with incomplete information         | know which details need attention                 |
-| `* *`    | insurance agent switching systems | import existing client contact information                  | avoid re-entering records manually                |
-| `* *`    | insurance agent                   | identify clients with approaching policy related dates      | prepare for relevant upcoming events              |
-| `* *`    | first time user                   | view concise usage guidance                                 | begin using the app without extensive training    |
-| `*`      | potential user                    | explore realistic sample client records                     | understand how the app could support my work      |
-| `*`      | insurance agent                   | categorise clients with tags                                | group related records                             |
+| Priority | As an insurance agent, I want to... | So that I can... |
+| --- | --- | --- |
+| High | add a client or prospect with contact details | keep their information in one place |
+| High | list clients and search by name | find the record I need |
+| High | view a client's complete profile | review context before making contact |
+| High | delete an incorrect client record | remove inaccurate information |
+| High | reload saved data after restarting | retain my work between sessions |
+| High | record or replace a dated next action | remember an agreed commitment |
+| High | review overdue, due-today and upcoming actions | prioritize follow-ups |
+| High | clear a completed action | remove work that no longer needs attention |
+| High | receive useful errors without losing data | correct mistakes safely |
+| Medium | categorize clients with tags | keep relevant context in the profile |
+
+Backlog ideas, outside v1.3: multiple actions/history, notifications, client archiving, import and richer filtering. They are not advertised as available commands.
 
 ### Use cases
 
-(For all use cases below, the **System** is the `PolicyHabour` and the **Actor** is the `Insurance Agent`, unless specified otherwise)
+The actor is an individual insurance agent and the system is PolicyHarbor. Each command is entered in one line; the app does not prompt for individual fields or confirmation.
 
-**Use case: UC01 - Retrieve Client Profile**
+**UC01 — Retrieve a client profile**
 
-**MSS**
+1. The agent lists all clients or searches their names.
+2. The system displays matching clients with current row numbers.
+3. The agent enters `view INDEX`.
+4. The system opens that client's complete profile without changing saved data.
 
-1. Agent chooses to view all client.
-2. System displays client list with index for each client.  
-3. Agent selects the desired client from the list.  
-4. System displays the client’s full contact details and pending follow-ups, if any.
+Extension: invalid syntax or a missing displayed index produces an error and preserves the current profile.
 
-    Use case ends.
+**UC02 — Add a client**
 
-**Use case: UC02 - Add Client Profile**
+1. The agent submits `add` with contact details and optional tags.
+2. The system validates the fields and checks the full dataset for duplicates.
+3. The system saves the new record, then displays the full list and success feedback.
 
-**MSS**
+Extensions: invalid/duplicate data produces an error without changes. A save failure preserves the previous data and view. The agent can correct and resubmit the retained command text.
 
-1. User chooses to add new client profile.  
-2. System requests for details of new client.  
-3. User enters the requested details.  
-4. System request for confirmation.  
-5. User confirms it.
-6. System saves new client record and displays the updated client list.
+**UC03 — Delete a client**
 
-    Use case ends.
+1. The agent identifies the client in the displayed list.
+2. The agent enters `delete INDEX`; opening a profile first is optional.
+3. The system saves the removal of the client and their follow-up, then refreshes the current list. If that client was viewed, the profile closes.
 
-**Extensions**
+Extensions: an invalid index or save failure leaves the original state intact.
 
-* 3a. Sysem detects an error in the entered data.  
+**UC04 — Record or replace a follow-up**
 
-  * 3a1. System request for correct data.  
-  * 3a2. User enters new data.
+1. The agent enters `followup INDEX d/DATE m/DESCRIPTION` for a displayed client.
+2. The system validates the index, date and description.
+3. The system saves the action and updates the list/profile, reordering pending rows when necessary.
 
-   Steps 3a1-3a2 are repeated until the data entered are correct.
+Extensions: invalid input or saving failure preserves the previous action and view. Only one action is stored, so an accepted replacement overwrites the earlier action.
 
-   Use case resumes from step 4.
+**UC05 — Clear a follow-up**
 
-* a. At any time, User chooses to cancel the record.
+1. The agent enters `followup INDEX clear` for a displayed client.
+2. The system saves removal of the pending action.
+3. In pending mode the client leaves the list and their open profile closes; in full/search mode the client remains and their profile shows no action.
 
-  * a1. System requests to confirm the cancellation.  
-  * a2. User confirms the cancellation.
-
-      Use case ends.
-
-**Use case: UC03 - Delete Client Record**
-
-**MSS**
-
-1. User performs Retrieve Client Profile (UC01) to select desired client.
-2. User request to delete the desired client.
-3. System deletes the desired client. record and any associated pending follow-up and saves the changes.
-4. System displays the updated client list.  
-
-   User case ends
-
-**Use case: UC04 - Record Client Follow-Up**
-
-**MSS**
-
-1. User performs Retrieve Client Profile (UC01) to select desired client
-2. User chooses to add new Client Follow-up for desired client
-3. System request for details of new followup
-4. User enters requested details
-5. System request for confirmation
-6. User confirms it
-7. System records and saves the follow-up and displays the updated desired client information
-
-    Use case ends.
-
-**Extensions**
-
-* 4a. Sysem detects an error in the entered data.  
-
-  * 4a1. System request for correct data.  
-  * 4a2. User enters new data.
-
-   Steps 4a1-4a2 are repeated until the   data entered are correct.
-
-   Use case resumes from step 5.
-
-* a. At any time, User chooses to cancel the record.
-
-  * a1. System requests to confirm the cancellation.  
-  * a2. User confirms the cancellation.
-
-      Use case ends.
-
-**Use case: UC05 - Clear Client Follow-Up**
-
-**MSS**
-
-1. User performs Retrieve Client Profile (UC01) to select desired client
-2. User chooses the respective client follow-up to deleted
-3. System deletes the respective client follow-up and saves the changes
-4. System displays updated desired client information
-
-    Use case ends.
+Extensions: an absent action, invalid index or save failure produces an error and preserves the original state.
 
 ### Non-Functional Requirements
 
-1. Should work on any _mainstream OS_ as long as it has Java `25` or above installed.
+1. Should work on Windows, Linux and macOS with Java `25`; macOS uses the prescribed Zulu JDK+FX distribution.
 
-2. Should be able to hold up to 1000 persons without noticeable sluggishness in performance for typical usage.
+2. Target: hold 1000 clients without noticeable sluggishness in typical usage. The automated stress scenario uses 50 clients; it is not a benchmark proving this target.
 
 3. A user with above-average typing speed for regular English text (i.e. not code or system administration commands) should be able to accomplish most tasks faster using commands than using the mouse.
 
-4. Should respond to typical user commands such as adding, editing, deleting, searching, filtering, and viewing client records within 1 second under normal operating conditions.
+4. Should respond to typical user commands such as adding, deleting, searching, viewing client records and updating follow-ups within 1 second under normal operating conditions.
 
 5. Should preserve all successfully saved client information between application sessions, such that closing and reopening the application does not cause data loss.
 
@@ -531,138 +409,101 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 9. Should be distributable as a single executable JAR file without requiring a separate installation process.
 
-10. The user interface should remain usable at common laptop screen resolutions, including `1280 × 720` and above.
+10. The user interface should remain usable at common laptop screen resolutions, including `1280 × 720` at 150% scaling, and work well at `1920 × 1080` at 100%/125% scaling. These are manual verification targets.
 
 11. Commonly used commands and command formats should remain consistent throughout the application to reduce the amount of relearning required from the user.
 
 12. The application should be designed primarily for keyboard-based interaction, while still allowing mouse interaction where appropriate.
 
-_{More to be added}_
-
 ### Glossary
 
 * **Client record**: The contact details stored for a client or prospective client
 * **Follow up**: The next action an agent plans to take for a client, with a due date and description
-* **Pending**: A follow up that has been recorded and not yet cleared. It stays pending after its due date passes
+* **Pending**: A follow-up that has been recorded and not yet cleared. It stays pending after its due date passes
 * **Index**: The row number of a client in the list currently displayed.
-* **Overdue**: A pending follow up whose due date is before today
-* **Due today**: A pending follow up whose due date is today
-* **Upcoming**: A pending follow up whose due date is after today
+* **Overdue**: A pending follow-up whose due date is before today
+* **Due today**: A pending follow-up whose due date is today
+* **Upcoming**: A pending follow-up whose due date is after today
 
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Appendix: Instructions for manual testing**
 
-Given below are instructions to test the app manually.
+Test the packaged JAR in a fresh writable folder with Java 25 (the prescribed Zulu JDK+FX on Mac). Use synthetic clients and repeat each independent scenario from the specified starting state. These are procedures, not a claim that every platform/scaling combination has been tested.
 
-<div markdown="span" class="alert alert-info">:information_source: **Note:** These instructions only provide a starting point for testers to work on;
-testers are expected to do more *exploratory* testing.
+### Startup, persistence and basic workflow
 
-</div>
+1. Launch `java -jar addressbook.jar` from the JAR's folder. Expect an empty list, `No client selected.` and no loading warning.
+2. Enter these commands separately:
 
-### Launch and shutdown
+   ```text
+   add n/Rachel Lim p/001 e/rachel@example.com a/Blk 123 t/HEALTH t/health t/active
+   add n/Amanda Lee p/002 e/amanda@example.com a/Blk 456
+   view 1
+   ```
 
-1. Initial launch
+   Expect Rachel's contact fields, `Tags: [active] [health]` and `Follow-up: None` in the profile. Only Rachel's row is marked `VIEWING`.
+3. Record Rachel's action for today + 2 days and Amanda's for today + 1 day using `followup INDEX d/DATE m/ACTION`. Use actual `YYYY-MM-DD` dates.
+4. Enter `followups`, then `view 1`. Expect Amanda before Rachel, the correct profile, and continuous numbering. Replace Amanda's action with today's date to verify the `DUE TODAY` badge.
+5. Close/relaunch from the same folder. Expect all contacts/actions in full insertion order and no profile selection. Resize/move the window, close/relaunch and verify window preferences.
 
-   1. Download the JAR file and copy it into an empty folder.
+### Profile transitions and displayed indices
 
-   1. Open a terminal in that folder and run `java -jar addressbook.jar`.<br>
-      Expected: The GUI opens with an empty client list, `No client selected.` in the profile pane, and no saved-data warning.
+From the two-client dataset above:
 
-1. Saving window preferences
+| Action | Expected result |
+| --- | --- |
+| `followups`, `view 1`, then replace row 1's action with a date later than Rachel's | Amanda moves after Rachel; her profile and `VIEWING` marker follow the record. |
+| `followup 2 clear` after that reorder | Amanda leaves pending mode and her profile closes. |
+| `list`, `view 2` | Amanda can be viewed again and shows `Follow-up: None`. |
+| `find Rachel` | Only Rachel remains; Amanda's profile closes. |
+| `list` | Both clients return; no profile reopens automatically. |
+| `view 1`, then `delete 2` | Rachel remains viewed; deleting her neighbor does not change selection. |
+| `delete 1` | Rachel and her action disappear and the profile clears. |
 
-   1. Resize the window to an optimal size. Move the window to a different location. Close the window.
+For same-name targeting, start fresh and add two Rachel Lim clients with different phone/email values. View/delete each displayed row and verify that only its record is affected.
 
-   1. Relaunch the app from that folder with `java -jar addressbook.jar`.<br>
-       Expected: The most recent window size and location are retained.
+### Search and validation
 
-1. Fresh launch after data creation
+Start fresh with Rachel and Amanda from the basic workflow.
 
-   1. Add a synthetic client, close the window, then relaunch the JAR from the same folder.<br>
-      Expected: The client reappears with the same contact details. No profile is open until a successful `view` command.
+| Input | Expected result |
+| --- | --- |
+| `find lim AMANDA Lim` | `2 client(s) listed!`, Rachel then Amanda, each once. |
+| `find Rach`, `find "Rachel"`, `find Rachel,`, `find rachel@example.com` | Each returns `0 client(s) listed!`; only whole name words match. |
+| `find` | `Invalid command format!` then `Usage: find KEYWORD [MORE_KEYWORDS]...`. |
+| `view 0 extra`, `delete 0 extra` | Format error and the corresponding usage, before index syntax. |
+| `view 0`, `view 2147483648`, `delete 0` | `Index must be a positive integer from 1 to 2147483647.` |
+| `view 2147483647` | `The client index provided is invalid.` |
+| `edit 1 n/Changed`, `clear`, `help`, `exit` | `Unknown command.`; no client data changes and the window stays open. |
+| `add n/RACHEL  LIM p/001 e/new@example.com a/Blk 9` | Duplicate error despite name case/spacing differences. |
+| `add n/Rachel Lim p/003 e/RACHEL@EXAMPLE.COM a/Blk 9` | Duplicate error because email matching ignores case. |
+| `add n/Rachel Lim p/003 e/other@example.com a/Blk 9` | Allowed: both phone and email differ. |
+| `add a/ t/! e/bad p/12 n/Bad&` | Name constraint first; no record is added. |
 
-### View, name search and unsupported routes
+After each rejected command, verify that the input stays editable/focused and the client data, list and selected profile are unchanged. On success the command box clears. Date preservation is checked per command; the independent focus/minute refresh can update displayed statuses.
 
-Use a fresh writable folder with the application's JAR and Java 25. Check both command feedback and the client list/profile panes. Dates in the steps below are relative to the device's current date.
+### Loading protection and saved-data compatibility
 
-1. Displayed-list selection:
-   1. Add `add n/Rachel Lim p/001 e/first@example.com a/Blk 1` and `add n/Amanda Lee p/002 e/second@example.com a/Blk 2`.
-   1. Enter `list`, then `view 02`. Expected: `Showing client: Amanda Lee`; both rows retain their order and numbering.
-   1. Enter `find Rachel`, then `view 1`. Expected: `Showing client: Rachel Lim`; only Rachel remains in the current list.
-   1. Enter `view 2`. Expected: `The client index provided is invalid.` even though the full dataset has two clients.
-   1. Enter `list`. Record Rachel's follow-up for device-today + 2 days and Amanda's for device-today + 1 day using `followup INDEX d/DATE m/ACTION`. Enter `followups`, then `view 0001`. Expected: `Showing client: Amanda Lee`; pending order remains Amanda then Rachel.
-1. View error precedence:
-   1. Enter `view` and `view 0 extra`. Expected: `Invalid command format!` and `Usage: view INDEX` on the next line.
-   1. Enter `view 0` and `view 2147483648`. Expected: `Index must be a positive integer from 1 to 2147483647.`.
-   1. Enter `view 2147483647`. Expected: `The client index provided is invalid.`. Selection and list state stay unchanged after each failure; selection/date preservation is also asserted by `ViewCommandTest`.
-1. Search semantics (same two-client dataset):
-   1. From pending mode, enter `find lim AMANDA Lim`. Expected: `2 client(s) listed!`, Rachel then Amanda, with each record shown once in ordinary search mode.
-   1. Enter `find Rach`, `find "Rachel"`, `find Rachel,` and `find first@example.com`. Expected for each: `0 client(s) listed!`.
-   1. Enter `find`. Expected: `Invalid command format!` and `Usage: find KEYWORD [MORE_KEYWORDS]...` on the next line.
-1. Unsupported command words:
-   1. Enter `edit 1 n/Changed`, `clear`, `help` and `exit`. Expected for each: `Unknown command.`; the app stays open and data remains unchanged.
-   1. Enter `list`, then `followup 1 clear`. Expected: Rachel's follow-up is cleared successfully; clearing one follow-up remains supported.
-   1. Close with the window's close button. The same unsupported-route messages in a blocked-load session, and global control-character priority, are covered by automated parser/Logic tests.
+Close the app before editing its JSON; back up the file first.
 
-### Client creation, duplicates and deletion
+1. Make one saved follow-up date earlier than today, retaining a valid ISO date and action. Restart and enter `followups`. Expect that action to load as `OVERDUE`.
+2. Remove a record's optional `followUp` or `tags` field and restart. Expect no action/no tags for that client; legacy contact-only records load.
+3. In a separate folder, corrupt the JSON or put an invalid/duplicate client in it. Restart. Expect an empty list and a persistent saved-data warning.
+4. Enter `list`, `find Rachel` and `view 1`. Queries remain available; a valid view index gives the displayed-range error. The warning stays visible.
+5. Try `add`, `delete` or `followup`. Expect the changes-blocked diagnostic before command-specific parsing. Confirm the invalid file's bytes are unchanged.
+6. Close the app, restore the valid backup and relaunch. Expect normal writable operation.
 
-Run each scenario in a fresh writable test folder with an empty client dataset and Java 25. Use synthetic data. Inspect `list` before each indexed command; preceding deletions change row numbers. These are manual procedures to run against the built JAR, not a claim that GUI testing has already been performed.
+### Window, help and long content
 
-1. Contact normalization and tags:
-   1. Enter `add n/  Rachel  Lim  p/001 e/Rachel@example.com a/新加坡 🏠 t/HEALTH t/health t/active`.
-   1. Expected: the client is added, the stored name retains the two internal spaces, phone remains `001`, email retains case and address retains Unicode. Feedback ends in `Tags: [active] [health]`.
-   1. Close and relaunch. Expected: the same stored contact values remain.
-1. Duplicate partition (new folder):
-   1. Add `add n/Rachel Lim p/001 e/Rachel@example.com a/Blk 1`.
-   1. Add `add n/Rachel Lim p/002 e/other@example.com a/Blk 2`. Expected: both clients exist.
-   1. Try `add n/RACHEL  LIM p/001 e/new@example.com a/Blk 3`. Expected: `This client already exists in Policy Harbour.`; list unchanged.
-   1. Try `add n/rachel lim p/003 e/RACHEL@EXAMPLE.COM a/Blk 3`. Expected: the same duplicate error; list unchanged.
-   1. Add `add n/John Tan p/001 e/Rachel@example.com a/Blk 3`. Expected: allowed because the name differs.
-1. Validation order (new folder):
-   1. Try `add n/Bad& n/Rachel p/12 e/bad`. Expected: format error and the exact add usage because address is missing, before any repeated-prefix or field error.
-   1. Try `add a/ t/! e/bad p/12 n/Bad&`. Expected: the name constraint, before phone/email/address/tag errors.
-   1. Correct the name, phone, email and address in turn. Expected: each remaining constraint is reported in that order; no client is added until all values are valid.
-1. Displayed indices and delete errors (new folder):
-   1. Add the two Rachel records from the duplicate scenario. Enter `find Rachel`, then `delete 01`.
-   1. Expected: only the first displayed Rachel is removed; the other record remains and feedback includes `Tags: None`.
-   1. Try `delete 0 extra`. Expected: `Invalid command format!` plus `Usage: delete INDEX` on the next line.
-   1. Try `delete 0` and `delete 2147483648`. Expected: `Index must be a positive integer from 1 to 2147483647.`
-   1. Try `delete 2147483647`. Expected: `The client index provided is invalid.` All rejected cases preserve the list and data.
-1. Pending-order targeting (new folder):
-   1. Add the two Rachel records. Record a follow-up for row 1 at device-today + 2 days and row 2 at device-today + 1 day using `followup INDEX d/DATE m/ACTION`.
-   1. Enter `followups`, then `delete 1`. Expected: the second-added Rachel (earlier due date) is removed with its action; pending mode remains active with the other Rachel.
+- Test full/search/pending modes, scrolling and empty lists. Ordinary rows show no action fields; reused/empty rows show no stale badge or `VIEWING` marker.
+- Click/highlight another row while a profile is open. The viewed client must remain unchanged until a successful `view` command.
+- Use a long address and an action up to 200 characters. Narrow the split panes and verify wrapping/scrolling and access to the command box and feedback.
+- Check at 1920×1080 with 100%/125% scaling and at 1280×720 with 150% scaling on available platforms. Record any untested combinations.
+- Open Help from the menu or F1. Its link/copy button must point to PolicyHarbor's User Guide, rather than AB3's guide.
 
-Injected I/O failure and non-transitive replacement conflicts are automated in `ClientRecordCommandsTest` and `UniquePersonListTest`. `ClientProfileWorkflowIntegrationTest` also checks that failed saves retain the selected client, list order, mode, date and saved bytes. The profile layout and startup warning need a window-level check.
+### Save failures and automated boundaries
 
-### Workspace layout and pending rows
+`JsonAddressBookStorageTest` injects write/move failures. `ClientProfileWorkflowIntegrationTest` checks failed add/delete/action replacement/clearing without changing saved bytes, selection, list mode/order or date. `ClientRecordCommandsTest` covers additional duplicate and index partitions; `ClientProfileSelectionTest` covers canonical identity and equal-value publication.
 
-Use synthetic data in a fresh folder. These steps are for the built JAR.
-
-1. Row modes: add two clients and record a follow-up for one. `list` shows only the index, name, phone and email in each row. `followups` shows that client's row with its due date, action and status badge.
-1. Status order: load a saved file containing overdue, today and future follow-ups, including two on the same date. `followups` shows `OVERDUE`, then `DUE TODAY`, then `UPCOMING`. Rows are in date order, ties stay in insertion order and numbering is continuous.
-1. Reused rows: switch between `list` and `followups` several times and scroll. No ordinary row shows a badge, and an empty list shows the correct empty message.
-1. Profile selection: enter `view 1`, then `view 2`. The right pane changes to the selected client's complete profile and the matching row shows `VIEWING`. Click and arrow through other rows; neither action changes the open profile.
-1. Profile transitions: while viewing a client with a follow-up, replace the action and check that the right pane updates. Clear it in the full list and check `Follow-up: None`. In pending mode, clear the viewed client's action and check `No client selected.`; `list` must not reopen it.
-1. Load warning: start with a malformed `data/addressbook.json`. The red warning stays visible after `list`, `followups` and a rejected `add`.
-1. Resizing: narrow the window and drag the divider. Both panes stay usable, and long emails and actions wrap instead of overlapping.
-1. Long content: add a client with a long valid email, a long address and tags, then record a 200-character follow-up. Open the profile and pending list, scroll, and resize both panes. All fields must remain readable without overlapping the next row or the command box.
-1. Repeated navigation: create at least 50 synthetic clients, including several same-name clients with distinct phone numbers and emails. Repeatedly switch among `list`, `find NAME` and `followups`; open profiles, scroll to both ends, and resize the window. Each displayed index must continue to target its visible client, and `VIEWING` must follow the selected client rather than its former row number.
-
-### Saving data
-
-1. Missing data file
-
-   1. In a separate test folder, remove `data/addressbook.json` before first launch and run `java -jar addressbook.jar`.<br>
-      Expected: The app opens with an empty list, without a warning. Add a synthetic client and close the app; `data/addressbook.json` is created and contains that client.
-
-1. Corrupted data file
-
-   1. Close the app, back up `data/addressbook.json`, replace its contents with malformed JSON, and relaunch.<br>
-      Expected: An empty list and the red saved-data warning appear. `list`, `find` and `followups` still work against the empty displayed list; `add`, `delete` and `followup` report that changes are blocked. The malformed file is not overwritten.
-   1. Restore the valid backup and relaunch.<br>
-      Expected: The original clients reappear, the warning is gone and changes work again.
-
-1. Failed save
-
-   1. In a disposable test folder, make the `data` directory unwritable after creating a client, then try an `add`, `delete` or `followup` change.<br>
-      Expected: `Changes could not be saved. No changes were kept. Try the command again.` The visible list, open profile and saved file remain unchanged. Restore write access before continuing.
+For an optional manual failure check, keep the app open and make only its test `data` directory unwritable. Attempt a mutation. Expect `Changes could not be saved. No changes were kept. Try the command again.` with the previous data/list/profile retained. Restore directory permissions before continuing. Use disposable data; automated fault injection is the reproducible evidence where platform permissions differ.

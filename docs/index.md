@@ -3,17 +3,21 @@ layout: page
 title: PolicyHarbor
 ---
 
-[![CI Status](https://github.com/se-edu/addressbook-level3/workflows/Java%20CI/badge.svg)](https://github.com/se-edu/addressbook-level3/actions)
-[![codecov](https://codecov.io/gh/se-edu/addressbook-level3/branch/master/graph/badge.svg)](https://codecov.io/gh/se-edu/addressbook-level3)
+[![Java CI](https://github.com/AY2627S1-CS2103T-W13-3/tp/actions/workflows/gradle.yml/badge.svg?branch=master)](https://github.com/AY2627S1-CS2103T-W13-3/tp/actions/workflows/gradle.yml)
 
-![Ui](images/Ui.png)
+**Clients. Follow-ups. Made simple.**
 
-**AddressBook is a desktop application for managing your contact details.** While it has a GUI, most of the user interactions happen using a CLI (Command Line Interface).
+PolicyHarbor v1.3 helps individual insurance agents manage client contacts and one pending follow-up per client through typed commands and a graphical workspace.
 
-* If you are interested in using AddressBook, head over to the [_Quick Start_ section of the **User Guide**](UserGuide.html#quick-start).
-* If you are interested in developing AddressBook, the [**Developer Guide**](DeveloperGuide.html) is a good place to start.
+[![Pending actions and a complete client profile in PolicyHarbor](images/Ui.png)](images/Ui.png)
 
+Use `view` to open a full client profile, `find` to search names, and `followups` to review actions ordered by due date. Status badges distinguish overdue, due-today and upcoming work. Client details and follow-ups are saved locally between sessions.
 
-**Acknowledgements**
+- **Start using the app:** [Download the JAR](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases) and follow the [User Guide](UserGuide.html#quick-start).
+- **Explore the implementation:** read the [Developer Guide](DeveloperGuide.html) and [setup instructions](SettingUp.html).
+- **Meet the developers:** [About Us](AboutUs.html).
+- **Report a problem:** use the [issue tracker](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues).
 
-* Libraries used: [JavaFX](https://openjfx.io/), [Jackson](https://github.com/FasterXML/jackson), [JUnit5](https://github.com/junit-team/junit5)
+Requires Java 25. Mac users should follow the [Zulu JDK+FX installation guide](https://se-education.org/guides/tutorials/javaInstallationMac.html).
+
+PolicyHarbor is based on [AddressBook Level 3](https://github.com/se-edu/addressbook-level3) by [SE-EDU](https://se-education.org), using JavaFX and Jackson. It is distributed under the MIT License.

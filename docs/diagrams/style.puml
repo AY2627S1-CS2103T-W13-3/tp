@@ -63,13 +63,12 @@ skinparam Sequence {
 }
 
 skinparam Participant {
-    FontColor #FFFFFFF
+    FontColor #FFFFFF
     Padding 20
 }
 
 skinparam ArrowFontStyle bold
 skinparam MinClassWidth 50
-skinparam ParticipantPadding 10
 skinparam Shadowing false
 skinparam DefaultTextAlignment center
 skinparam packageStyle Rectangle

@@ -42,7 +42,7 @@ This project uses GitHub Actions for CI. The necessary workflow configuration fi
 
 As part of CI, Gradle generates JaCoCo coverage reports from the tests, and CI uploads the coverage data to Codecov. Codecov then provides information about test coverage.
 
-However, because Codecov is known to run into intermittent problems (e.g., report upload fails) due to issues on the Codecov service side, the CI is configured to pass even if the Codecov task failed. Therefore, developers are advised to check the code coverage levels periodically and take corrective actions if the coverage level falls below desired levels.
+Coverage is evidence for investigating untested behavior, not a fixed release percentage. Check the workflow result and report-upload logs rather than assuming a green badge proves correctness.
 
 To enable Codecov for forks of this project, follow the steps given in [this se-edu guide](https://se-education.org/guides/tutorials/codecov.html).
 
@@ -71,9 +71,15 @@ Any warnings or errors will be printed out to the console.
 
 ## Making a release
 
-Here are the steps to create a new release.
+Release from the tested team `master` commit. Do not upload a JAR built with a local OS-only dependency override.
 
-1. Update the version number in [`MainApp.java`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/seedu/address/MainApp.java).
-1. Generate a fat JAR file using Gradle (i.e., `./gradlew shadowJar`).
-1. Tag the repo with the version number. e.g. `v0.1`
-1. [Create a new release using GitHub](https://help.github.com/articles/creating-releases/). Upload the JAR file you created.
+1. Set `MainApp.VERSION` and the window title to the intended version; review branding, command documentation and `docs/images/Ui.png` against the product.
+1. Use Java 25. On Mac, activate the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html) for building and running.
+1. Run `./gradlew check coverage shadowJar`, then `.github/run-checks.sh` and `git diff --check` (Windows: `gradlew.bat`; repository shell checks run on macOS/Linux or CI).
+1. Copy `build/libs/addressbook.jar` into a fresh writable folder. From that folder run `java -jar addressbook.jar` and check the [manual workflow](DeveloperGuide.md#appendix-instructions-for-manual-testing), including save/restart. Keep synthetic screenshot data separate from personal data.
+1. Capture actual product screenshots showing the full profile and pending action statuses. Replace the website mockup and embed screenshots in the release description.
+1. Create tag `v1.3` (or the next release version) at the exact tested commit in the team repository. [Create a GitHub release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) with itemized changes compared with AB3, runtime instructions and the JAR attached. For an MVP release, publish it as a normal release rather than a prerelease.
+1. Download the uploaded JAR and verify startup. Compare its SHA-256 with the local artifact (`shasum -a 256 addressbook.jar` on Mac, `sha256sum` on Linux, or `Get-FileHash` in PowerShell).
+1. After publishing, ensure completed issues/PRs are assigned to the iteration milestone, move any incomplete items to a later milestone, and close the completed milestone. Preserve PR source branches.
+
+CI uses Zulu JDK+FX on Windows, macOS and Linux. CI builds/tests are useful evidence but do not replace running the exact uploaded JAR or checking its GUI.

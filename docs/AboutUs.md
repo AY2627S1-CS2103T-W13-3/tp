@@ -5,26 +5,26 @@ title: About Us
 
 We are a team based in the [School of Computing, National University of Singapore](https://www.comp.nus.edu.sg).
 
-You can reach us at the email `seer[at]comp.nus.edu.sg`
+For product questions and bug reports, use the [team issue tracker](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues).
 
 ## Project team
 
 ### Josthan Wong
 
-<img src="images/josthan12.png" width="200px">
+<img src="images/josthan12.png" width="200px" alt="Josthan Wong">
 
 [[github](https://github.com/josthan12)]
 
-* Role: Democratic Member
+* Role: Developer
 * Responsibilities: TBC
 
 ### Ayush Jain
 
-<img src="images/ayushjain8541.png" width="200px">
+<img src="images/ayushjain8541.png" width="200px" alt="Ayush Jain">
 
 [[github](https://github.com/Ayushjain8541)]
 
-* Role: TBC
+* Role: Developer
 * Responsibilities: TBC
 
 ### Gwen Lim
@@ -33,14 +33,12 @@ You can reach us at the email `seer[at]comp.nus.edu.sg`
 
 [[github](https://github.com/gwenlim89)]
 
-* Role: Developer and Tester
-* Responsibilities: Implement features and bug fixes; write and maintain tests; report bugs and verify fixes.
-
-These roles and responsibilities are provisional and will be confirmed after team discussion.
+* Role: Developer
+* Responsibilities: TBC
 
 ### Kin Chong
 
-<img src="images/wkc75.png" width="200px">
+<img src="images/wkc75.png" width="200px" alt="Kin Chong">
 
 [[github](https://github.com/wkc75)]
 
@@ -53,5 +51,5 @@ These roles and responsibilities are provisional and will be confirmed after tea
 
 [[github](https://github.com/SomaadityaSamal)]
 
-* Role: Developer and Tester
-* Responsibilities: Implement features and bug fixes; write and maintain tests; report bugs and verify fixes.
+* Role: Developer
+* Responsibilities: TBC

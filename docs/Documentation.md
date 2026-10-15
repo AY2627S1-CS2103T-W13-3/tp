@@ -3,27 +3,20 @@ layout: page
 title: Documentation guide
 ---
 
-**Setting up and maintaining the project website:**
+## Website and guides
 
-* We use [**Jekyll**](https://jekyllrb.com/) to manage documentation.
-* The `docs/` folder is used for documentation.
-* To learn how to set up and maintain the project website, follow the guide [_[se-edu/guides] **Using Jekyll for project documentation**_](https://se-education.org/guides/tutorials/jekyll.html).
-* Note these points when adapting the documentation to a different project/product:
-  * The 'Site-wide settings' section of the page linked above has information on how to update site-wide elements such as the top navigation bar.
-  * :bulb: In addition to updating content files, you might have to update the config files `docs/_config.yml` and `docs/_sass/minima/_base.scss`. The latter contains a reference to `AB-3` that is used when converting documentation pages to PDF format.
-* If you are using IntelliJ for editing documentation files, you can consider enabling 'soft wrapping' for `*.md` files, as explained in [_[se-edu/guides] **Intellij IDEA: Useful settings**_](https://se-education.org/guides/tutorials/intellijUsefulSettings.html#enabling-soft-wrapping)
+GitHub Pages publishes the team's `master` branch from `docs/` using Jekyll. Navigation and site metadata are configured in `docs/_config.yml`; shared styles are in `docs/_sass`.
 
+Keep the main user instructions in `UserGuide.md` and implementation/design/manual-test material in `DeveloperGuide.md`. Update the README and `index.md` when the advertised product changes. `images/Ui.png` must be an actual screenshot of the current app using realistic synthetic data.
 
-**Style guidance:**
+After changes, inspect the rendered pages as well as the Markdown source. Check internal links, tables, image sizes and navigation. [Jekyll setup](https://se-education.org/guides/tutorials/jekyll.html) explains local preview; GitHub Pages build status is available in the repository's Actions/Pages settings.
 
-* Follow the [**_Google developer documentation style guide_**](https://developers.google.com/style).
+## Diagrams and attribution
 
-* Also relevant is the [_[se-edu/guides] **Markdown coding standard**_](https://se-education.org/guides/conventions/markdown.html)
+Keep PlantUML sources under `diagrams/` and their rendered images under `images/`. Regenerate the image when changing its source and verify that the diagram matches the implemented APIs. See the [PlantUML tutorial](https://se-education.org/guides/tutorials/plantUml.html).
 
-**Diagrams:**
+Retain AB3 attribution and document AI assistance accurately in the Developer Guide acknowledgements. Do not assign another contributor's work or AI usage to yourself.
 
-* See the [_[se-edu/guides] **Using PlantUML**_](https://se-education.org/guides/tutorials/plantUml.html)
+## Style and export
 
-**Converting a document to the PDF format:**
-
-* See the guide [_[se-edu/guides] **Saving web documents as PDF files**_](https://se-education.org/guides/tutorials/savingPdf.html)
+Use clear task-based instructions, copyable examples and descriptive links. The [Google documentation style guide](https://developers.google.com/style) is useful editorial guidance. See [saving documentation as PDF](https://se-education.org/guides/tutorials/savingPdf.html) if an export is needed; verify the exported layout separately.

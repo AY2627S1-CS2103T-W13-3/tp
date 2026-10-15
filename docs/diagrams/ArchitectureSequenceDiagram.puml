@@ -1,39 +1,30 @@
 @startuml
 !include style.puml
-skinparam ArrowFontStyle plain
-
-Actor User as user USER_COLOR
-Participant ":UI" as ui UI_COLOR
-Participant ":Logic" as logic LOGIC_COLOR
-Participant ":Model" as model MODEL_COLOR
-Participant ":Storage" as storage STORAGE_COLOR
-
-user -[USER_COLOR]> ui : "delete 1"
-activate ui UI_COLOR
-
-ui -[UI_COLOR]> logic : execute("delete 1")
-activate logic LOGIC_COLOR
-
-logic -[LOGIC_COLOR]> model : deletePerson(p)
-activate model MODEL_COLOR
-
-model -[MODEL_COLOR]-> logic
-deactivate model
-
-logic -[LOGIC_COLOR]> storage : saveAddressBook(addressBook)
-activate storage STORAGE_COLOR
-
-storage -[STORAGE_COLOR]> storage : Save to file
-activate storage STORAGE_COLOR_T1
-storage --[STORAGE_COLOR]> storage
-deactivate storage
-
-storage --[STORAGE_COLOR]> logic
-deactivate storage
-
-logic --[LOGIC_COLOR]> ui
+actor User as user USER_COLOR
+participant ":UI" as ui UI_COLOR
+participant ":Logic" as logic LOGIC_COLOR
+participant "live:Model" as live MODEL_COLOR
+participant "candidate:Model" as candidate MODEL_COLOR
+participant ":Storage" as storage STORAGE_COLOR
+user -> ui : delete 1
+ui -> logic : execute("delete 1")
+activate logic
+note over logic : Parse and sample the command date
+logic -> live : forkForCommand(today)
+live --> logic : candidate
+logic -> candidate : deletePerson(person)
+logic -> candidate : getAddressBook()
+candidate --> logic : candidateData
+logic -> storage : saveAddressBook(candidateData)
+alt Save fails
+    storage --> logic : IOException
+    logic --> ui : CommandException
+    note over live : No candidate state is published
+else Save succeeds
+    storage --> logic
+    logic -> live : commitFrom(candidate)
+    logic --> ui : CommandResult
+end
 deactivate logic
-
-ui--[UI_COLOR]> user
-deactivate ui
+ui --> user : Feedback and refreshed workspace
 @enduml
