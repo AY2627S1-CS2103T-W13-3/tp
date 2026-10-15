@@ -10,8 +10,7 @@ title: Developer Guide
 ## **Acknowledgements**
 
 * PolicyHarbor adapts [AddressBook Level 3](https://github.com/se-edu/addressbook-level3), retaining its Java/JavaFX architecture and test conventions.
-* Ayush Jain used OpenAI Codex to assist with the client-record validation, duplicate detection, tag formatting, add/delete parsing and messages, associated tests, the related User/Developer Guide sections, and the v1.3 release branding, website, diagrams and documentation cleanup.
-* Josthan Wong used OpenAI Codex to assist with the view command, parser and routing, name-search alignment, unsupported legacy route rejection, associated tests and compatibility updates, and his related User/Developer Guide sections.
+* All team members used ChatGPT for general assistance during the project.
 
 --------------------------------------------------------------------------------------------------------------------
 
