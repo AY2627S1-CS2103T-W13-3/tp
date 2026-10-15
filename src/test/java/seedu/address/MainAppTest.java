@@ -66,6 +66,32 @@ public class MainAppTest {
     }
 
     @Test
+    public void nullJsonClientFile_blocksChangesWithoutOverwritingIt() throws Exception {
+        Path file = testFolder.resolve("null-client.json");
+        Files.writeString(file, "null");
+        Storage storage = storage(file);
+
+        Model model = new MainApp().initModelManager(storage, new UserPrefs());
+        assertTrue(model.isDataLoadingBlocked());
+        assertTrue(model.getAddressBook().getPersonList().isEmpty());
+        LogicManager logic = new LogicManager(model, storage);
+        assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () ->
+                logic.execute("add n/Ada p/123 e/ada@example.com a/Street"));
+        assertEquals("null", Files.readString(file));
+    }
+
+    @Test
+    public void nullJsonPreferencesFile_usesDefaultsAndRepairsFile() throws Exception {
+        Path file = testFolder.resolve("null-preferences.json");
+        Files.writeString(file, "null");
+
+        UserPrefs preferences = new MainApp().initPrefs(new JsonUserPrefsStorage(file));
+
+        assertEquals(new UserPrefs(), preferences);
+        assertFalse(Files.readString(file).equals("null"));
+    }
+
+    @Test
     public void invalidSavedClient_blocksStartupWithoutReplacingOtherRecords() throws Exception {
         Path file = testFolder.resolve("invalid-client.json");
         String original = "{\"persons\":[{\"name\":\"Ada\",\"phone\":\"12345\","
