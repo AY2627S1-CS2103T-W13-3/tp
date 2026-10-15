@@ -3,7 +3,7 @@ layout: page
 title: User Guide
 ---
 
-PolicyHarbor v1.3.1 is a desktop application for individual insurance agents to manage clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results.
+PolicyHarbor v1.3.1 is a desktop application for individual insurance agents to manage clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results. 
 
 * Table of Contents
 {:toc}
