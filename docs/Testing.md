@@ -23,6 +23,19 @@ A focused run does not establish whole-suite coverage. Run the full suite before
 
 IntelliJ can run a class, package or `src/test/java` through its JUnit runner. Ensure its configured JDK matches Gradle's.
 
+## Assertions during development
+
+Gradle explicitly enables assertions for `Test` and `JavaExec` tasks, including `test`, `run` and `runShadow`. An assertion failure signals an internal invariant violation; investigate it rather than disabling assertions to make a check pass. Assertions must have no side effects and must not be the only validation for user input, external files or recoverable errors.
+
+For a direct IntelliJ application launch, enable `-ea` in its VM options as described in [Setting up](SettingUp.md#setting-up-the-project-on-your-computer). For a packaged build, run each command below separately, closing the application between runs:
+
+```bash
+java -ea -jar PolicyHarbor.jar
+java -jar PolicyHarbor.jar
+```
+
+Use a fresh writable folder with fictional data. Both modes must preserve normal validation and save/load protection. The Gradle daemon's JVM arguments or a task dry run alone do not prove assertions are active in the application JVM.
+
 ## Test responsibilities
 
 | Level | What it checks | Examples |
