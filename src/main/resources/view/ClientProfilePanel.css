@@ -1,35 +1,85 @@
 .client-profile-panel,
 .client-profile-panel > .viewport {
-    -fx-background-color: #303437;
+    -fx-background-color: #f3f6f4;
 }
 
-.client-profile-panel .profile-empty,
-.client-profile-panel .profile-field {
-    -fx-font-family: "Segoe UI";
-    -fx-font-size: 13px;
-    -fx-text-fill: white;
+.client-profile-panel .profile-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dce7e0;
+    -fx-border-width: 1;
+}
+
+.client-profile-panel .profile-eyebrow,
+.client-profile-panel .profile-section-title,
+.client-profile-panel .profile-field-label {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-text-fill: #526b5e;
+}
+
+.client-profile-panel .profile-eyebrow,
+.client-profile-panel .profile-field-label {
+    -fx-font-size: 11px;
+}
+
+.client-profile-panel .profile-section-title {
+    -fx-font-size: 12px;
 }
 
 .client-profile-panel .profile-name {
-    -fx-font-family: "Segoe UI Semibold";
-    -fx-font-size: 20px;
-    -fx-text-fill: white;
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 22px;
+    -fx-text-fill: #173b2a;
+}
+
+.client-profile-panel .profile-section {
+    -fx-border-color: #e5eee8 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 14 0 0 0;
+}
+
+.client-profile-panel .profile-field-value,
+.client-profile-panel .profile-empty,
+.client-profile-panel .profile-muted {
+    -fx-font-family: "System";
+    -fx-font-size: 13px;
+    -fx-text-fill: #203a2b;
+}
+
+.client-profile-panel .profile-muted,
+.client-profile-panel .profile-empty {
+    -fx-text-fill: #607367;
+}
+
+.client-profile-panel .profile-tag-chip {
+    -fx-font-family: "System";
+    -fx-font-size: 12px;
+    -fx-text-fill: #24563a;
+    -fx-background-color: #e6f2e9;
+    -fx-background-radius: 10;
+    -fx-padding: 4 9 4 9;
 }
 
 .client-profile-panel .profile-status {
-    -fx-font-family: "Segoe UI Semibold";
-    -fx-font-size: 13px;
-    -fx-text-fill: white;
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-padding: 5 10 5 10;
+    -fx-background-radius: 10;
 }
 
 .client-profile-panel .profile-status-overdue {
-    -fx-text-fill: #ffadad;
+    -fx-text-fill: #8b2525;
+    -fx-background-color: #fbe5e2;
 }
 
 .client-profile-panel .profile-status-due-today {
-    -fx-text-fill: #ffe09a;
+    -fx-text-fill: #825000;
+    -fx-background-color: #fff1d1;
 }
 
 .client-profile-panel .profile-status-upcoming {
-    -fx-text-fill: #b6f0c4;
+    -fx-text-fill: #205b38;
+    -fx-background-color: #e2f3e8;
 }

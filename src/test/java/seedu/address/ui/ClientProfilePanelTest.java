@@ -2,9 +2,11 @@ package seedu.address.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -37,10 +39,10 @@ public class ClientProfilePanelTest {
         assertTrue(display.hasSelection());
         assertEquals("", display.noSelection());
         assertEquals("Rachel Lim", display.name());
-        assertEquals("Phone: 001", display.phone());
-        assertEquals("Email: Rachel@example.com", display.email());
-        assertEquals("Address: Blk 123, Main Street", display.address());
-        assertEquals("Tags: [2026] [active] [health]", display.tags());
+        assertEquals("001", display.phone());
+        assertEquals("Rachel@example.com", display.email());
+        assertEquals("Blk 123, Main Street", display.address());
+        assertEquals(List.of("2026", "active", "health"), display.tags());
         assertFalse(display.followUp().hasFollowUp());
         assertEquals("Follow-up: None", display.followUp().none());
         assertEquals("", display.followUp().date());
@@ -56,14 +58,17 @@ public class ClientProfilePanelTest {
         ClientProfilePanel.ProfileDisplay overdue = ClientProfilePanel.createDisplay(person, TODAY.plusDays(1));
         ClientProfilePanel.ProfileDisplay upcoming = ClientProfilePanel.createDisplay(person, TODAY.minusDays(1));
 
-        assertEquals("Tags: None", due.tags());
+        assertEquals(List.of(), due.tags());
         assertTrue(due.followUp().hasFollowUp());
         assertEquals("", due.followUp().none());
-        assertEquals("Follow-up date: 2026-10-12", due.followUp().date());
-        assertEquals("Follow-up action: Call client", due.followUp().action());
-        assertEquals("Status: DUE TODAY", due.followUp().status());
-        assertEquals("Status: OVERDUE", overdue.followUp().status());
-        assertEquals("Status: UPCOMING", upcoming.followUp().status());
+        assertEquals("2026-10-12", due.followUp().date());
+        assertEquals("Call client", due.followUp().action());
+        assertEquals("DUE TODAY", due.followUp().status());
+        assertEquals("OVERDUE", overdue.followUp().status());
+        assertEquals("UPCOMING", upcoming.followUp().status());
+        assertEquals("profile-status-due-today", due.followUp().statusStyleClass());
+        assertEquals("profile-status-overdue", overdue.followUp().statusStyleClass());
+        assertEquals("profile-status-upcoming", upcoming.followUp().statusStyleClass());
         assertEquals(TODAY, person.getFollowUp().orElseThrow().getDueDate());
     }
 
@@ -82,5 +87,24 @@ public class ClientProfilePanelTest {
         assertFalse(deselected.hasSelection());
         assertEquals("", deselected.name());
         assertEquals("", deselected.address());
+        assertEquals(List.of(), deselected.tags());
+    }
+
+    @Test
+    public void createDisplay_replacedActionAndLongText_keepCompleteAction() {
+        String longAction = "x".repeat(200);
+        Person original = new PersonBuilder().withFollowUp(new FollowUp(TODAY, "Old action")).build();
+        Person replaced = original.withFollowUp(new FollowUp(TODAY.plusDays(1), longAction));
+
+        ClientProfilePanel.ProfileDisplay display = ClientProfilePanel.createDisplay(replaced, TODAY);
+
+        assertEquals(longAction, display.followUp().action());
+        assertEquals("2026-10-13", display.followUp().date());
+        assertEquals("UPCOMING", display.followUp().status());
+    }
+
+    @Test
+    public void createDisplay_nullPublishedDate_rejected() {
+        assertThrows(NullPointerException.class, () -> ClientProfilePanel.createDisplay(null, null));
     }
 }

@@ -3,17 +3,18 @@ package seedu.address.ui;
 import static java.util.Objects.requireNonNull;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
-import seedu.address.model.tag.Tag;
 
 /** Displays the selected client's complete, read-only profile. */
 public class ClientProfilePanel extends UiPart<Region> {
@@ -37,7 +38,9 @@ public class ClientProfilePanel extends UiPart<Region> {
     @FXML
     private Label address;
     @FXML
-    private Label tags;
+    private Label tagsNone;
+    @FXML
+    private FlowPane tagChips;
     @FXML
     private Label followUpNone;
     @FXML
@@ -72,7 +75,14 @@ public class ClientProfilePanel extends UiPart<Region> {
         phone.setText(display.phone());
         email.setText(display.email());
         address.setText(display.address());
-        tags.setText(display.tags());
+        tagChips.getChildren().clear();
+        display.tags().forEach(tag -> {
+            Label chip = new Label(tag);
+            chip.getStyleClass().add("profile-tag-chip");
+            tagChips.getChildren().add(chip);
+        });
+        tagsNone.setVisible(display.hasSelection() && display.tags().isEmpty());
+        tagsNone.setManaged(display.hasSelection() && display.tags().isEmpty());
 
         FollowUpDisplay followUp = display.followUp();
         followUpNone.setText(followUp.none());
@@ -93,7 +103,7 @@ public class ClientProfilePanel extends UiPart<Region> {
     static ProfileDisplay createDisplay(Person person, LocalDate today) {
         requireNonNull(today);
         if (person == null) {
-            return new ProfileDisplay(false, MESSAGE_NO_CLIENT_SELECTED, "", "", "", "", "",
+            return new ProfileDisplay(false, MESSAGE_NO_CLIENT_SELECTED, "", "", "", "", List.of(),
                     new FollowUpDisplay(false, "", "", "", "", ""));
         }
 
@@ -101,10 +111,11 @@ public class ClientProfilePanel extends UiPart<Region> {
                 .map(followUp -> createFollowUpDisplay(followUp, today))
                 .orElseGet(() -> new FollowUpDisplay(false, "Follow-up: None", "", "", "", ""));
         return new ProfileDisplay(true, "", person.getName().fullName,
-                "Phone: " + person.getPhone().value,
-                "Email: " + person.getEmail().value,
-                "Address: " + person.getAddress().value,
-                "Tags: " + Tag.formatTags(person.getTags()), followUpDisplay);
+                person.getPhone().value,
+                person.getEmail().value,
+                person.getAddress().value,
+                person.getTags().stream().map(tag -> tag.tagName).sorted(Comparator.naturalOrder()).toList(),
+                followUpDisplay);
     }
 
     private static FollowUpDisplay createFollowUpDisplay(FollowUp followUp, LocalDate today) {
@@ -115,14 +126,14 @@ public class ClientProfilePanel extends UiPart<Region> {
             case UPCOMING -> "profile-status-upcoming";
         };
         return new FollowUpDisplay(true, "",
-                "Follow-up date: " + followUp.getDueDate(),
-                "Follow-up action: " + followUp.getDescription(),
-                "Status: " + status.getDisplayName(), statusStyleClass);
+                followUp.getDueDate().toString(),
+                followUp.getDescription(),
+                status.getDisplayName(), statusStyleClass);
     }
 
     /** Complete text and visibility state for one profile refresh. */
     record ProfileDisplay(boolean hasSelection, String noSelection, String name, String phone,
-                          String email, String address, String tags, FollowUpDisplay followUp) {
+                          String email, String address, List<String> tags, FollowUpDisplay followUp) {
     }
 
     /** Follow-up text and style for one profile refresh. */
