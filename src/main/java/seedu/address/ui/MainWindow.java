@@ -1,16 +1,24 @@
 package seedu.address.ui;
 
+import static java.util.Objects.requireNonNull;
+import static seedu.address.commons.util.AppUtil.checkArgument;
+
+import java.awt.Point;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.logging.Logger;
 
+import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
@@ -28,12 +36,16 @@ import seedu.address.logic.parser.exceptions.ParseException;
 public class MainWindow extends UiPart<Stage> {
 
     private static final String FXML = "MainWindow.fxml";
+    private static final double DEFAULT_WINDOW_WIDTH = 1000;
+    private static final double DEFAULT_WINDOW_HEIGHT = 720;
+    private static final double MIN_WINDOW_WIDTH = 640;
+    private static final double MIN_WINDOW_HEIGHT = 600;
 
     private final Logger logger = LogsCenter.getLogger(getClass());
 
-    private Stage primaryStage;
-    private Logic logic;
-    private Path dataFilePath;
+    private final Stage primaryStage;
+    private final Logic logic;
+    private final Path dataFilePath;
 
     // Independent Ui parts residing in this Ui container
     private PersonListPanel personListPanel;
@@ -42,6 +54,12 @@ public class MainWindow extends UiPart<Stage> {
 
     @FXML
     private Label loadWarning;
+
+    @FXML
+    private Label clientListTitle;
+
+    @FXML
+    private Label clientCount;
 
     @FXML
     private StackPane commandBoxPlaceholder;
@@ -66,12 +84,12 @@ public class MainWindow extends UiPart<Stage> {
      * and the data file path to show in the status bar.
      */
     public MainWindow(Stage primaryStage, Logic logic, Path dataFilePath) {
-        super(FXML, primaryStage);
+        super(FXML, requireNonNull(primaryStage));
 
         // Set dependencies
         this.primaryStage = primaryStage;
-        this.logic = logic;
-        this.dataFilePath = dataFilePath;
+        this.logic = requireNonNull(logic);
+        this.dataFilePath = requireNonNull(dataFilePath);
 
         // Configure the UI
         setWindowDefaultSize(logic.getGuiSettings());
@@ -123,6 +141,10 @@ public class MainWindow extends UiPart<Stage> {
      * Fills up all the placeholders of this window.
      */
     void fillInnerParts() {
+        clientListTitle.textProperty().bind(Bindings.when(logic.showingFollowUpsProperty())
+                .then("Pending clients").otherwise("Clients"));
+        clientCount.textProperty().bind(Bindings.size(logic.getFilteredPersonList()).asString("%d shown"));
+
         personListPanel = new PersonListPanel(logic.getFilteredPersonList(), logic.todayProperty(),
                 logic.showingFollowUpsProperty(), logic.selectedPersonProperty());
         personListPanelPlaceholder.getChildren().add(personListPanel.getRoot());
@@ -148,15 +170,56 @@ public class MainWindow extends UiPart<Stage> {
     }
 
     /**
-     * Sets the default size based on {@code guiSettings}.
+     * Restores a usable window on the saved display, or the primary display if it is unavailable.
      */
     private void setWindowDefaultSize(GuiSettings guiSettings) {
-        primaryStage.setHeight(guiSettings.getWindowHeight());
-        primaryStage.setWidth(guiSettings.getWindowWidth());
-        if (guiSettings.getWindowCoordinates() != null) {
-            primaryStage.setX(guiSettings.getWindowCoordinates().getX());
-            primaryStage.setY(guiSettings.getWindowCoordinates().getY());
+        Screen screen = Screen.getPrimary();
+        Point coordinates = guiSettings.getWindowCoordinates();
+        if (coordinates != null) {
+            List<Screen> savedScreens = Screen.getScreensForRectangle(coordinates.x, coordinates.y, 1, 1);
+            if (!savedScreens.isEmpty()) {
+                screen = savedScreens.get(0);
+            }
         }
+        Rectangle2D visualBounds = screen.getVisualBounds();
+        Rectangle2D windowBounds = getWindowBounds(guiSettings, visualBounds);
+        primaryStage.setMinWidth(Math.min(MIN_WINDOW_WIDTH, visualBounds.getWidth()));
+        primaryStage.setMinHeight(Math.min(MIN_WINDOW_HEIGHT, visualBounds.getHeight()));
+        primaryStage.setWidth(windowBounds.getWidth());
+        primaryStage.setHeight(windowBounds.getHeight());
+        primaryStage.setX(windowBounds.getMinX());
+        primaryStage.setY(windowBounds.getMinY());
+    }
+
+    /**
+     * Fits persisted geometry inside a display's usable area, without growing to fit client content.
+     * Invalid persisted dimensions fall back to the dashboard defaults; valid positions are retained.
+     */
+    static Rectangle2D getWindowBounds(GuiSettings guiSettings, Rectangle2D visualBounds) {
+        requireNonNull(guiSettings);
+        requireNonNull(visualBounds);
+        checkArgument(visualBounds.getWidth() > 0 && visualBounds.getHeight() > 0
+                && Double.isFinite(visualBounds.getMinX()) && Double.isFinite(visualBounds.getMinY())
+                && Double.isFinite(visualBounds.getMaxX()) && Double.isFinite(visualBounds.getMaxY()),
+                "Display bounds must be finite and have positive dimensions.");
+        boolean isFirstLaunch = guiSettings.equals(new GuiSettings());
+        double width = fitDimension(isFirstLaunch ? DEFAULT_WINDOW_WIDTH : guiSettings.getWindowWidth(),
+                DEFAULT_WINDOW_WIDTH, MIN_WINDOW_WIDTH, visualBounds.getWidth());
+        double height = fitDimension(isFirstLaunch ? DEFAULT_WINDOW_HEIGHT : guiSettings.getWindowHeight(),
+                DEFAULT_WINDOW_HEIGHT, MIN_WINDOW_HEIGHT, visualBounds.getHeight());
+        Point coordinates = guiSettings.getWindowCoordinates();
+        double x = coordinates == null ? visualBounds.getMinX() + (visualBounds.getWidth() - width) / 2
+                : Math.max(visualBounds.getMinX(), Math.min(coordinates.x, visualBounds.getMaxX() - width));
+        double y = coordinates == null ? visualBounds.getMinY() + (visualBounds.getHeight() - height) / 2
+                : Math.max(visualBounds.getMinY(), Math.min(coordinates.y, visualBounds.getMaxY() - height));
+        Rectangle2D restored = new Rectangle2D(x, y, width, height);
+        assert visualBounds.contains(restored) : "Restored window must fit its selected display";
+        return restored;
+    }
+
+    private static double fitDimension(double requested, double fallback, double minimum, double available) {
+        double validSize = Double.isFinite(requested) && requested > 0 ? requested : fallback;
+        return Math.min(available, Math.max(minimum, validSize));
     }
 
     /**
