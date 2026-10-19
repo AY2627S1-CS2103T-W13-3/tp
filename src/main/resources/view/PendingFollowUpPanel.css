@@ -1,0 +1,102 @@
+.pending-follow-up-panel,
+.pending-follow-up-panel > .viewport {
+    -fx-background-color: #f3f6f4;
+}
+
+.pending-follow-up-panel .pending-panel-content {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dce7e0;
+    -fx-border-width: 1;
+}
+
+.pending-follow-up-panel .pending-panel-title {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 17px;
+    -fx-text-fill: #173b2a;
+}
+
+.pending-follow-up-panel .pending-panel-note,
+.pending-follow-up-panel .pending-empty {
+    -fx-font-family: "System";
+    -fx-font-size: 12px;
+    -fx-text-fill: #607367;
+}
+
+.pending-follow-up-panel .pending-group-overdue,
+.pending-follow-up-panel .pending-group-due-today,
+.pending-follow-up-panel .pending-group-upcoming {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-padding: 8 0 2 0;
+}
+
+.pending-follow-up-panel .pending-group-overdue {
+    -fx-text-fill: #8b2525;
+}
+
+.pending-follow-up-panel .pending-group-due-today {
+    -fx-text-fill: #825000;
+}
+
+.pending-follow-up-panel .pending-group-upcoming {
+    -fx-text-fill: #205b38;
+}
+
+.pending-follow-up-panel .pending-card {
+    -fx-background-color: #f9fbf9;
+    -fx-background-radius: 6;
+    -fx-border-color: #dce7e0;
+    -fx-border-radius: 6;
+    -fx-padding: 12;
+}
+
+.pending-follow-up-panel .pending-card-viewing {
+    -fx-border-color: #318358;
+    -fx-border-width: 1 1 1 4;
+}
+
+.pending-follow-up-panel .pending-card-name {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: #173b2a;
+}
+
+.pending-follow-up-panel .pending-card-date,
+.pending-follow-up-panel .pending-card-action {
+    -fx-font-family: "System";
+    -fx-font-size: 12px;
+    -fx-text-fill: #203a2b;
+}
+
+.pending-follow-up-panel .pending-viewing-marker {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 10px;
+    -fx-text-fill: #205b38;
+}
+
+.pending-follow-up-panel .pending-card-status {
+    -fx-font-family: "System";
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 4 8 4 8;
+    -fx-background-radius: 10;
+}
+
+.pending-follow-up-panel .pending-status-overdue {
+    -fx-text-fill: #8b2525;
+    -fx-background-color: #fbe5e2;
+}
+
+.pending-follow-up-panel .pending-status-due-today {
+    -fx-text-fill: #825000;
+    -fx-background-color: #fff1d1;
+}
+
+.pending-follow-up-panel .pending-status-upcoming {
+    -fx-text-fill: #205b38;
+    -fx-background-color: #e2f3e8;
+}
