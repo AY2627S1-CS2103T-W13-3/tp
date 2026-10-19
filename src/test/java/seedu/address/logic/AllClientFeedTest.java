@@ -1,5 +1,6 @@
 package seedu.address.logic;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -136,6 +137,39 @@ public class AllClientFeedTest {
     }
 
     @Test
+    public void successfulMutation_notifiesObserversOnlyAfterDataIsSaved() throws Exception {
+        JsonAddressBookStorage savedData = new JsonAddressBookStorage(testFolder.resolve("clients.json"));
+        feed.addListener((ListChangeListener<Person>) change -> {
+            ReadOnlyAddressBook savedBook = assertDoesNotThrow(() -> savedData.readAddressBook().orElseThrow());
+            assertEquals(List.copyOf(feed), savedBook.getPersonList());
+        });
+
+        logic.execute("followup 2 d/2026-10-22 m/Save before publishing");
+        logic.execute("delete 1");
+
+        assertEquals(2, publications.size());
+        assertEquals(1, feed.size());
+        assertEquals("222", feed.getFirst().getPhone().value);
+    }
+
+    @Test
+    public void deleteSameNameClient_usesPendingIndexAndPreservesOtherRecord() throws Exception {
+        logic.execute("view 1");
+        logic.execute("followups");
+        assertEquals(List.of(second, first), logic.getFilteredPersonList());
+
+        logic.execute("delete 1");
+
+        assertEquals(List.of(first), feed);
+        assertSame(first, feed.getFirst());
+        assertSame(first, logic.selectedPersonProperty().get());
+        assertEquals(List.of(first), logic.getFilteredPersonList());
+        assertTrue(logic.showingFollowUpsProperty().get());
+        assertEquals(List.of(List.of(first)), publications);
+        assertFalse(model.hasUnsavedChanges());
+    }
+
+    @Test
     public void candidateChanges_remainPrivateUntilCommit() {
         Model candidate = model.forkForCommand(TODAY);
         Person replacement = second.withoutFollowUp();
@@ -207,8 +241,6 @@ public class AllClientFeedTest {
                 if (failSave) {
                     throw new IOException("Simulated save failure");
                 }
-                // Saving must finish before any live-feed observer receives the candidate.
-                assertEquals(publications.isEmpty() ? List.of(first, second) : publications.getLast(), feed);
                 super.saveAddressBook(book);
             }
         };
