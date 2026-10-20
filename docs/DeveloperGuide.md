@@ -500,7 +500,15 @@ Close the app before editing its JSON; back up the file first.
 - Click/highlight another row while a profile is open. The viewed client must remain unchanged until a successful `view` command.
 - Use a long address and an action up to 200 characters. Narrow the split panes and verify wrapping/scrolling and access to the command box and feedback.
 - Check at 1920×1080 with 100%/125% scaling and at 1280×720 with 150% scaling on available platforms. Record any untested combinations.
-- Open Help from the menu or F1. Its link/copy button must point to PolicyHarbor's User Guide, rather than AB3's guide.
+
+Help window and data-file footer (automated tests cover only the URL constant and feedback text):
+
+1. With focus in the command box, press F1. Expect Help to open with **Copy link** focused. Repeat from the Help menu.
+2. Press Enter. Expect `Link copied.`. Paste elsewhere; expect `https://ay2627s1-cs2103t-w13-3.github.io/tp/UserGuide.html`.
+3. Select the full URL in its field and copy it manually. The pasted text must match.
+4. Where a platform or clipboard tool can reject writes, press **Copy link** again. Expect `Could not copy the link. Select it above and copy it instead.` Record whether this was exercised.
+5. Press Esc. Expect Help to close. Press F1 again; the previous copy message is cleared.
+6. Close the app. In `preferences.json`, set `addressBookFilePath` to a path nested about 200 characters deep, with no spaces in folder names. Relaunch. The footer must end with the file name. Hovering it must show the full path wrapped within the screen, without clipping, until the pointer leaves. Restore the setting and delete the test folder afterwards.
 
 ### Save failures and automated boundaries
 

@@ -6,7 +6,8 @@
     -fx-border-width: 1 0 0 0;
 }
 
-.status-bar.status-bar-footer .label {
+/* Child selector: the path tooltip's label inherits this CSS chain and must not get the fixed height. */
+.status-bar.status-bar-footer > .label {
     -fx-font-family: "Segoe UI";
     -fx-font-size: 12px;
     -fx-text-fill: #5b6470;
