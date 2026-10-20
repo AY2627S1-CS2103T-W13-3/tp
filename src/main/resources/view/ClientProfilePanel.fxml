@@ -39,7 +39,7 @@
         <VBox spacing="8" styleClass="profile-section">
           <Label styleClass="profile-section-title" text="TAGS" />
           <Label fx:id="tagsNone" styleClass="profile-muted" text="No tags" />
-          <FlowPane fx:id="tagChips" hgap="6" vgap="6" />
+          <FlowPane fx:id="tagChips" hgap="6" vgap="6" minWidth="0" />
         </VBox>
         <VBox spacing="10" styleClass="profile-section">
           <Label styleClass="profile-section-title" text="NEXT FOLLOW-UP" />

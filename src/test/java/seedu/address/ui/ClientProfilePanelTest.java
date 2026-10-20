@@ -163,6 +163,42 @@ public class ClientProfilePanelTest {
         });
     }
 
+    @Test
+    public void profileUi_longTag_staysInsideNarrowViewport() throws InterruptedException {
+        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+        runOnFxThread(() -> {
+            String longTag = "a".repeat(80);
+            Person person = new PersonBuilder().withTags(longTag, "short").build();
+            ClientProfilePanel panel = new ClientProfilePanel(new SimpleObjectProperty<>(person),
+                    new SimpleObjectProperty<>(TODAY));
+            ScrollPane scroll = (ScrollPane) panel.getRoot();
+            new Scene(scroll, 240, 360);
+            scroll.resize(240, 360);
+            scroll.applyCss();
+            scroll.layout();
+            scroll.layout();
+            FlowPane chips = (FlowPane) findById(scroll, "tagChips");
+            Label chip = (Label) chips.getChildren().getFirst();
+
+            assertEquals(longTag, chip.getText());
+            assertTrue(scroll.getContent().getLayoutBounds().getWidth() <= scroll.getViewportBounds().getWidth() + 1,
+                    "Content width " + scroll.getContent().getLayoutBounds().getWidth()
+                            + " exceeds viewport " + scroll.getViewportBounds().getWidth());
+            assertTrue(chip.getWidth() <= chips.getWidth() + 1);
+            assertTrue(chip.getHeight() >= chip.prefHeight(chip.getWidth()) - 1);
+            assertTrue(chip.prefHeight(120) > chip.prefHeight(1000));
+            Node nextChip = chips.getChildren().get(1);
+            assertTrue(nextChip.getBoundsInParent().getMinY() >= chip.getBoundsInParent().getMaxY(),
+                    "Long chip " + chip.getBoundsInParent() + "; next chip " + nextChip.getBoundsInParent());
+            assertTrue(nextChip.getBoundsInParent().getMaxY() <= chips.getHeight() + 1);
+
+            scroll.resize(360, 360);
+            scroll.layout();
+            assertTrue(chip.getWidth() <= chips.getWidth() + 1);
+            assertEquals(longTag, chip.getText());
+        });
+    }
+
     private static Node findById(Node node, String id) {
         if (id.equals(node.getId())) {
             return node;

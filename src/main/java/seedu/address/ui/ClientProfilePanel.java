@@ -77,8 +77,12 @@ public class ClientProfilePanel extends UiPart<Region> {
         address.setText(display.address());
         tagChips.getChildren().clear();
         display.tags().forEach(tag -> {
-            Label chip = new Label(tag);
+            Label chip = new WrappingTagChip(tag);
             chip.getStyleClass().add("profile-tag-chip");
+            chip.setWrapText(true);
+            chip.setMinWidth(0);
+            chip.setMinHeight(Region.USE_PREF_SIZE);
+            chip.maxWidthProperty().bind(tagChips.widthProperty());
             tagChips.getChildren().add(chip);
         });
         tagsNone.setVisible(display.hasSelection() && display.tags().isEmpty());
@@ -129,6 +133,18 @@ public class ClientProfilePanel extends UiPart<Region> {
                 followUp.getDueDate().toString(),
                 followUp.getDescription(),
                 status.getDisplayName(), statusStyleClass);
+    }
+
+    /** Lets FlowPane measure a wrapped chip's height using its available width. */
+    private static class WrappingTagChip extends Label {
+        WrappingTagChip(String tag) {
+            super(tag);
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return super.computePrefHeight(width < 0 ? getMaxWidth() : width);
+        }
     }
 
     /** Complete text and visibility state for one profile refresh. */
