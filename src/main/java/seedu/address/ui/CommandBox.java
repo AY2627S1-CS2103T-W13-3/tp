@@ -2,11 +2,14 @@ package seedu.address.ui;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.logging.Logger;
+
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
+import seedu.address.commons.core.LogsCenter;
 import seedu.address.logic.commands.CommandResult;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.exceptions.ParseException;
@@ -19,6 +22,7 @@ public class CommandBox extends UiPart<Region> {
     public static final String ERROR_STYLE_CLASS = "error";
     private static final String FXML = "CommandBox.fxml";
 
+    private final Logger logger = LogsCenter.getLogger(CommandBox.class);
     private final CommandExecutor commandExecutor;
 
     @FXML
@@ -49,8 +53,11 @@ public class CommandBox extends UiPart<Region> {
         String commandText = commandTextField.getText();
         try {
             executeCommand(commandExecutor, commandText);
+            logger.fine("Command submission succeeded.");
             commandTextField.clear();
         } catch (CommandException | ParseException e) {
+            // Exception messages and causes can contain client data, so log only the failure category.
+            logger.fine("Command submission failed: " + e.getClass().getSimpleName());
             setStyleToIndicateCommandFailure();
         } finally {
             commandTextField.requestFocus();
