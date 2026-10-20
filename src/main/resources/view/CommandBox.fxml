@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.net.URL?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 
-<HBox alignment="CENTER_LEFT" spacing="8" styleClass="stack-pane"
+<HBox alignment="CENTER_LEFT" spacing="8" styleClass="command-bar"
       xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+  <stylesheets>
+    <URL value="@CommandBox.css" />
+  </stylesheets>
   <TextField fx:id="commandTextField" onAction="#handleCommandSubmitted" promptText="Enter command here..."
+             accessibleText="Command" accessibleHelp="Type a command, then press Enter or activate Run."
              minWidth="0" HBox.hgrow="ALWAYS"/>
   <Button fx:id="runButton" text="Run" accessibleText="Run command" defaultButton="false"
+          accessibleHelp="Execute the current text in the command field."
           mnemonicParsing="false" minWidth="-Infinity" onAction="#handleCommandSubmitted"/>
 </HBox>
 

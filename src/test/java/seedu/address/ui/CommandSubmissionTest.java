@@ -36,12 +36,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import javafx.application.Platform;
+import javafx.css.CssMetaData;
+import javafx.css.PseudoClass;
+import javafx.css.Styleable;
+import javafx.geometry.Bounds;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.logic.LogicManager;
 import seedu.address.logic.Messages;
@@ -151,6 +159,120 @@ public class CommandSubmissionTest {
             assertTrue(runButton.isFocusTraversable(), "Run must be reachable using the keyboard");
             assertFalse(runButton.getText().isBlank(), "Run must have a visible label");
             assertFalse(runButton.getAccessibleText().isBlank(), "Run must have an accessible label");
+            return null;
+        });
+    }
+
+    @Test
+    public void commandBar_existingHost_keepsControlsReadableAndWithinBounds() throws Exception {
+        runOnFxThread(() -> {
+            Path dataFile = temporaryFolder.resolve("clients.json");
+            LogicManager logic = new LogicManager(new ModelManager(), new StorageManager(
+                    new JsonAddressBookStorage(dataFile),
+                    new JsonUserPrefsStorage(temporaryFolder.resolve("preferences.json"))), CLOCK);
+            MainWindow window = new MainWindow(new Stage(), logic, dataFile);
+            try {
+                window.fillInnerParts();
+                Scene scene = window.getPrimaryStage().getScene();
+                Region root = assertInstanceOf(Region.class, scene.getRoot());
+                TextField commandTextField = assertInstanceOf(TextField.class, root.lookup("#commandTextField"));
+                Button runButton = assertInstanceOf(Button.class, root.lookup("#runButton"));
+                Region commandBar = assertInstanceOf(Region.class, commandTextField.getParent());
+                commandTextField.setText("find " + "Long command text ".repeat(30));
+
+                for (double width : new double[] {450, 853, 1280, 1920}) {
+                    root.resize(width, 720);
+                    root.applyCss();
+                    root.layout();
+                    assertControlsFit(commandBar, commandTextField, runButton);
+                    assertReadable(commandTextField);
+                    assertTrue(contrastRatio((Color) runButton.getTextFill(),
+                            (Color) runButton.getBackground().getFills().getFirst().getFill()) >= 4.5,
+                            "The Run label must remain readable in the existing host");
+                }
+
+                commandTextField.setText("invalid command");
+                runButton.fire();
+                root.applyCss();
+                assertEquals("invalid command", commandTextField.getText());
+                assertEquals(1, errorClassCount(commandTextField));
+                assertReadable(commandTextField);
+            } finally {
+                window.getPrimaryStage().close();
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void commandBar_narrowWidth_keepsInputAndRunAvailable() throws Exception {
+        runOnFxThread(() -> {
+            CommandBoxFixture fixture = new CommandBoxFixture(commandText -> new CommandResult("Submitted."));
+            Region root = assertInstanceOf(Region.class, fixture.scene.getRoot());
+            fixture.commandTextField.setText("find " + "Long command text ".repeat(30));
+
+            for (double width : new double[] {320, 450, 853}) {
+                root.resize(width, root.prefHeight(width));
+                root.applyCss();
+                root.layout();
+                assertControlsFit(root, fixture.commandTextField, fixture.runButton);
+                fixture.commandTextField.positionCaret(fixture.commandTextField.getLength());
+                assertEquals(fixture.commandTextField.getLength(), fixture.commandTextField.getCaretPosition());
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void commandBar_tabAndSpace_submitOnceAndReturnFocus() throws Exception {
+        runOnFxThread(() -> {
+            AtomicInteger executionCount = new AtomicInteger();
+            CommandBoxFixture fixture = new CommandBoxFixture(commandText -> {
+                executionCount.incrementAndGet();
+                return new CommandResult("Submitted.");
+            });
+            fixture.commandTextField.setText("list");
+            fixture.commandTextField.requestFocus();
+            pressKey(fixture.commandTextField, KeyCode.TAB);
+            assertSame(fixture.runButton, fixture.scene.getFocusOwner(), "Tab must reach Run from the input");
+            pressKey(fixture.runButton, KeyCode.SPACE);
+            assertEquals(1, executionCount.get());
+            assertEquals("", fixture.commandTextField.getText());
+            assertSame(fixture.commandTextField, fixture.scene.getFocusOwner());
+            assertFalse(fixture.commandTextField.getAccessibleText().isBlank());
+            assertFalse(fixture.commandTextField.getAccessibleHelp().isBlank());
+            assertFalse(fixture.runButton.getAccessibleHelp().isBlank());
+            return null;
+        });
+    }
+
+    @Test
+    public void commandBar_buttonStates_keepReadableLabelAndVisibleFocus() throws Exception {
+        runOnFxThread(() -> {
+            CommandBoxFixture fixture = new CommandBoxFixture(commandText -> new CommandResult("Submitted."));
+            Region root = assertInstanceOf(Region.class, fixture.scene.getRoot());
+            root.resize(450, root.prefHeight(450));
+            root.layout();
+            double buttonWidth = fixture.runButton.getWidth();
+
+            for (String state : List.of("hover", "pressed", "focused")) {
+                PseudoClass pseudoClass = PseudoClass.getPseudoClass(state);
+                fixture.runButton.pseudoClassStateChanged(pseudoClass, true);
+                root.applyCss();
+                root.layout();
+                Color buttonBackground = (Color) fixture.runButton.getBackground().getFills().getFirst().getFill();
+                assertTrue(contrastRatio((Color) fixture.runButton.getTextFill(), buttonBackground) >= 4.5,
+                        "The Run label must stay readable in every interactive state");
+                assertEquals(buttonWidth, fixture.runButton.getWidth(), "Interaction must not shift the layout");
+                if (state.equals("focused")) {
+                    Color focusBorder = (Color) fixture.runButton.getBorder().getStrokes().getFirst().getTopStroke();
+                    Color barBackground = (Color) root.getBackground().getFills().getFirst().getFill();
+                    assertEquals(1.0, focusBorder.getOpacity(), "The focus indicator must be visible");
+                    assertTrue(contrastRatio(focusBorder, barBackground) >= 3,
+                            "Keyboard focus must be distinguishable against the command bar");
+                }
+                fixture.runButton.pseudoClassStateChanged(pseudoClass, false);
+            }
             return null;
         });
     }
@@ -356,6 +478,50 @@ public class CommandSubmissionTest {
 
     private static long errorClassCount(TextField commandTextField) {
         return commandTextField.getStyleClass().stream().filter(CommandBox.ERROR_STYLE_CLASS::equals).count();
+    }
+
+    private static void assertControlsFit(Region commandBar, TextField commandTextField, Button runButton) {
+        assertTrue(commandTextField.getWidth() >= 100, "The command field must retain usable editing space");
+        assertTrue(commandTextField.getBoundsInParent().getMaxX() <= runButton.getLayoutX(),
+                "The input and Run button must not overlap");
+        assertTrue(runButton.getBoundsInParent().getMaxX() <= commandBar.getWidth(),
+                "Run must remain inside the command bar");
+        assertTrue(runButton.getBoundsInParent().getMaxY() <= commandBar.getHeight(),
+                "Run must fit the command bar height");
+        Text label = assertInstanceOf(Text.class, runButton.lookup(".text"));
+        Bounds labelBounds = runButton.sceneToLocal(label.localToScene(label.getBoundsInLocal()));
+        assertTrue(runButton.getLayoutBounds().contains(labelBounds), "The Run label must not be clipped");
+    }
+
+    private static void assertReadable(TextField commandTextField) {
+        Color background = (Color) commandTextField.getBackground().getFills().getLast().getFill();
+        assertTrue(contrastRatio(textFieldColor(commandTextField, "-fx-text-fill"), background) >= 4.5,
+                "Command text must remain readable in normal and error states");
+        assertTrue(contrastRatio(textFieldColor(commandTextField, "-fx-prompt-text-fill"), background) >= 4.5,
+                "The command prompt must remain readable");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Color textFieldColor(TextField commandTextField, String property) {
+        CssMetaData<Styleable, ?> metadata = (CssMetaData<Styleable, ?>) commandTextField.getCssMetaData().stream()
+                .filter(cssProperty -> cssProperty.getProperty().equals(property)).findFirst().orElseThrow();
+        return assertInstanceOf(Color.class, metadata.getStyleableProperty(commandTextField).getValue());
+    }
+
+    private static double contrastRatio(Color first, Color second) {
+        double firstLuminance = relativeLuminance(first);
+        double secondLuminance = relativeLuminance(second);
+        return (Math.max(firstLuminance, secondLuminance) + 0.05)
+                / (Math.min(firstLuminance, secondLuminance) + 0.05);
+    }
+
+    private static double relativeLuminance(Color color) {
+        return 0.2126 * linearChannel(color.getRed()) + 0.7152 * linearChannel(color.getGreen())
+                + 0.0722 * linearChannel(color.getBlue());
+    }
+
+    private static double linearChannel(double channel) {
+        return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
     }
 
     private static void pressKey(Control control, KeyCode keyCode) {
