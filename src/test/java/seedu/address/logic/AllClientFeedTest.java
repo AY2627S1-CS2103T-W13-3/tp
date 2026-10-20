@@ -233,12 +233,12 @@ public class AllClientFeedTest {
         assertFalse(model.hasUnsavedChanges());
     }
 
-    private StorageManager storage(boolean failSave) {
+    private StorageManager storage(boolean shouldFailSave) {
         return new StorageManager(new JsonAddressBookStorage(testFolder.resolve("clients.json")),
                 new JsonUserPrefsStorage(testFolder.resolve("prefs.json"))) {
             @Override
             public void saveAddressBook(ReadOnlyAddressBook book) throws IOException {
-                if (failSave) {
+                if (shouldFailSave) {
                     throw new IOException("Simulated save failure");
                 }
                 super.saveAddressBook(book);
