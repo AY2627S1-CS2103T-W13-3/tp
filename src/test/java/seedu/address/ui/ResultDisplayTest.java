@@ -1,8 +1,10 @@
 package seedu.address.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.concurrent.FutureTask;
@@ -13,9 +15,12 @@ import org.junit.jupiter.api.Test;
 
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
@@ -144,6 +149,79 @@ public class ResultDisplayTest {
             assertEquals(normalBorder, display.getRoot().getBorder().getStrokes().get(0).getTopStroke());
             assertEquals(otherText, getTextFill(otherFeedback));
         });
+    }
+
+    @Test
+    public void layout_normalAndErrorFeedback_keepsPreferredHeightCompact() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            display.setFeedbackToUser("Ready");
+            layoutDisplay(display);
+            assertTrue(display.getRoot().prefHeight(240) <= 80);
+            assertTrue(display.getRoot().getHeight() < 100);
+
+            display.setErrorFeedbackToUser("Please retry.");
+            display.getRoot().getParent().layout();
+            assertTrue(display.getRoot().prefHeight(240) <= 96);
+            assertTrue(display.getRoot().getHeight() < 100);
+        });
+    }
+
+    @Test
+    public void setFeedbackToUser_longUnbrokenMessage_wrapsAndKeepsAllTextSelectable() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            String message = "LongFeedback".repeat(100);
+            display.setFeedbackToUser(message);
+            assertCompleteMessageAccessible(display, message, false);
+        });
+    }
+
+    @Test
+    public void setErrorFeedbackToUser_multilineMessage_scrollsAndKeepsAllTextSelectable() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            String message = "Invalid command.\nPlease check the supplied fields.\n".repeat(30)
+                    + "Unable to save changes. Please retry.";
+            display.setErrorFeedbackToUser(message);
+            assertCompleteMessageAccessible(display, message, true);
+        });
+    }
+
+    private static void assertCompleteMessageAccessible(ResultDisplay display, String message, boolean isError) {
+        layoutDisplay(display);
+        TextArea feedback = (TextArea) display.getRoot().lookup("#resultDisplay");
+        assertFeedback(display, message, isError);
+        assertTrue(feedback.isWrapText());
+        assertFalse(feedback.isEditable());
+        assertFalse(feedback.isDisabled());
+        assertTrue(feedback.isFocusTraversable());
+        feedback.selectAll();
+        assertEquals(message, feedback.getSelectedText());
+
+        ScrollBar vertical = getScrollBar(feedback, Orientation.VERTICAL);
+        ScrollBar horizontal = getScrollBar(feedback, Orientation.HORIZONTAL);
+        assertTrue(vertical.isVisible());
+        assertTrue(vertical.getMax() > vertical.getMin());
+        assertFalse(horizontal.isVisible());
+        vertical.setValue(vertical.getMax());
+        assertTrue(feedback.getScrollTop() > 0);
+    }
+
+    private static ScrollBar getScrollBar(TextArea feedback, Orientation orientation) {
+        return feedback.lookupAll(".scroll-bar").stream()
+                .map(node -> (ScrollBar) node)
+                .filter(scrollBar -> scrollBar.getOrientation() == orientation)
+                .findFirst().orElseThrow();
+    }
+
+    private static void layoutDisplay(ResultDisplay display) {
+        StackPane host = new StackPane(display.getRoot());
+        Scene scene = new Scene(host, 240, 100);
+        scene.getStylesheets().add(ResultDisplayTest.class.getResource("/view/DarkTheme.css").toExternalForm());
+        scene.getStylesheets().add(ResultDisplayTest.class.getResource("/view/Extensions.css").toExternalForm());
+        host.applyCss();
+        host.layout();
     }
 
     private static void assertFeedback(ResultDisplay display, String expectedText, boolean isError) {
