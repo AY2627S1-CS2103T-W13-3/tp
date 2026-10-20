@@ -1,0 +1,30 @@
+.feedback-strip {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #64748b;
+    -fx-border-width: 1;
+}
+
+.feedback-strip #resultDisplay {
+    -fx-background-color: transparent;
+    -fx-text-fill: #1f2937;
+}
+
+.feedback-strip #resultDisplay .content,
+.feedback-strip #resultDisplay .viewport {
+    -fx-background-color: transparent;
+}
+
+.feedback-strip .feedback-status {
+    -fx-font-weight: bold;
+    -fx-text-fill: #7f1d1d;
+    -fx-opacity: 1;
+}
+
+.feedback-strip:error {
+    -fx-background-color: #fef2f2;
+    -fx-border-color: #991b1b;
+}
+
+.feedback-strip:error #resultDisplay {
+    -fx-text-fill: #7f1d1d;
+}

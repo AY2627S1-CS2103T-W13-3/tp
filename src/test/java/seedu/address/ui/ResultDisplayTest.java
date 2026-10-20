@@ -1,9 +1,10 @@
 package seedu.address.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
@@ -12,7 +13,12 @@ import org.junit.jupiter.api.Test;
 
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Paint;
+import javafx.scene.text.Text;
 
 public class ResultDisplayTest {
 
@@ -30,7 +36,7 @@ public class ResultDisplayTest {
     public void constructor_initialState_isNormal() throws Exception {
         runOnFxThread(() -> {
             ResultDisplay display = new ResultDisplay();
-            assertFalse(display.getRoot().getPseudoClassStates().contains(PseudoClass.getPseudoClass("error")));
+            assertFeedback(display, "", false);
         });
     }
 
@@ -92,10 +98,68 @@ public class ResultDisplayTest {
         });
     }
 
+    @Test
+    public void setErrorFeedbackToUser_repeatedUpdates_showsOneErrorLabelWithoutChangingMessage() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            List<String> initialStyles = List.copyOf(display.getRoot().getStyleClass());
+            for (int i = 0; i < 3; i++) {
+                String message = "Save failed.\nPlease retry: " + i;
+                display.setErrorFeedbackToUser(message);
+                assertFeedback(display, message, true);
+            }
+            assertEquals(1, display.getRoot().lookupAll("#feedbackStatus").size());
+            assertEquals(initialStyles, display.getRoot().getStyleClass());
+        });
+    }
+
+    @Test
+    public void setFeedbackToUser_afterError_restoresNormalStylesWithoutAffectingOtherControls() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            TextArea feedback = (TextArea) display.getRoot().lookup("#resultDisplay");
+            TextArea otherFeedback = new TextArea("Unrelated feedback");
+            otherFeedback.getStyleClass().add("result-display");
+            VBox host = new VBox(display.getRoot(), otherFeedback);
+            Scene scene = new Scene(host);
+            scene.getStylesheets().add(getClass().getResource("/view/DarkTheme.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource("/view/Extensions.css").toExternalForm());
+            display.setFeedbackToUser("Ready");
+            host.applyCss();
+            Paint normalText = getTextFill(feedback);
+            Paint normalBorder = display.getRoot().getBorder().getStrokes().get(0).getTopStroke();
+            Paint otherText = getTextFill(otherFeedback);
+
+            display.setErrorFeedbackToUser("Please retry.");
+            host.applyCss();
+            assertFeedback(display, "Please retry.", true);
+            assertNotEquals(normalText, getTextFill(feedback));
+            assertNotEquals(normalBorder, display.getRoot().getBorder().getStrokes().get(0).getTopStroke());
+            assertEquals(otherText, getTextFill(otherFeedback));
+
+            display.setFeedbackToUser("Recovered");
+            host.applyCss();
+            assertFeedback(display, "Recovered", false);
+            assertEquals(normalText, getTextFill(feedback));
+            assertEquals(normalBorder, display.getRoot().getBorder().getStrokes().get(0).getTopStroke());
+            assertEquals(otherText, getTextFill(otherFeedback));
+        });
+    }
+
     private static void assertFeedback(ResultDisplay display, String expectedText, boolean isError) {
         TextArea feedback = (TextArea) display.getRoot().lookup("#resultDisplay");
         assertEquals(expectedText, feedback.getText());
         assertEquals(isError, display.getRoot().getPseudoClassStates().contains(PseudoClass.getPseudoClass("error")));
+        Label status = (Label) display.getRoot().lookup("#feedbackStatus");
+        assertEquals(isError, status.isVisible());
+        assertEquals(isError, status.isManaged());
+        if (isError) {
+            assertEquals("Error", status.getText());
+        }
+    }
+
+    private static Paint getTextFill(TextArea feedback) {
+        return ((Text) feedback.lookup(".text")).getFill();
     }
 
     private static void runOnFxThread(Runnable action) throws Exception {

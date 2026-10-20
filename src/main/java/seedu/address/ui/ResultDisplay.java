@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.Region;
 
@@ -17,6 +18,9 @@ public class ResultDisplay extends UiPart<Region> {
 
     @FXML
     private TextArea resultDisplay;
+
+    @FXML
+    private Label feedbackStatus;
 
     public ResultDisplay() {
         super(FXML);
@@ -43,6 +47,8 @@ public class ResultDisplay extends UiPart<Region> {
     private void setFeedback(String feedbackToUser, boolean isError) {
         requireNonNull(feedbackToUser);
         resultDisplay.setText(feedbackToUser);
+        feedbackStatus.setVisible(isError);
+        feedbackStatus.setManaged(isError);
         getRoot().pseudoClassStateChanged(ERROR_PSEUDO_CLASS, isError);
     }
 
