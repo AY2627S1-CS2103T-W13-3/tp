@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Rectangle2D;
@@ -141,9 +142,7 @@ public class MainWindow extends UiPart<Stage> {
      * Fills up all the placeholders of this window.
      */
     void fillInnerParts() {
-        clientListTitle.textProperty().bind(Bindings.when(logic.showingFollowUpsProperty())
-                .then("Pending clients").otherwise("Clients"));
-        clientCount.textProperty().bind(Bindings.size(logic.getFilteredPersonList()).asString("%d shown"));
+        bindClientListLabels(logic, clientListTitle.textProperty(), clientCount.textProperty());
 
         personListPanel = new PersonListPanel(logic.getFilteredPersonList(), logic.todayProperty(),
                 logic.showingFollowUpsProperty(), logic.selectedPersonProperty());
@@ -167,6 +166,15 @@ public class MainWindow extends UiPart<Stage> {
 
         CommandBox commandBox = new CommandBox(this::executeCommand);
         commandBoxPlaceholder.getChildren().add(commandBox.getRoot());
+    }
+
+    /** Binds the list heading to the active view and its displayed rows. */
+    static void bindClientListLabels(Logic logic, StringProperty title, StringProperty count) {
+        requireNonNull(logic);
+        requireNonNull(title);
+        requireNonNull(count);
+        title.bind(Bindings.when(logic.showingFollowUpsProperty()).then("Pending clients").otherwise("Clients"));
+        count.bind(Bindings.size(logic.getFilteredPersonList()).asString("%d shown"));
     }
 
     /**
