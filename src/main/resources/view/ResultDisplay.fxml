@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.net.URL?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.VBox?>
@@ -8,9 +7,6 @@
 <VBox fx:id="placeHolder" styleClass="feedback-strip" minWidth="0" maxHeight="-Infinity"
     xmlns="http://javafx.com/javafx/17"
     xmlns:fx="http://javafx.com/fxml/1">
-  <stylesheets>
-    <URL value="@ResultDisplay.css" />
-  </stylesheets>
   <Label fx:id="feedbackStatus" text="Error" styleClass="feedback-status" visible="false" managed="false" />
   <TextArea fx:id="resultDisplay" editable="false" wrapText="true" prefRowCount="2"
       minWidth="0" minHeight="0" styleClass="result-display" VBox.vgrow="ALWAYS" />

@@ -3,9 +3,18 @@ package seedu.address.ui;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +29,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Paint;
@@ -42,6 +52,37 @@ public class ResultDisplayTest {
         runOnFxThread(() -> {
             ResultDisplay display = new ResultDisplay();
             assertFeedback(display, "", false);
+        });
+    }
+
+    @Test
+    public void constructor_missingResource_throwsClearException() throws Exception {
+        runOnFxThread(() -> {
+            IllegalStateException missingFxml = assertThrows(
+                    IllegalStateException.class, () -> new ResultDisplay(null, getStylesheet()));
+            assertTrue(missingFxml.getMessage().contains("ResultDisplay.fxml"));
+
+            URL fxml = ResultDisplay.class.getResource("/view/ResultDisplay.fxml");
+            IllegalStateException missingCss = assertThrows(
+                    IllegalStateException.class, () -> new ResultDisplay(fxml, null));
+            assertTrue(missingCss.getMessage().contains("ResultDisplay.css"));
+        });
+    }
+
+    @Test
+    public void constructor_missingInjectedControl_throwsClearException() throws Exception {
+        runOnFxThread(() -> {
+            String header = "<?import javafx.scene.layout.VBox?>\n"
+                    + "<?import javafx.scene.control.TextArea?>\n"
+                    + "<?import javafx.scene.control.Label?>\n"
+                    + "<VBox xmlns:fx=\"http://javafx.com/fxml/1\">";
+            for (String control : List.of("<TextArea fx:id=\"resultDisplay\"/>",
+                    "<Label fx:id=\"feedbackStatus\"/>")) {
+                URL incompleteFxml = createFxmlResource(header + control + "</VBox>");
+                IllegalStateException exception = assertThrows(
+                        IllegalStateException.class, () -> new ResultDisplay(incompleteFxml, getStylesheet()));
+                assertTrue(exception.getMessage().contains("ResultDisplay.fxml"));
+            }
         });
     }
 
@@ -96,10 +137,63 @@ public class ResultDisplayTest {
             display.setFeedbackToUser("Ready");
             assertThrows(NullPointerException.class, () -> display.setErrorFeedbackToUser(null));
             assertFeedback(display, "Ready", false);
+            assertThrows(NullPointerException.class, () -> display.setFeedbackToUser(null));
+            assertFeedback(display, "Ready", false);
 
             display.setErrorFeedbackToUser("Please retry.");
             assertThrows(NullPointerException.class, () -> display.setFeedbackToUser(null));
             assertFeedback(display, "Please retry.", true);
+            assertThrows(NullPointerException.class, () -> display.setErrorFeedbackToUser(null));
+            assertFeedback(display, "Please retry.", true);
+        });
+    }
+
+    @Test
+    public void setErrorFeedbackToUser_emptyMessage_keepsExplicitErrorIdentification() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            display.setErrorFeedbackToUser("");
+            assertFeedback(display, "", true);
+        });
+    }
+
+    @Test
+    public void setFeedback_repeatedUpdates_preservesCommandFocusAndInput() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            TextField command = new TextField("list");
+            Scene scene = new Scene(new VBox(command, display.getRoot()));
+            command.requestFocus();
+            command.positionCaret(2);
+            assertSame(command, scene.getFocusOwner());
+
+            for (int i = 0; i < 3; i++) {
+                display.setErrorFeedbackToUser("Please retry.");
+                assertSame(command, scene.getFocusOwner());
+                display.setFeedbackToUser("Ready");
+                assertSame(command, scene.getFocusOwner());
+                assertEquals("list", command.getText());
+                assertEquals(2, command.getCaretPosition());
+            }
+        });
+    }
+
+    @Test
+    public void setFeedbackToUser_afterScrolledError_clearsOldSelectionAndScrollPosition() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            String message = "Unable to save changes.\nPlease retry.\n".repeat(30);
+            display.setErrorFeedbackToUser(message);
+            assertCompleteMessageAccessible(display, message, true);
+            TextArea feedback = (TextArea) display.getRoot().lookup("#resultDisplay");
+            assertFalse(feedback.getSelectedText().isEmpty());
+
+            display.setFeedbackToUser("Recovered");
+            display.getRoot().getParent().layout();
+            assertFeedback(display, "Recovered", false);
+            assertEquals("", feedback.getSelectedText());
+            assertEquals(0, feedback.getCaretPosition());
+            assertEquals(0, feedback.getScrollTop());
         });
     }
 
@@ -238,6 +332,33 @@ public class ResultDisplayTest {
 
     private static Paint getTextFill(TextArea feedback) {
         return ((Text) feedback.lookup(".text")).getFill();
+    }
+
+    private static URL getStylesheet() {
+        return ResultDisplay.class.getResource("/view/ResultDisplay.css");
+    }
+
+    private static URL createFxmlResource(String fxml) {
+        try {
+            return URL.of(URI.create("memory:ResultDisplay.fxml"), new URLStreamHandler() {
+                @Override
+                protected URLConnection openConnection(URL url) {
+                    return new URLConnection(url) {
+                        @Override
+                        public void connect() {
+                            // The fixture is already available in memory.
+                        }
+
+                        @Override
+                        public InputStream getInputStream() {
+                            return new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8));
+                        }
+                    };
+                }
+            });
+        } catch (MalformedURLException exception) {
+            throw new AssertionError("Invalid in-memory FXML fixture URL", exception);
+        }
     }
 
     private static void runOnFxThread(Runnable action) throws Exception {
