@@ -5,20 +5,6 @@
     -fx-padding: 8;
 }
 
-.client-table-panel .client-table-title {
-    -fx-font-family: "Segoe UI Semibold";
-    -fx-font-size: 15px;
-    -fx-text-fill: #1f2933;
-    -fx-opacity: 1;
-}
-
-.client-table-panel .client-table-note {
-    -fx-font-family: "Segoe UI";
-    -fx-font-size: 12px;
-    -fx-text-fill: #5b6470;
-    -fx-opacity: 1;
-}
-
 .client-table-panel .table-view.client-table {
     -fx-base: #ffffff;
     -fx-control-inner-background: #ffffff;

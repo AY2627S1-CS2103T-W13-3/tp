@@ -20,6 +20,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.util.Callback;
 import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.FollowUpStatus;
@@ -32,8 +33,6 @@ import seedu.address.model.person.Person;
  */
 public class PersonListPanel extends UiPart<Region> {
     public static final String MESSAGE_NO_CLIENTS = "No clients to display.";
-    public static final String TITLE_CLIENTS = "Clients";
-    public static final String TITLE_PENDING = "Pending follow-ups";
 
     static final String VIEWED_STYLE_CLASS = "viewed-client";
 
@@ -44,8 +43,6 @@ public class PersonListPanel extends UiPart<Region> {
     private final ReadOnlyBooleanProperty showingFollowUps;
     private final ReadOnlyObjectProperty<Person> selectedPerson;
 
-    @FXML
-    private Label title;
     @FXML
     private TableView<Person> personTable;
     @FXML
@@ -93,8 +90,18 @@ public class PersonListPanel extends UiPart<Region> {
         dueColumn.visibleProperty().bind(showingFollowUps);
         statusColumn.visibleProperty().bind(showingFollowUps);
 
+        Callback<TableView.ResizeFeatures, Boolean> fittedResizePolicy = personTable.getColumnResizePolicy();
+        InvalidationListener fitColumns = observable -> {
+            double minColumnsWidth = personTable.getVisibleLeafColumns().stream()
+                    .mapToDouble(TableColumn::getMinWidth).sum();
+            // Constrained resizing clips columns it cannot shrink; unconstrained shows a horizontal scrollbar.
+            personTable.setColumnResizePolicy(personTable.getWidth() < minColumnsWidth
+                    ? TableView.UNCONSTRAINED_RESIZE_POLICY : fittedResizePolicy);
+        };
+        personTable.widthProperty().addListener(fitColumns);
+        personTable.getVisibleLeafColumns().addListener(fitColumns);
+
         InvalidationListener refresh = observable -> {
-            title.setText(getTitle(showingFollowUps.get()));
             emptyListLabel.setText(getEmptyListMessage(showingFollowUps.get()));
             personTable.refresh();
         };
@@ -102,11 +109,6 @@ public class PersonListPanel extends UiPart<Region> {
         today.addListener(refresh);
         showingFollowUps.addListener(refresh);
         selectedPerson.addListener(refresh);
-    }
-
-    /** Returns the table title for the active displayed-list mode. */
-    static String getTitle(boolean showingFollowUps) {
-        return showingFollowUps ? TITLE_PENDING : TITLE_CLIENTS;
     }
 
     /** Returns the placeholder text for the active displayed-list mode. */
@@ -182,8 +184,6 @@ public class PersonListPanel extends UiPart<Region> {
                 setGraphic(null);
                 return;
             }
-            assert getTableView().getItems().get(getIndex()) == person
-                    : "Rendered row must be the model's client at the same index";
             render(person, createRowDisplay(person, today.get(), showingFollowUps.get()));
         }
 

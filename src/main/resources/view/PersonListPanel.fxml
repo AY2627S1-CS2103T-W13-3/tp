@@ -1,18 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import java.net.URL?>
-<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox styleClass="client-table-panel" spacing="4" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+<VBox styleClass="client-table-panel" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
   <stylesheets>
     <URL value="@ClientTable.css" />
   </stylesheets>
-  <Label fx:id="title" styleClass="client-table-title" />
-  <Label styleClass="client-table-note" wrapText="true"
-         text="Use the # number with view, delete and followup." />
   <!-- Columns are unsortable: a visual reorder would make # disagree with command indices. -->
   <TableView fx:id="personTable" styleClass="client-table" VBox.vgrow="ALWAYS">
     <columnResizePolicy>

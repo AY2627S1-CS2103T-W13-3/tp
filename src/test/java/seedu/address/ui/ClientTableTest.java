@@ -27,12 +27,6 @@ public class ClientTableTest {
     }
 
     @Test
-    public void getTitle_mode_distinguishesClientsFromPending() {
-        assertEquals("Clients", PersonListPanel.getTitle(false));
-        assertEquals("Pending follow-ups", PersonListPanel.getTitle(true));
-    }
-
-    @Test
     public void fxml_everyColumn_isUnsortable() throws IOException {
         String fxml;
         try (InputStream in = PersonListPanel.class.getResourceAsStream("/view/PersonListPanel.fxml")) {
