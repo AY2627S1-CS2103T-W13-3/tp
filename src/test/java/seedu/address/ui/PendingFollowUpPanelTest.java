@@ -18,8 +18,11 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -232,6 +235,53 @@ public class PendingFollowUpPanelTest {
             selected.set(replacement);
             assertTrue(originalCard.getStyleClass().contains("pending-card-viewing"));
         });
+    }
+
+    @Test
+    public void panelUi_disposedDuringNotification_ignoresCapturedCallbacks() throws InterruptedException {
+        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+        runOnFxThread(() -> {
+            for (DisposalSource source : DisposalSource.values()) {
+                Person person = person("Client", TODAY, "Call client");
+                ObservableList<Person> pending = FXCollections.observableArrayList(person);
+                SimpleObjectProperty<LocalDate> today = new SimpleObjectProperty<>(TODAY);
+                SimpleObjectProperty<Person> selected = new SimpleObjectProperty<>(person);
+                AtomicReference<PendingFollowUpPanel> panelReference = new AtomicReference<>();
+                Runnable trigger = switch (source) {
+                    case LIST -> {
+                        pending.addListener((ListChangeListener<Person>) change -> panelReference.get().dispose());
+                        yield () -> pending.add(person("Second Client", TODAY, "Second action"));
+                    }
+                    case DATE -> {
+                        today.addListener((ChangeListener<LocalDate>) (observable, oldDate, newDate) ->
+                                panelReference.get().dispose());
+                        yield () -> today.set(TODAY.plusDays(1));
+                    }
+                    case SELECTION -> {
+                        selected.addListener((InvalidationListener) observable -> panelReference.get().dispose());
+                        yield () -> selected.set(null);
+                    }
+                };
+                PendingFollowUpPanel panel = new PendingFollowUpPanel(pending, today, selected);
+                panelReference.set(panel);
+                VBox dueCards = (VBox) findById(panel.getRoot(), "dueTodayCards");
+                Node originalCard = dueCards.getChildren().getFirst();
+
+                trigger.run();
+
+                assertEquals(1, dueCards.getChildren().size(), source.toString());
+                assertSame(originalCard, dueCards.getChildren().getFirst(), source.toString());
+                assertTrue(originalCard.getStyleClass().contains("pending-card-viewing"));
+                pending.clear();
+                today.set(TODAY.plusDays(2));
+                selected.set(null);
+                assertSame(originalCard, dueCards.getChildren().getFirst(), source.toString());
+            }
+        });
+    }
+
+    private enum DisposalSource {
+        LIST, DATE, SELECTION
     }
 
     private Person person(String name, LocalDate date, String action) {

@@ -37,6 +37,7 @@ public class PendingFollowUpPanel extends UiPart<Region> {
     private final InvalidationListener selectionListener;
     private final Map<Person, CardNodes> renderedCards = new IdentityHashMap<>();
     private Person renderedSelection;
+    private boolean disposed;
 
     @FXML
     private Label emptyMessage;
@@ -68,11 +69,14 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         // Validate and render before registering listeners, so bad initial data
         // cannot leave a partially constructed panel subscribed to the feed.
         render(pendingPersons, today.get(), selectedPerson.get());
-        pendingListener = change -> render(this.pendingPersons, this.today.get(), this.selectedPerson.get());
-        dateListener = (observable, oldDate, newDate) ->
-                render(this.pendingPersons, newDate, this.selectedPerson.get());
+        pendingListener = change -> refresh();
+        dateListener = (observable, oldDate, newDate) -> refresh();
         // ChangeListener suppresses equal-valued replacements, but our marker follows identity.
-        selectionListener = observable -> updateSelection(this.selectedPerson.get());
+        selectionListener = observable -> {
+            if (!disposed) {
+                updateSelection(this.selectedPerson.get());
+            }
+        };
         pendingPersons.addListener(pendingListener);
         today.addListener(dateListener);
         selectedPerson.addListener(selectionListener);
@@ -80,11 +84,22 @@ public class PendingFollowUpPanel extends UiPart<Region> {
 
     /** Stops observing external state when the dashboard removes this panel. */
     public void dispose() {
+        if (disposed) {
+            return;
+        }
+        // A notification already in progress may still invoke a removed listener.
+        disposed = true;
         pendingPersons.removeListener(pendingListener);
         today.removeListener(dateListener);
         selectedPerson.removeListener(selectionListener);
         renderedCards.clear();
         renderedSelection = null;
+    }
+
+    private void refresh() {
+        if (!disposed) {
+            render(pendingPersons, today.get(), selectedPerson.get());
+        }
     }
 
     private void render(List<Person> pendingPersons, LocalDate today, Person selectedPerson) {
