@@ -27,14 +27,14 @@ IntelliJ can run a class, package or `src/test/java` through its JUnit runner. E
 
 Gradle explicitly enables assertions for `Test` and `JavaExec` tasks, including `test`, `run` and `runShadow`. An assertion failure signals an internal invariant violation; investigate it rather than disabling assertions to make a check pass. Assertions must have no side effects and must not be the only validation for user input, external files or recoverable errors.
 
-For a direct IntelliJ application launch, enable `-ea` in its VM options as described in [Setting up](SettingUp.md#setting-up-the-project-on-your-computer). For a packaged build, run each command below separately, closing the application between runs:
+For a direct IntelliJ application launch, enable `-ea` in its VM options as described in [Setting up](SettingUp.md#setting-up-the-project-on-your-computer). Build the packaged application with `./gradlew shadowJar`. From the project root, run each command below separately, closing the application between runs:
 
 ```bash
-java -ea -jar PolicyHarbor.jar
-java -jar PolicyHarbor.jar
+java -ea -jar build/libs/PolicyHarbor.jar
+java -jar build/libs/PolicyHarbor.jar
 ```
 
-Use a fresh writable folder with fictional data. Both modes must preserve normal validation and save/load protection. The Gradle daemon's JVM arguments or a task dry run alone do not prove assertions are active in the application JVM.
+For isolated manual checks, use a fresh writable folder with fictional data and specify the absolute path to the built JAR. If you copy the JAR into that folder, use `PolicyHarbor.jar` as the path instead. Both modes must preserve normal validation and save/load protection. The Gradle daemon's JVM arguments or a task dry run alone do not prove assertions are active in the application JVM.
 
 ## Test responsibilities
 
