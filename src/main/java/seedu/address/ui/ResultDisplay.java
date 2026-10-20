@@ -2,6 +2,7 @@ package seedu.address.ui;
 
 import static java.util.Objects.requireNonNull;
 
+import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.Region;
@@ -12,6 +13,7 @@ import javafx.scene.layout.Region;
 public class ResultDisplay extends UiPart<Region> {
 
     private static final String FXML = "ResultDisplay.fxml";
+    private static final PseudoClass ERROR_PSEUDO_CLASS = PseudoClass.getPseudoClass("error");
 
     @FXML
     private TextArea resultDisplay;
@@ -20,9 +22,28 @@ public class ResultDisplay extends UiPart<Region> {
         super(FXML);
     }
 
+    /**
+     * Displays normal feedback, clearing any previous error state.
+     *
+     * @throws NullPointerException If {@code feedbackToUser} is null.
+     */
     public void setFeedbackToUser(String feedbackToUser) {
+        setFeedback(feedbackToUser, false);
+    }
+
+    /**
+     * Displays feedback in the error state without inferring its state from the text.
+     *
+     * @throws NullPointerException If {@code feedbackToUser} is null.
+     */
+    public void setErrorFeedbackToUser(String feedbackToUser) {
+        setFeedback(feedbackToUser, true);
+    }
+
+    private void setFeedback(String feedbackToUser, boolean isError) {
         requireNonNull(feedbackToUser);
         resultDisplay.setText(feedbackToUser);
+        getRoot().pseudoClassStateChanged(ERROR_PSEUDO_CLASS, isError);
     }
 
 }
