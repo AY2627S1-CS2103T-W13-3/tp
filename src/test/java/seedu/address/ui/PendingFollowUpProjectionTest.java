@@ -1,6 +1,7 @@
 package seedu.address.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
+import javafx.collections.ModifiableObservableListBase;
 import javafx.collections.ObservableList;
 import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
@@ -168,9 +170,95 @@ public class PendingFollowUpProjectionTest {
         }
     }
 
+    @Test
+    public void close_isIdempotentAndStopsUpdatesWhileOtherProjectionRemainsLive() {
+        TrackingPersonList source = new TrackingPersonList();
+        Person first = person("111", TODAY);
+        source.add(first);
+        PendingFollowUpProjection closed = new PendingFollowUpProjection(source);
+        ObservableList<Person> snapshot = closed.getPendingPersons();
+        List<List<Person>> publications = new ArrayList<>();
+        snapshot.addListener((ListChangeListener<Person>) change -> publications.add(List.copyOf(snapshot)));
+        try (PendingFollowUpProjection active = new PendingFollowUpProjection(source)) {
+            assertTrue(source.hasActiveListeners());
+            closed.close();
+            closed.close();
+            assertTrue(source.hasActiveListeners());
+            Person second = person("222", TODAY.minusDays(1));
+            source.setAll(second);
+
+            assertEquals(List.of(first), snapshot);
+            assertSame(snapshot, closed.getPendingPersons());
+            assertTrue(publications.isEmpty());
+            assertEquals(List.of(second), active.getPendingPersons());
+            assertSame(second, active.getPendingPersons().getFirst());
+            assertEquals(List.of(second), source);
+        } finally {
+            closed.close();
+        }
+        assertFalse(source.hasActiveListeners());
+        assertThrows(UnsupportedOperationException.class, snapshot::clear);
+    }
+
+    @Test
+    public void repeatedConstructionAndDisposal_leaveNoSourceListeners() {
+        TrackingPersonList source = new TrackingPersonList();
+        source.add(person("111", TODAY));
+        for (int i = 0; i < 5; i++) {
+            assertFalse(source.hasActiveListeners());
+            try (PendingFollowUpProjection projection = new PendingFollowUpProjection(source)) {
+                assertTrue(source.hasActiveListeners());
+                assertSame(source.getFirst(), projection.getPendingPersons().getFirst());
+            }
+            assertFalse(source.hasActiveListeners());
+        }
+    }
+
+    @Test
+    public void constructor_invalidInitialRecord_doesNotAttachListener() {
+        TrackingPersonList source = new TrackingPersonList();
+        source.add(null);
+        assertThrows(NullPointerException.class, () -> new PendingFollowUpProjection(source));
+        assertFalse(source.hasActiveListeners());
+    }
+
     private static Person person(String phone, LocalDate date) {
         return new PersonBuilder().withName("Rachel Lim").withPhone(phone)
                 .withEmail("client" + phone + "@example.com")
                 .withFollowUp(new FollowUp(date, "Call client " + phone)).build();
+    }
+
+    /** Exposes JavaFX's actual listener-presence check without reflection or garbage-collection tests. */
+    private static class TrackingPersonList extends ModifiableObservableListBase<Person> {
+        private final List<Person> persons = new ArrayList<>();
+
+        boolean hasActiveListeners() {
+            return hasListeners();
+        }
+
+        @Override
+        public Person get(int index) {
+            return persons.get(index);
+        }
+
+        @Override
+        public int size() {
+            return persons.size();
+        }
+
+        @Override
+        protected void doAdd(int index, Person person) {
+            persons.add(index, person);
+        }
+
+        @Override
+        protected Person doSet(int index, Person person) {
+            return persons.set(index, person);
+        }
+
+        @Override
+        protected Person doRemove(int index) {
+            return persons.remove(index);
+        }
     }
 }
