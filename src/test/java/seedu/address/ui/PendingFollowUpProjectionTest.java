@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 
@@ -211,6 +212,33 @@ public class PendingFollowUpProjectionTest {
                 assertSame(source.getFirst(), projection.getPendingPersons().getFirst());
             }
             assertFalse(source.hasActiveListeners());
+        }
+    }
+
+    @Test
+    public void closeDuringSourceNotification_queuedCallbackDoesNotRebuildClosedProjection() {
+        Person original = person("111", TODAY);
+        ObservableList<Person> source = FXCollections.observableArrayList(original);
+        AtomicReference<PendingFollowUpProjection> owner = new AtomicReference<>();
+        // Register first so close occurs before the projection's callback in the same notification.
+        ListChangeListener<Person> closer = change -> owner.get().close();
+        source.addListener(closer);
+        try (PendingFollowUpProjection projection = new PendingFollowUpProjection(source)) {
+            owner.set(projection);
+            ObservableList<Person> snapshot = projection.getPendingPersons();
+            List<List<Person>> publications = new ArrayList<>();
+            snapshot.addListener((ListChangeListener<Person>) change -> publications.add(List.copyOf(snapshot)));
+
+            Person replacement = person("222", TODAY.minusDays(1));
+            source.setAll(replacement);
+
+            assertEquals(List.of(replacement), source);
+            assertEquals(List.of(original), snapshot);
+            assertSame(original, snapshot.getFirst());
+            assertSame(snapshot, projection.getPendingPersons());
+            assertTrue(publications.isEmpty());
+        } finally {
+            source.removeListener(closer);
         }
     }
 

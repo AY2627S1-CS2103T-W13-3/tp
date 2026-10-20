@@ -55,6 +55,10 @@ public final class PendingFollowUpProjection implements AutoCloseable {
     }
 
     private void rebuild() {
+        // JavaFX may already have queued this callback when another source listener closes us.
+        if (isClosed) {
+            return;
+        }
         List<Person> pending = new ArrayList<>();
         for (Person person : allPersons) {
             requireNonNull(person, "The full client feed must not contain null records.");
