@@ -4,9 +4,12 @@ import static java.util.Objects.requireNonNull;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -24,6 +27,14 @@ import seedu.address.model.person.Person;
 public class PendingFollowUpPanel extends UiPart<Region> {
 
     private static final String FXML = "PendingFollowUpPanel.fxml";
+
+    private final ObservableList<Person> pendingPersons;
+    private final ReadOnlyObjectProperty<LocalDate> today;
+    private final ReadOnlyObjectProperty<Person> selectedPerson;
+    private final ListChangeListener<Person> pendingListener;
+    private final ChangeListener<LocalDate> dateListener;
+    private final ChangeListener<Person> selectionListener;
+    private final Map<Person, CardNodes> renderedCards = new IdentityHashMap<>();
 
     @FXML
     private Label emptyMessage;
@@ -48,21 +59,33 @@ public class PendingFollowUpPanel extends UiPart<Region> {
             ReadOnlyObjectProperty<LocalDate> today,
             ReadOnlyObjectProperty<Person> selectedPerson) {
         super(FXML);
-        requireNonNull(pendingPersons);
-        requireNonNull(today);
-        requireNonNull(selectedPerson);
+        this.pendingPersons = requireNonNull(pendingPersons);
+        this.today = requireNonNull(today);
+        this.selectedPerson = requireNonNull(selectedPerson);
 
-        pendingPersons.addListener((ListChangeListener<Person>) change ->
-                render(pendingPersons, today.get(), selectedPerson.get()));
-        today.addListener((observable, oldDate, newDate) ->
-                render(pendingPersons, newDate, selectedPerson.get()));
-        selectedPerson.addListener((observable, oldPerson, newPerson) ->
-                render(pendingPersons, today.get(), newPerson));
+        // Validate and render before registering listeners, so bad initial data
+        // cannot leave a partially constructed panel subscribed to the feed.
         render(pendingPersons, today.get(), selectedPerson.get());
+        pendingListener = change -> render(this.pendingPersons, this.today.get(), this.selectedPerson.get());
+        dateListener = (observable, oldDate, newDate) ->
+                render(this.pendingPersons, newDate, this.selectedPerson.get());
+        selectionListener = (observable, oldPerson, newPerson) -> updateSelection(oldPerson, newPerson);
+        pendingPersons.addListener(pendingListener);
+        today.addListener(dateListener);
+        selectedPerson.addListener(selectionListener);
+    }
+
+    /** Stops observing external state when the dashboard removes this panel. */
+    public void dispose() {
+        pendingPersons.removeListener(pendingListener);
+        today.removeListener(dateListener);
+        selectedPerson.removeListener(selectionListener);
+        renderedCards.clear();
     }
 
     private void render(List<Person> pendingPersons, LocalDate today, Person selectedPerson) {
         PendingDisplay display = createDisplay(pendingPersons, today, selectedPerson);
+        renderedCards.clear();
         showGroup(overdueGroup, overdueCards, display.overdue());
         showGroup(dueTodayGroup, dueTodayCards, display.dueToday());
         showGroup(upcomingGroup, upcomingCards, display.upcoming());
@@ -103,7 +126,32 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         if (card.isViewing()) {
             container.getStyleClass().add("pending-card-viewing");
         }
+        renderedCards.put(card.person(), new CardNodes(container, viewing));
         return container;
+    }
+
+    private void updateSelection(Person oldPerson, Person newPerson) {
+        if (oldPerson == newPerson) {
+            return;
+        }
+        setViewing(oldPerson, false);
+        setViewing(newPerson, true);
+    }
+
+    private void setViewing(Person person, boolean isViewing) {
+        CardNodes nodes = renderedCards.get(person);
+        if (nodes == null) {
+            return;
+        }
+        nodes.viewing().setVisible(isViewing);
+        nodes.viewing().setManaged(isViewing);
+        if (isViewing) {
+            if (!nodes.container().getStyleClass().contains("pending-card-viewing")) {
+                nodes.container().getStyleClass().add("pending-card-viewing");
+            }
+        } else {
+            nodes.container().getStyleClass().remove("pending-card-viewing");
+        }
     }
 
     /** Builds complete visible values without sampling a clock or mutating the feed. */
@@ -119,7 +167,7 @@ public class PendingFollowUpPanel extends UiPart<Region> {
             FollowUp followUp = person.getFollowUp().orElseThrow(() ->
                     new IllegalArgumentException("Pending feed contains a client without a follow-up"));
             FollowUpStatus status = followUp.getStatus(today);
-            PendingCard card = new PendingCard(person.getName().fullName,
+            PendingCard card = new PendingCard(person, person.getName().fullName,
                     followUp.getDueDate().toString(), followUp.getDescription(), status.getDisplayName(),
                     statusStyleClass(status), person == selectedPerson);
             switch (status) {
@@ -148,7 +196,10 @@ public class PendingFollowUpPanel extends UiPart<Region> {
     }
 
     /** Full text and identity marker for one unnumbered card. */
-    record PendingCard(String name, String date, String action, String status,
+    record PendingCard(Person person, String name, String date, String action, String status,
                        String statusStyleClass, boolean isViewing) {
+    }
+
+    private record CardNodes(VBox container, Label viewing) {
     }
 }
