@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
 import seedu.address.logic.commands.CommandResult;
@@ -23,24 +24,28 @@ public class CommandBox extends UiPart<Region> {
     @FXML
     private TextField commandTextField;
 
+    @FXML
+    private Button runButton;
+
     /**
      * Creates a {@code CommandBox} with the given {@code CommandExecutor}.
      *
-     * @throws NullPointerException If the executor or FXML-injected command field is null.
+     * @throws NullPointerException If the executor or an FXML-injected control is null.
      */
     public CommandBox(CommandExecutor commandExecutor) {
         super(FXML);
         this.commandExecutor = requireNonNull(commandExecutor, "commandExecutor");
         requireNonNull(commandTextField, "commandTextField must be injected by CommandBox.fxml");
+        requireNonNull(runButton, "runButton must be injected by CommandBox.fxml");
         // calls #setStyleToDefault() whenever there is a change to the text of the command box.
         commandTextField.textProperty().addListener((unused1, unused2, unused3) -> setStyleToDefault());
     }
 
     /**
-     * Handles the Enter button pressed event.
+     * Submits the current command text when Enter or Run is activated.
      */
     @FXML
-    private void handleCommandEntered() {
+    private void handleCommandSubmitted() {
         String commandText = commandTextField.getText();
         try {
             executeCommand(commandExecutor, commandText);
