@@ -8,6 +8,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
@@ -33,8 +34,9 @@ public class PendingFollowUpPanel extends UiPart<Region> {
     private final ReadOnlyObjectProperty<Person> selectedPerson;
     private final ListChangeListener<Person> pendingListener;
     private final ChangeListener<LocalDate> dateListener;
-    private final ChangeListener<Person> selectionListener;
+    private final InvalidationListener selectionListener;
     private final Map<Person, CardNodes> renderedCards = new IdentityHashMap<>();
+    private Person renderedSelection;
 
     @FXML
     private Label emptyMessage;
@@ -69,7 +71,8 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         pendingListener = change -> render(this.pendingPersons, this.today.get(), this.selectedPerson.get());
         dateListener = (observable, oldDate, newDate) ->
                 render(this.pendingPersons, newDate, this.selectedPerson.get());
-        selectionListener = (observable, oldPerson, newPerson) -> updateSelection(oldPerson, newPerson);
+        // ChangeListener suppresses equal-valued replacements, but our marker follows identity.
+        selectionListener = observable -> updateSelection(this.selectedPerson.get());
         pendingPersons.addListener(pendingListener);
         today.addListener(dateListener);
         selectedPerson.addListener(selectionListener);
@@ -81,6 +84,7 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         today.removeListener(dateListener);
         selectedPerson.removeListener(selectionListener);
         renderedCards.clear();
+        renderedSelection = null;
     }
 
     private void render(List<Person> pendingPersons, LocalDate today, Person selectedPerson) {
@@ -91,6 +95,7 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         showGroup(upcomingGroup, upcomingCards, display.upcoming());
         emptyMessage.setVisible(display.isEmpty());
         emptyMessage.setManaged(display.isEmpty());
+        renderedSelection = selectedPerson;
     }
 
     private void showGroup(VBox group, VBox cards, List<PendingCard> cardDisplays) {
@@ -130,12 +135,13 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         return container;
     }
 
-    private void updateSelection(Person oldPerson, Person newPerson) {
-        if (oldPerson == newPerson) {
+    private void updateSelection(Person newPerson) {
+        if (renderedSelection == newPerson) {
             return;
         }
-        setViewing(oldPerson, false);
+        setViewing(renderedSelection, false);
         setViewing(newPerson, true);
+        renderedSelection = newPerson;
     }
 
     private void setViewing(Person person, boolean isViewing) {

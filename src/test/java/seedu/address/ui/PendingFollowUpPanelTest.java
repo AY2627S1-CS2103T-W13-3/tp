@@ -201,6 +201,39 @@ public class PendingFollowUpPanelTest {
         });
     }
 
+    @Test
+    public void panelUi_equalValueReplacement_followsSelectedIdentity() throws InterruptedException {
+        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+        runOnFxThread(() -> {
+            Person original = person("Client", TODAY, "Call client");
+            Person replacement = new PersonBuilder(original).build();
+            ObservableList<Person> pending = FXCollections.observableArrayList(original);
+            SimpleObjectProperty<Person> selected = new SimpleObjectProperty<>(original);
+            PendingFollowUpPanel panel = new PendingFollowUpPanel(pending,
+                    new SimpleObjectProperty<>(TODAY), selected);
+            VBox cards = (VBox) findById(panel.getRoot(), "dueTodayCards");
+
+            pending.set(0, replacement);
+            VBox card = (VBox) cards.getChildren().getFirst();
+            assertFalse(card.getStyleClass().contains("pending-card-viewing"));
+            selected.set(replacement);
+            assertSame(card, cards.getChildren().getFirst());
+            assertTrue(card.getStyleClass().contains("pending-card-viewing"));
+            assertTrue(((Label) card.getChildren().get(1)).isVisible());
+
+            // Selection may also be published before the corresponding feed replacement.
+            selected.set(original);
+            assertFalse(card.getStyleClass().contains("pending-card-viewing"));
+            pending.set(0, original);
+            VBox originalCard = (VBox) cards.getChildren().getFirst();
+            assertTrue(originalCard.getStyleClass().contains("pending-card-viewing"));
+
+            panel.dispose();
+            selected.set(replacement);
+            assertTrue(originalCard.getStyleClass().contains("pending-card-viewing"));
+        });
+    }
+
     private Person person(String name, LocalDate date, String action) {
         return new PersonBuilder().withName(name).withFollowUp(new FollowUp(date, action)).build();
     }
