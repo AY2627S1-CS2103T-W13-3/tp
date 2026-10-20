@@ -1,12 +1,17 @@
 package seedu.address.ui;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.logging.Logger;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 import seedu.address.commons.core.LogsCenter;
 
@@ -16,7 +21,8 @@ import seedu.address.commons.core.LogsCenter;
 public class HelpWindow extends UiPart<Stage> {
 
     public static final String USERGUIDE_URL = "https://ay2627s1-cs2103t-w13-3.github.io/tp/UserGuide.html";
-    public static final String HELP_MESSAGE = "Refer to the user guide: " + USERGUIDE_URL;
+    public static final String MESSAGE_COPIED = "Link copied.";
+    public static final String MESSAGE_COPY_FAILED = "Could not copy the link. Select it above and copy it instead.";
 
     private static final Logger logger = LogsCenter.getLogger(HelpWindow.class);
     private static final String FXML = "HelpWindow.fxml";
@@ -25,7 +31,10 @@ public class HelpWindow extends UiPart<Stage> {
     private Button copyButton;
 
     @FXML
-    private Label helpMessage;
+    private TextField userGuideUrl;
+
+    @FXML
+    private Label copyStatus;
 
     /**
      * Creates a new HelpWindow.
@@ -33,8 +42,14 @@ public class HelpWindow extends UiPart<Stage> {
      * @param root Stage to use as the root of the HelpWindow.
      */
     public HelpWindow(Stage root) {
-        super(FXML, root);
-        helpMessage.setText(HELP_MESSAGE);
+        super(FXML, requireNonNull(root));
+        userGuideUrl.setText(USERGUIDE_URL);
+        root.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                hide();
+                event.consume();
+            }
+        });
     }
 
     /**
@@ -64,8 +79,10 @@ public class HelpWindow extends UiPart<Stage> {
      */
     public void show() {
         logger.fine("Showing help page about the application.");
+        copyStatus.setText("");
         getRoot().show();
         getRoot().centerOnScreen();
+        copyButton.requestFocus();
     }
 
     /**
@@ -89,14 +106,23 @@ public class HelpWindow extends UiPart<Stage> {
         getRoot().requestFocus();
     }
 
+    /** Returns the feedback shown after a copy attempt. */
+    static String getCopyStatusMessage(boolean isCopied) {
+        return isCopied ? MESSAGE_COPIED : MESSAGE_COPY_FAILED;
+    }
+
     /**
-     * Copies the URL to the user guide to the clipboard.
+     * Copies the URL to the user guide to the clipboard and reports whether it worked.
      */
     @FXML
     private void copyUrl() {
         final Clipboard clipboard = Clipboard.getSystemClipboard();
         final ClipboardContent url = new ClipboardContent();
         url.putString(USERGUIDE_URL);
-        clipboard.setContent(url);
+        boolean isCopied = clipboard.setContent(url);
+        if (!isCopied) {
+            logger.warning("System clipboard rejected the user guide link.");
+        }
+        copyStatus.setText(getCopyStatusMessage(isCopied));
     }
 }

@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.net.URL?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 
-<GridPane styleClass="status-bar" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+<GridPane styleClass="status-bar, status-bar-footer" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+  <stylesheets>
+    <URL value="@StatusBarFooter.css" />
+  </stylesheets>
   <columnConstraints>
-    <ColumnConstraints hgrow="SOMETIMES" minWidth="10" />
+    <ColumnConstraints hgrow="ALWAYS" minWidth="0" />
   </columnConstraints>
-  <Label fx:id="saveLocationStatus" />
+  <!-- minWidth 0 and leading ellipsis: a long path never widens the window and keeps its file name visible. -->
+  <Label fx:id="saveLocationStatus" minWidth="0" maxWidth="Infinity" textOverrun="LEADING_ELLIPSIS" />
 </GridPane>
