@@ -19,6 +19,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
@@ -151,6 +152,9 @@ public class ClientProfilePanelTest {
             assertEquals("UPCOMING", status.getText());
             assertEquals(longAction, action.getText());
             assertTrue(action.isWrapText());
+            new Scene(panel.getRoot(), 240, 360);
+            panel.getRoot().applyCss();
+            assertTrue(action.prefHeight(160) > action.prefHeight(1000));
 
             selected.set(null);
             assertTrue(chips.getChildren().isEmpty());
