@@ -1,8 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.ListView?>
+<?import java.net.URL?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
-  <ListView fx:id="personListView" VBox.vgrow="ALWAYS" />
+<VBox styleClass="client-table-panel" spacing="4" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+  <stylesheets>
+    <URL value="@ClientTable.css" />
+  </stylesheets>
+  <Label fx:id="title" styleClass="client-table-title" />
+  <Label styleClass="client-table-note" wrapText="true"
+         text="Use the # number with view, delete and followup." />
+  <!-- Columns are unsortable: a visual reorder would make # disagree with command indices. -->
+  <TableView fx:id="personTable" styleClass="client-table" VBox.vgrow="ALWAYS">
+    <columnResizePolicy>
+      <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+    </columnResizePolicy>
+    <columns>
+      <TableColumn fx:id="indexColumn" text="#" sortable="false" minWidth="36" prefWidth="40" maxWidth="56"
+                   styleClass="index-column" />
+      <TableColumn fx:id="nameColumn" text="Name" sortable="false" minWidth="80" prefWidth="160" />
+      <TableColumn fx:id="phoneColumn" text="Phone" sortable="false" minWidth="70" prefWidth="100" />
+      <TableColumn fx:id="emailColumn" text="Email" sortable="false" minWidth="80" prefWidth="180" />
+      <TableColumn fx:id="dueColumn" text="Due" sortable="false" minWidth="86" prefWidth="96" />
+      <TableColumn fx:id="statusColumn" text="Status" sortable="false" minWidth="86" prefWidth="96" />
+    </columns>
+  </TableView>
 </VBox>
