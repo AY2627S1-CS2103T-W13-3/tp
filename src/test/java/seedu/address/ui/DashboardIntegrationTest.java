@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import javafx.application.Platform;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
@@ -32,8 +33,10 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.LogicManager;
 import seedu.address.model.AddressBook;
 import seedu.address.model.ModelManager;
@@ -177,6 +180,21 @@ public class DashboardIntegrationTest {
         });
     }
 
+    @Test
+    public void window_unavailableSavedScreen_restoresInsidePrimaryWithoutDiscardingPreferences() throws Exception {
+        runOnFx(() -> {
+            GuiSettings saved = new GuiSettings(900, 640, 1_000_000, 1_000_000);
+            assertTrue(Screen.getScreensForRectangle(1_000_000, 1_000_000, 1, 1).isEmpty());
+            try (Fixture fixture = new Fixture(saved)) {
+                Stage stage = fixture.window.getPrimaryStage();
+                Rectangle2D restored = new Rectangle2D(stage.getX(), stage.getY(),
+                        stage.getWidth(), stage.getHeight());
+                assertTrue(Screen.getPrimary().getVisualBounds().contains(restored));
+                assertEquals(saved, fixture.logic.getGuiSettings());
+            }
+        });
+    }
+
     private class Fixture implements AutoCloseable {
         private final Path data = folder.resolve("clients.json");
         private final AtomicBoolean shouldFailSave = new AtomicBoolean();
@@ -186,11 +204,17 @@ public class DashboardIntegrationTest {
         private final MainWindow window;
 
         Fixture() throws IOException {
+            this(new GuiSettings());
+        }
+
+        Fixture(GuiSettings settings) throws IOException {
             AddressBook clients = new AddressBook();
             clients.addPerson(client("Alice Tan", "111", 3));
             clients.addPerson(client("Bob Tan", "222", -1));
             clients.addPerson(client("Charlie Tan", "333", 0));
-            model = new ModelManager(clients, new UserPrefs(), TODAY, false);
+            UserPrefs preferences = new UserPrefs();
+            preferences.setGuiSettings(settings);
+            model = new ModelManager(clients, preferences, TODAY, false);
             JsonAddressBookStorage storage = new JsonAddressBookStorage(data) {
                 @Override
                 public void saveAddressBook(ReadOnlyAddressBook clients) throws IOException {
