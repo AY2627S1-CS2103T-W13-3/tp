@@ -508,7 +508,7 @@ Help window and data-file footer (automated tests cover only the URL constant an
 3. Select the full URL in its field and copy it manually. The pasted text must match.
 4. Where a platform or clipboard tool can reject writes, press **Copy link** again. Expect `Could not copy the link. Select it above and copy it instead.` Record whether this was exercised.
 5. Press Esc. Expect Help to close. Press F1 again; the previous copy message is cleared.
-6. Close the app. In `preferences.json`, set `addressBookFilePath` to a path nested about 200 characters deep, with no spaces in folder names. Relaunch. The footer must end with the file name. Hovering it must show the full path wrapped within the screen, without clipping, until the pointer leaves. Restore the setting and delete the test folder afterwards.
+6. Run `StatusBarFooterLongPathFixture` (in `src/test/java/seedu/address/ui`) from the IDE. It shows the footer for a path of about 200 characters. The footer must end with `addressbook.json`. Hovering it must show the full path wrapped within the screen, without clipping, until the pointer leaves. (The app always uses `data/addressbook.json`, so this path cannot be set through `preferences.json`.)
 
 ### Save failures and automated boundaries
 
