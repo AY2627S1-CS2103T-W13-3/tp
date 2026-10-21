@@ -47,3 +47,27 @@ For isolated manual checks, use a fresh writable folder with fictional data and 
 Tests use fixed dates and temporary data folders. Storage failure tests inject write/move failures rather than relying on OS permissions. Keep successful and rejected commands' data/view assertions together.
 
 Pure display-function tests do not prove FXML binding, focus, wrapping or scaling. Follow the Developer Guide's [manual testing appendix](DeveloperGuide.md#appendix-instructions-for-manual-testing) against the actual JAR before a release, and record the tested platform/runtime and remaining gaps.
+
+## v1.4 integrated dashboard
+
+`DashboardIntegrationTest` exercises the real window, Logic and temporary JSON storage: filtered indices versus the global summary, canonical selection after pending reordering, clear/delete, failed-save preservation, explicit error recovery, published-date refresh, observer cleanup and logical layout sizes.
+
+The three native mouse/keyboard tests in `CommandSubmissionTest` and the shown-window focus test in `ResultDisplayTest` need an interactive desktop. The macOS Actions profile skips these four tests unless `POLICYHARBOR_NATIVE_UI_TESTS=true`: the hosted worker aborts with SIGABRT during native window interaction. Scene-level focus, input retention, layout, feedback selection and clipboard regressions still run on every CI platform. A local check using that profile must report the four skipped tests explicitly. Native packaged-app interaction and the real OS/resolution/scaling matrix are separate evidence; logical scene-size checks do not prove display scaling.
+
+See the [Developer Guide's dashboard procedure](DeveloperGuide.md#integrated-v14-dashboard-checks) for manual acceptance and the [v1.4 release notes](releases/v1.4.md) for the user-visible increment.
+
+### v1.4 release GUI verification record
+
+The packaged-app checks recorded for integration revision `ffda0137` passed on the available macOS arm64 desktop with Zulu 25+FX: ordinary and assertion-enabled startup, Enter/Run, typing after a rejected command, recovery, filtered table with the global pending summary, F1/Escape and save/restart. The product screenshots were captured from that packaged app. Recheck the final release commit/JAR after all prerequisite and review changes land.
+
+| Release check | Evidence/status |
+| --- | --- |
+| Missing saved screen | `DashboardIntegrationTest.window_unavailableSavedScreen_restoresInsidePrimaryWithoutDiscardingPreferences` verifies the real window constructor with unavailable saved coordinates, primary-screen bounds and retained preferences. Physical monitor unplug/reconnect remains untested. |
+| Invalid client-data startup | `DashboardStartupIntegrationTest` loads malformed JSON through MainApp, opens the composed UI, submits a successful query and rejected mutation, and checks the persistent warning, empty table/summary and unchanged saved bytes. |
+| Windows packaged GUI | Pending before release; platform CI does not replace running the packaged JAR. |
+| Linux packaged GUI | Pending before release; virtual-display component CI does not replace a real desktop check. |
+| 1920x1080 at 100% and 125%, on each supported OS | Physical display/scaling checks pending. |
+| 1280x720 at 150%, on each supported OS | Physical display/scaling checks pending; the 853x480 logical scene test is automated evidence only. |
+| Clipboard rejection | Pending; record whether the environment can exercise a rejected clipboard write. |
+
+Before publication, the release operator records the exact source commit, JAR SHA-256, OS/JDK, actual resolution/scaling, date, result and evidence for each exercised case. Keep unavailable combinations explicitly pending rather than treating a screenshot or green CI as proof.

@@ -3,7 +3,7 @@ layout: page
 title: User Guide
 ---
 
-PolicyHarbor v1.3.1 is a desktop application for individual insurance agents to manage clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results. 
+PolicyHarbor v1.4 is a desktop application for individual insurance agents to manage clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results.
 
 * Table of Contents
 {:toc}
@@ -22,7 +22,7 @@ PolicyHarbor v1.3.1 is a desktop application for individual insurance agents to 
 1. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar PolicyHarbor.jar`.<br>
    The client list is empty on first launch. Add a client to get started.
 
-1. Enter each command below separately, pressing Enter after each one:
+1. Enter each command below separately, pressing Enter or clicking **Run** after each one:
 
    ```text
    add n/Rachel Lim p/91234567 e/rachel@example.com a/Blk 123 t/health
@@ -31,7 +31,7 @@ PolicyHarbor v1.3.1 is a desktop application for individual insurance agents to 
    followups
    ```
 
-   Rachel's contact details appear in the profile pane. Her action appears in the pending list with an `UPCOMING` badge. The example uses a future date; for your own actions use today or a later date in `YYYY-MM-DD` format.
+   Rachel's contact details appear in the profile pane. Her action appears in the pending summary with an `UPCOMING` badge. The example uses a future date; for your own actions use today or a later date in `YYYY-MM-DD` format.
 
 1. Close the window and run the JAR again from the same folder. Rachel and her follow-up are restored; enter `view 1` to reopen her profile.
 
@@ -70,12 +70,15 @@ PolicyHarbor v1.3.1 is a desktop application for individual insurance agents to 
 
 *PolicyHarbor workspace with fictional clients. Open the image to enlarge it.*
 
-The window keeps the command box, the result of your last command and, when relevant, a red saved-data warning at the top. Below them, the workspace is split into two panes. Drag the divider to resize them.
+The light dashboard keeps the command field, **Run** button and feedback strip at the top. Enter and Run submit the same current text once. A successful command clears the input; a rejected command keeps it for correction, marks the field and shows **Error** above the complete message. Editing clears the field's error style; the feedback remains until the next command. Long feedback wraps and can be scrolled, selected and copied.
 
-* **Left pane: the numbered client list.** This is the list that indexed commands such as `delete 2` and `followup 2 clear` act on. It shows all clients after `list`, matching clients after `find` and clients with pending follow-ups after `followups`.
-* **Right pane: the client profile.** It shows the full details of one client opened with `view`.
+* **Left: the numbered client table.** These are the indices used by `view`, `delete` and `followup`. It shows all clients after `list`, matches after `find`, and clients with follow-ups after `followups`. Columns cannot be sorted independently of command order. Narrow tables scroll horizontally.
+* **Upper right: the selected client profile.** Use `view INDEX` to open a client's complete details. Long fields and tags wrap; scroll within the profile to read everything.
+* **Lower right: all pending follow-ups.** This unnumbered summary always includes every client's action, even when the left table is filtered. It groups actions under `OVERDUE`, `DUE TODAY` and `UPCOMING`, with due-date order and insertion-order ties within each group. It does not provide indices for commands. Use `find` or `followups` and the left table to target a client.
 
-Rows in the full list and in search results show only the row number, name, phone and email. Rows in the pending list also show the due date, the action and one status badge:
+Drag the main divider to change the table/sidebar widths. Drag the divider between the profile and pending summary to change their heights. Each right-hand panel scrolls independently.
+
+The table shows row number, name, phone and email. In `followups` mode it also shows due date and status; read the full action in the sidebar or selected profile.
 
 | Badge | Meaning |
 | --- | --- |
@@ -83,11 +86,13 @@ Rows in the full list and in search results show only the row number, name, phon
 | `DUE TODAY` | The due date is today. |
 | `UPCOMING` | The due date is after today. |
 
-Pending rows are ordered by due date, so overdue rows come first, then today's, then upcoming ones. Clients due on the same date keep the order in which they were added. Row numbers always run continuously from 1.
+In `followups` mode the table is ordered by due date, with insertion-order ties. Row numbers always run continuously from 1. The selected canonical client is marked `VIEWING` in the table and, if they have an action, in the summary. Clicking or highlighting either view does not select a profile or execute a command.
 
-The row of the client whose profile is open is outlined and marked `VIEWING`. Clicking or using the arrow keys on a row does not open or change a profile; only typed commands do. When a list is empty, it shows `No clients to display.` or, for `followups`, `There are no pending follow-ups.`
+An empty table says `No clients to display.` or, in `followups` mode, `There are no pending follow-ups.`. An empty global summary has its own empty message. Finding no matches can leave an empty table alongside a populated summary; this is expected.
 
-If saved data could not be loaded at startup, a warning stays above the command box for the whole session, whatever command you run. Close the app and restore a valid saved copy to clear it.
+The footer identifies the local data file. When its path is shortened, hover over it to read the full path. The Help menu or `F1` opens the guide link, which can be selected or copied with **Copy link**; `Esc` closes Help.
+
+If saved data could not be loaded at startup, a warning stays above the workspace for the whole session, whatever command you run. Close the app and restore a valid saved copy to clear it. An ordinary command error does not dismiss that warning.
 
 ### Supported commands
 
@@ -229,7 +234,7 @@ Shape errors take priority over index syntax. A rejected delete leaves data, the
 
 Use `view INDEX` to select a client in the currently displayed list. The right pane updates with that client's details.
 
-The profile shows the selected client's name, phone, email, address and tags. Tags appear in lowercase alphabetical order, or as `None` when there are no tags. A pending follow-up shows its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it shows `Follow-up: None`; with no selected client it shows `No client selected.`
+The profile shows the selected client's name, phone, email, address and tags. Tags appear as chips in lowercase alphabetical order, or as `No tags` when there are no tags. A pending follow-up shows its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it shows `Follow-up: None`; with no selected client it shows `No client selected.`
 
 Your open profile will follow the client, even when their row number changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
 
@@ -293,11 +298,11 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 * **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar PolicyHarbor.jar`. A different active Java installation may cause JavaFX loading errors.
 * **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
-* **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.3.1.
+* **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.4.
 
 
-1. **When using multiple screens**, if you move the application to a secondary screen, and later switch to using only the primary screen, the GUI will open off-screen. The remedy is to delete the `preferences.json` file created by the application before running the application again.
-2. **If you minimize the Help Window** and then use the `Help` menu or the keyboard shortcut `F1` again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
+* **Window restoration:** PolicyHarbor restores the window on its saved screen when that screen is available. If the saved screen is unavailable, startup fits the window inside the primary screen's usable area. You do not need to delete `preferences.json` when disconnecting a secondary screen.
+* **If you minimize the Help Window** and then use the `Help` menu or the keyboard shortcut `F1` again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
 
 --------------------------------------------------------------------------------------------------------------------
 
