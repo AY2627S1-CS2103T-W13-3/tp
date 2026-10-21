@@ -186,6 +186,13 @@ public class ResultDisplayTest {
 
     @Test
     public void setFeedback_repeatedUpdates_preservesCommandFocusAndInput() throws Exception {
+        boolean isMacActionsRunner = "true".equals(System.getenv("GITHUB_ACTIONS"))
+                && "macOS".equals(System.getenv("RUNNER_OS"));
+        boolean isNativeUiEnabled = Boolean.parseBoolean(System.getenv("POLICYHARBOR_NATIVE_UI_TESTS"));
+        // Match the native desktop opt-in used by CommandSubmissionTest on hosted macOS.
+        assumeFalse(isMacActionsRunner && !isNativeUiEnabled,
+                "Native desktop tests are opt-in on macOS Actions after SIGABRT; "
+                        + "set POLICYHARBOR_NATIVE_UI_TESTS=true on a runner configured for native GUI input");
         FocusFixture fixture = callOnFxThread(() -> {
             ResultDisplay display = new ResultDisplay();
             TextField command = new TextField("list");
