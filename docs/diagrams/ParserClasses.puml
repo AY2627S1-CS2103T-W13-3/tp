@@ -3,36 +3,67 @@
 skinparam arrowThickness 1.1
 skinparam arrowColor LOGIC_COLOR_T4
 skinparam classBackgroundColor LOGIC_COLOR
+skinparam nodesep 25
+skinparam ranksep 35
 
-Class "{abstract}\nCommand" as Command
-Class XYZCommand
+title Parsing follow-up and view commands
 
-package "Parser classes"{
-Class "<<interface>>\nParser" as Parser
 Class AddressBookParser
-Class XYZCommandParser
-Class CliSyntax
+Interface Parser <<interface>>
+Class FollowUpCommandParser
+Class ViewCommandParser
+Class FollowUpParserUtil
 Class ParserUtil
-Class ArgumentMultimap
 Class ArgumentTokenizer
+Class ArgumentMultimap
+Class CliSyntax
 Class Prefix
-}
 
-Class HiddenOutside #FFFFFF
-HiddenOutside ..> AddressBookParser
+abstract class Command
+Class SetFollowUpCommand
+Class ClearFollowUpCommand
+Class ViewCommand
+Class FollowUpsCommand
 
-AddressBookParser .down.> XYZCommandParser: <<create>>
+' Keep the returned commands on one row, above the routing parsers.
+ClearFollowUpCommand -[hidden]right-> SetFollowUpCommand
+SetFollowUpCommand -[hidden]right-> FollowUpsCommand
+FollowUpsCommand -[hidden]right-> ViewCommand
 
-XYZCommandParser ..> XYZCommand : <<create>>
-AddressBookParser ..> Command : <<use>>
-XYZCommandParser .up.|> Parser
-XYZCommandParser ..> ArgumentMultimap
-XYZCommandParser ..> ArgumentTokenizer
-ArgumentTokenizer .left.> ArgumentMultimap
-XYZCommandParser ..> CliSyntax
-CliSyntax ..> Prefix
-XYZCommandParser ..> ParserUtil
-ParserUtil .down.> Prefix
+' Only these two classes implement Parser; T extends Command.
+AddressBookParser .down.> FollowUpCommandParser : <<create>>\nfollowup: parse(args)
+AddressBookParser .down.> ViewCommandParser : <<create>>\nview: parse(args)
+FollowUpCommandParser .right.|> Parser : <Command>
+ViewCommandParser .left.|> Parser : <ViewCommand>
+
+FollowUpCommandParser .up.> SetFollowUpCommand : <<create>>\nset / replace
+FollowUpCommandParser .up.> ClearFollowUpCommand : <<create>>\nclear
+ViewCommandParser .up.> ViewCommand : <<create>>
+AddressBookParser .up.> FollowUpsCommand : <<create>>\nfollowups (direct)
+SetFollowUpCommand -up-|> Command
+ClearFollowUpCommand -up-|> Command
+ViewCommand -up-|> Command
+FollowUpsCommand -up-|> Command
+
+FollowUpCommandParser .down.> FollowUpParserUtil : parseIndex()
+FollowUpParserUtil .down.> ParserUtil : parseIndex()
+ViewCommandParser .down.> ParserUtil : parseIndex()
+FollowUpCommandParser .down.> ArgumentTokenizer : tokenize()
+FollowUpCommandParser .down.> ArgumentMultimap : reads / checks\nduplicates
+ArgumentTokenizer .down.> ArgumentMultimap : <<create>>
+FollowUpCommandParser .down.> CliSyntax : d/, m/
+CliSyntax .down.> Prefix : <<create>>
 ArgumentTokenizer .down.> Prefix
-XYZCommand -up-|> Command
+
+note left of AddressBookParser
+  parseCommand checks raw characters,
+  trims spaces, checks empty input
+  and splits command / arguments.
+  Failed-load gate blocks add, delete,
+  followup before argument parsing.
+  view and followups still route.
+end note
+
+' Set form checks shape, duplicate prefixes, then index syntax; values stay raw.
+' Clear form requires no d/ or m/ and checks index syntax.
 @enduml
