@@ -70,6 +70,21 @@ public class EmailTest {
     }
 
     @Test
+    public void isValidEmail_longInput_preservesGrammarWithoutStackOverflow() {
+        String localPart = "a.".repeat(20000) + "a";
+        String domain = "ab-".repeat(20000) + "cd";
+        String labels = "a.".repeat(20000) + "bc";
+        for (String email : List.of(localPart + "@example.com", "a@" + domain,
+                "a@" + labels, "a@" + "a".repeat(40000))) {
+            assertTrue(Email.isValidEmail(email));
+            assertEquals(email, new Email(email).value);
+            assertFalse(Email.isValidEmail(email + "!"));
+        }
+        assertFalse(Email.isValidEmail(localPart + ".@example.com"));
+        assertFalse(Email.isValidEmail("a@" + "a-".repeat(20000) + "b"));
+    }
+
+    @Test
     public void equals() {
         Email email = new Email("valid@email");
 

@@ -82,6 +82,20 @@ public class MainAppTest {
     }
 
     @Test
+    public void longEmail_addAndRestart_preservesSavedClient() throws Exception {
+        Path file = testFolder.resolve("long-email.json");
+        Storage storage = storage(file);
+        Model model = new MainApp().initModelManager(storage, new UserPrefs());
+        String email = "a.".repeat(20000) + "a@example.com";
+        new LogicManager(model, storage).execute("add n/Ada p/123 e/" + email + " a/Street");
+
+        Model restarted = new MainApp().initModelManager(storage, new UserPrefs());
+        assertFalse(restarted.isDataLoadingBlocked());
+        assertEquals(model.getAddressBook(), restarted.getAddressBook());
+        assertEquals(email, restarted.getAddressBook().getPersonList().get(0).getEmail().value);
+    }
+
+    @Test
     public void nullJsonClientFile_blocksChangesWithoutOverwritingIt() throws Exception {
         Path file = testFolder.resolve("null-client.json");
         Files.writeString(file, "null");
