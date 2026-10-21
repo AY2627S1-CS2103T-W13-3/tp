@@ -86,6 +86,8 @@ The table shows row number, name, phone and email. In `followups` mode it also s
 | `DUE TODAY` | The due date is today. |
 | `UPCOMING` | The due date is after today. |
 
+Follow-up statuses refresh automatically using the current date when PolicyHarbor starts, when the main window regains focus and once every minute while the application is running. You do not need to enter a command just to refresh the statuses.
+
 In `followups` mode the table is ordered by due date, with insertion-order ties. Row numbers always run continuously from 1. The selected canonical client is marked `VIEWING` in the table and, if they have an action, in the summary. Clicking or highlighting either view does not select a profile or execute a command.
 
 An empty table says `No clients to display.` or, in `followups` mode, `There are no pending follow-ups.`. An empty global summary has its own empty message. Finding no matches can leave an empty table alongside a populated summary; this is expected.
