@@ -536,8 +536,16 @@ public class CommandSubmissionTest {
 
     /**
      * Exercises native input in a shown window, including typing again without refocusing after submission.
+     * Hosted macOS native desktop checks require explicit opt-in after their test worker aborted in CI.
      */
     private static void assertShownSubmission(SubmissionMethod method) throws Exception {
+        boolean isMacActionsRunner = "true".equals(System.getenv("GITHUB_ACTIONS"))
+                && "macOS".equals(System.getenv("RUNNER_OS"));
+        boolean isNativeUiEnabled = Boolean.parseBoolean(System.getenv("POLICYHARBOR_NATIVE_UI_TESTS"));
+        // Only native desktop checks are gated; the remaining JavaFX component tests still run on macOS.
+        assumeFalse(isMacActionsRunner && !isNativeUiEnabled,
+                "Native desktop tests are opt-in on macOS Actions after SIGABRT; "
+                        + "set POLICYHARBOR_NATIVE_UI_TESTS=true on a runner configured for native GUI input");
         List<String> executedTexts = new ArrayList<>();
         CommandBoxFixture fixture = runOnFxThread(() -> new CommandBoxFixture(commandText -> {
             executedTexts.add(commandText);
