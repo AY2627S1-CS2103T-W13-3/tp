@@ -1,0 +1,122 @@
+/* Light client table. Every rule is scoped under .client-table-panel so other panels are unaffected. */
+
+.client-table-panel {
+    -fx-background-color: #ffffff;
+    -fx-padding: 8;
+}
+
+.client-table-panel .table-view.client-table {
+    -fx-base: #ffffff;
+    -fx-control-inner-background: #ffffff;
+    -fx-background-color: #d9dee4, #ffffff;
+    -fx-background-insets: 0, 1;
+    -fx-padding: 1;
+    -fx-table-cell-border-color: #eef0f3;
+}
+
+.client-table-panel .client-table .column-header-background {
+    -fx-background-color: #f6f7f9;
+}
+
+.client-table-panel .client-table .column-header,
+.client-table-panel .client-table .filler {
+    -fx-size: 30;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #d9dee4 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-insets: 0;
+}
+
+.client-table-panel .client-table .column-header .label {
+    -fx-font-family: "Segoe UI Semibold";
+    -fx-font-size: 12px;
+    -fx-text-fill: #5b6470;
+    -fx-alignment: center-left;
+    -fx-opacity: 1;
+}
+
+/* Author rules already override modena's selection colours, so :selected needs no extra specificity here. */
+.client-table-panel .client-table .table-row-cell,
+.client-table-panel .client-table .table-row-cell:selected {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #eef0f3 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* Table selection is not the viewed client; only keyboard focus gets a light fill. */
+.client-table-panel .client-table:focused .table-row-cell:focused {
+    -fx-background-color: #f6f7f9;
+    -fx-background-insets: 0;
+}
+
+/* The green bar is a background layer, not a border, so the viewed row's cells stay aligned. */
+.client-table-panel .client-table .table-row-cell.viewed-client,
+.client-table-panel .client-table .table-row-cell.viewed-client:selected {
+    -fx-background-color: #2e7d4f, #eaf6ef;
+    -fx-background-insets: 0, 0 0 0 4;
+}
+
+/* A focused viewed row keeps its green bar, with a darker fill to show focus. */
+.client-table-panel .client-table:focused .table-row-cell.viewed-client:focused {
+    -fx-background-color: #2e7d4f, #d5eddf;
+    -fx-background-insets: 0, 0 0 0 4;
+}
+
+.client-table-panel .client-table .table-cell {
+    -fx-padding: 6;
+    -fx-alignment: top-left;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-text-fill: #1f2933;
+}
+
+.client-table-panel .client-table .index-column {
+    -fx-font-family: "Segoe UI Semibold";
+    -fx-text-fill: #5b6470;
+}
+
+.client-table-panel .client-table .client-table-text {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-fill: #1f2933;
+}
+
+.client-table-panel .client-table .label.viewed-marker {
+    -fx-font-family: "Segoe UI Semibold";
+    -fx-font-size: 10px;
+    -fx-text-fill: #ffffff;
+    -fx-background-color: #2e7d4f;
+    -fx-background-radius: 3;
+    -fx-padding: 1 6 1 6;
+    -fx-opacity: 1;
+}
+
+.client-table-panel .client-table .label.follow-up-status {
+    -fx-font-family: "Segoe UI Semibold";
+    -fx-font-size: 11px;
+    -fx-background-radius: 3;
+    -fx-padding: 2 6 2 6;
+    -fx-opacity: 1;
+}
+
+.client-table-panel .client-table .label.follow-up-status-overdue {
+    -fx-text-fill: #9b1c1c;
+    -fx-background-color: #fde8e8;
+}
+
+.client-table-panel .client-table .label.follow-up-status-due-today {
+    -fx-text-fill: #7a4b00;
+    -fx-background-color: #fff3d6;
+}
+
+.client-table-panel .client-table .label.follow-up-status-upcoming {
+    -fx-text-fill: #1f6f4a;
+    -fx-background-color: #e3f4ea;
+}
+
+.client-table-panel .client-table .client-table-placeholder {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-text-fill: #5b6470;
+    -fx-opacity: 1;
+}

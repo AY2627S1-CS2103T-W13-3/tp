@@ -1,33 +1,62 @@
 package seedu.address.ui;
 
+import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
+
 import java.time.LocalDate;
+import java.util.List;
+import java.util.function.Function;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
+import javafx.scene.control.TableView;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.util.Callback;
 import seedu.address.logic.commands.FollowUpsCommand;
+import seedu.address.model.person.FollowUp;
+import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
 
 /**
- * Panel containing the current authoritative numbered client list.
- * It only displays the model's state: clicking or highlighting a row never changes the viewed client.
+ * Table of the current authoritative numbered client list.
+ * Row numbers are the command indices, so the table cannot be sorted. It only displays the model's
+ * state: clicking or highlighting a row never changes the viewed client.
  */
 public class PersonListPanel extends UiPart<Region> {
     public static final String MESSAGE_NO_CLIENTS = "No clients to display.";
 
+    static final String VIEWED_STYLE_CLASS = "viewed-client";
+
     private static final String FXML = "PersonListPanel.fxml";
+    private static final double CELL_HORIZONTAL_PADDING = 12;
+
     private final ReadOnlyObjectProperty<LocalDate> today;
     private final ReadOnlyBooleanProperty showingFollowUps;
     private final ReadOnlyObjectProperty<Person> selectedPerson;
 
     @FXML
-    private ListView<Person> personListView;
+    private TableView<Person> personTable;
+    @FXML
+    private TableColumn<Person, Person> indexColumn;
+    @FXML
+    private TableColumn<Person, Person> nameColumn;
+    @FXML
+    private TableColumn<Person, Person> phoneColumn;
+    @FXML
+    private TableColumn<Person, Person> emailColumn;
+    @FXML
+    private TableColumn<Person, Person> dueColumn;
+    @FXML
+    private TableColumn<Person, Person> statusColumn;
 
     /**
      * Creates a {@code PersonListPanel} that renders {@code personList} in the current list mode and
@@ -37,19 +66,46 @@ public class PersonListPanel extends UiPart<Region> {
                            ReadOnlyBooleanProperty showingFollowUps,
                            ReadOnlyObjectProperty<Person> selectedPerson) {
         super(FXML);
+        requireAllNonNull(personList, today, showingFollowUps, selectedPerson);
         this.today = today;
         this.showingFollowUps = showingFollowUps;
         this.selectedPerson = selectedPerson;
-        personListView.setItems(personList);
-        Label emptyListLabel = new Label(getEmptyListMessage(showingFollowUps.get()));
-        emptyListLabel.getStyleClass().add("label-bright");
-        personListView.setPlaceholder(emptyListLabel);
-        personListView.setCellFactory(listView -> new PersonListViewCell());
+
+        personTable.setItems(personList);
+        Label emptyListLabel = new Label();
+        emptyListLabel.getStyleClass().add("client-table-placeholder");
+        personTable.setPlaceholder(emptyListLabel);
+        personTable.setRowFactory(table -> new ClientRow());
+
+        indexColumn.setCellFactory(column -> new IndexCell());
+        nameColumn.setCellFactory(column -> new NameCell());
+        phoneColumn.setCellFactory(column -> new TextCell(row -> row.phone()));
+        emailColumn.setCellFactory(column -> new TextCell(row -> row.email()));
+        dueColumn.setCellFactory(column -> new TextCell(row -> row.dueDate()));
+        statusColumn.setCellFactory(column -> new StatusCell());
+        for (TableColumn<Person, Person> column
+                : List.of(indexColumn, nameColumn, phoneColumn, emailColumn, dueColumn, statusColumn)) {
+            column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        }
+        dueColumn.visibleProperty().bind(showingFollowUps);
+        statusColumn.visibleProperty().bind(showingFollowUps);
+
+        Callback<TableView.ResizeFeatures, Boolean> fittedResizePolicy = personTable.getColumnResizePolicy();
+        InvalidationListener fitColumns = observable -> {
+            double minColumnsWidth = personTable.getVisibleLeafColumns().stream()
+                    .mapToDouble(TableColumn::getMinWidth).sum();
+            // Constrained resizing clips columns it cannot shrink; unconstrained shows a horizontal scrollbar.
+            personTable.setColumnResizePolicy(personTable.getWidth() < minColumnsWidth
+                    ? TableView.UNCONSTRAINED_RESIZE_POLICY : fittedResizePolicy);
+        };
+        personTable.widthProperty().addListener(fitColumns);
+        personTable.getVisibleLeafColumns().addListener(fitColumns);
 
         InvalidationListener refresh = observable -> {
             emptyListLabel.setText(getEmptyListMessage(showingFollowUps.get()));
-            personListView.refresh();
+            personTable.refresh();
         };
+        refresh.invalidated(null);
         today.addListener(refresh);
         showingFollowUps.addListener(refresh);
         selectedPerson.addListener(refresh);
@@ -68,33 +124,124 @@ public class PersonListPanel extends UiPart<Region> {
         return rowPerson != null && rowPerson == selectedPerson;
     }
 
+    /** Returns the 1-based command index shown for the table row at {@code rowIndex}. */
+    static int toDisplayedIndex(int rowIndex) {
+        assert rowIndex >= 0 : "Only filled rows have a command index";
+        return rowIndex + 1;
+    }
+
     /**
-     * Custom {@code ListCell} that displays the graphics of a {@code Person} using a {@code PersonCard}.
+     * Builds the text and status style for one row. Due date and status are blank outside pending mode
+     * and for clients without a follow-up.
      */
-    class PersonListViewCell extends ListCell<Person> {
+    static RowDisplay createRowDisplay(Person person, LocalDate today, boolean showingFollowUps) {
+        requireAllNonNull(person, today);
+        String name = person.getName().fullName;
+        String phone = person.getPhone().value;
+        String email = person.getEmail().value;
+        if (!showingFollowUps || person.getFollowUp().isEmpty()) {
+            return new RowDisplay(name, phone, email, "", "", "");
+        }
+
+        FollowUp followUp = person.getFollowUp().orElseThrow();
+        FollowUpStatus status = followUp.getStatus(today);
+        String statusStyleClass = switch (status) {
+            case OVERDUE -> "follow-up-status-overdue";
+            case DUE_TODAY -> "follow-up-status-due-today";
+            case UPCOMING -> "follow-up-status-upcoming";
+        };
+        return new RowDisplay(name, phone, email, followUp.getDueDate().toString(),
+                status.getDisplayName(), statusStyleClass);
+    }
+
+    /** Text and style values for one table row. */
+    record RowDisplay(String name, String phone, String email, String dueDate,
+                      String status, String statusStyleClass) {
+    }
+
+    /** Highlights the viewed client's row. Table selection is styled like an ordinary row. */
+    private class ClientRow extends TableRow<Person> {
         @Override
         protected void updateItem(Person person, boolean empty) {
             super.updateItem(person, empty);
-            updateGraphic();
-        }
-
-        @Override
-        public void updateIndex(int index) {
-            super.updateIndex(index);
-            updateGraphic();
-        }
-
-        private void updateGraphic() {
-            Person person = getItem();
-            setText(null);
-            if (isEmpty() || person == null || getIndex() < 0) {
-                setGraphic(null);
-                return;
+            getStyleClass().remove(VIEWED_STYLE_CLASS);
+            if (!empty && isViewed(person, selectedPerson.get())) {
+                getStyleClass().add(VIEWED_STYLE_CLASS);
             }
-            PersonCard card = new PersonCard(person, getIndex() + 1, today.get(), showingFollowUps.get());
-            card.setViewed(isViewed(person, selectedPerson.get()));
-            setGraphic(card.getRoot());
         }
     }
 
+    /**
+     * Base cell that renders a filled row from its {@link RowDisplay} and clears itself when empty,
+     * so a recycled cell never keeps an old client's text, marker or status.
+     */
+    private abstract class ClientCell extends TableCell<Person, Person> {
+        @Override
+        protected void updateItem(Person person, boolean empty) {
+            super.updateItem(person, empty);
+            setText(null);
+            if (empty || person == null) {
+                setGraphic(null);
+                return;
+            }
+            render(person, createRowDisplay(person, today.get(), showingFollowUps.get()));
+        }
+
+        abstract void render(Person person, RowDisplay row);
+
+        /** Returns a text node that wraps within this cell's column, so long values grow the row height. */
+        Text wrappingText(String value) {
+            Text text = new Text(value);
+            text.getStyleClass().add("client-table-text");
+            text.wrappingWidthProperty().bind(getTableColumn().widthProperty().subtract(CELL_HORIZONTAL_PADDING));
+            return text;
+        }
+    }
+
+    private class IndexCell extends ClientCell {
+        @Override
+        void render(Person person, RowDisplay row) {
+            setText(String.valueOf(toDisplayedIndex(getIndex())));
+        }
+    }
+
+    private class NameCell extends ClientCell {
+        @Override
+        void render(Person person, RowDisplay row) {
+            VBox box = new VBox(2, wrappingText(row.name()));
+            if (isViewed(person, selectedPerson.get())) {
+                Label marker = new Label("VIEWING");
+                marker.getStyleClass().add("viewed-marker");
+                box.getChildren().add(marker);
+            }
+            setGraphic(box);
+        }
+    }
+
+    private class TextCell extends ClientCell {
+        private final Function<RowDisplay, String> field;
+
+        TextCell(Function<RowDisplay, String> field) {
+            this.field = field;
+        }
+
+        @Override
+        void render(Person person, RowDisplay row) {
+            setGraphic(wrappingText(field.apply(row)));
+        }
+    }
+
+    private class StatusCell extends ClientCell {
+        @Override
+        void render(Person person, RowDisplay row) {
+            if (row.status().isEmpty()) {
+                setGraphic(null);
+                return;
+            }
+            Label badge = new Label(row.status());
+            badge.getStyleClass().addAll("follow-up-status", row.statusStyleClass());
+            badge.setMinWidth(Region.USE_PREF_SIZE);
+            setGraphic(badge);
+        }
+    }
 }

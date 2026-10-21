@@ -9,11 +9,14 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.image.Image?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
 
 <fx:root type="javafx.stage.Stage" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-         title="PolicyHarbor v1.3.1" minWidth="450" minHeight="600" onCloseRequest="#handleExit">
+         title="PolicyHarbor v1.3.1" minWidth="640" minHeight="600" onCloseRequest="#handleExit">
   <icons>
     <Image url="@/images/address_book_32.png" />
   </icons>
@@ -22,10 +25,11 @@
       <stylesheets>
         <URL value="@DarkTheme.css" />
         <URL value="@Extensions.css" />
+        <URL value="@Dashboard.css" />
       </stylesheets>
 
-      <VBox>
-        <MenuBar fx:id="menuBar" VBox.vgrow="NEVER">
+      <VBox styleClass="dashboard-root">
+        <MenuBar fx:id="menuBar" styleClass="dashboard-menu" VBox.vgrow="NEVER">
           <Menu mnemonicParsing="false" text="File">
             <MenuItem mnemonicParsing="false" onAction="#handleExit" text="Exit" />
           </Menu>
@@ -34,38 +38,76 @@
           </Menu>
         </MenuBar>
 
-        <Label fx:id="loadWarning" styleClass="load-warning" wrapText="true" maxWidth="Infinity"
-               visible="false" managed="false" VBox.vgrow="NEVER" />
-
-        <StackPane VBox.vgrow="NEVER" fx:id="commandBoxPlaceholder" styleClass="pane-with-border">
+        <HBox alignment="CENTER_LEFT" spacing="12" styleClass="dashboard-header" VBox.vgrow="NEVER">
           <padding>
-            <Insets top="5" right="10" bottom="5" left="10" />
+            <Insets top="16" right="24" bottom="18" left="24" />
+          </padding>
+          <StackPane minWidth="34" prefWidth="34" maxWidth="34" prefHeight="38">
+            <SVGPath content="M 16 1 L 30 6 L 30 17 C 30 27 23 33 16 37 C 9 33 2 27 2 17 L 2 6 Z"
+                     styleClass="dashboard-shield" />
+            <SVGPath content="M 8 18 L 14 24 L 25 12" styleClass="dashboard-shield-check" />
+          </StackPane>
+          <VBox spacing="3">
+            <Label text="PolicyHarbor" styleClass="dashboard-brand" />
+            <Label text="Clients. Follow-ups. Made simple." styleClass="dashboard-tagline" />
+          </VBox>
+          <Region HBox.hgrow="ALWAYS" />
+          <Label text="CLIENT WORKSPACE" styleClass="dashboard-eyebrow" />
+        </HBox>
+
+        <VBox spacing="16" minHeight="0" VBox.vgrow="ALWAYS">
+          <padding>
+            <Insets top="0" right="24" bottom="12" left="24" />
+          </padding>
+
+          <VBox spacing="8" styleClass="dashboard-command-card" VBox.vgrow="NEVER">
+            <padding>
+              <Insets top="12" right="16" bottom="12" left="16" />
+            </padding>
+            <Label text="Command" styleClass="dashboard-section-title" />
+            <StackPane fx:id="commandBoxPlaceholder" styleClass="dashboard-command-host" minHeight="36" />
+            <StackPane fx:id="resultDisplayPlaceholder" styleClass="dashboard-feedback-host"
+                       minHeight="52" prefHeight="64" maxHeight="100" />
+          </VBox>
+
+          <Label fx:id="loadWarning" styleClass="load-warning, dashboard-load-warning" wrapText="true"
+                 minHeight="-Infinity" maxWidth="Infinity" visible="false" managed="false" VBox.vgrow="NEVER" />
+
+          <SplitPane fx:id="workspace" dividerPositions="0.56" styleClass="dashboard-workspace"
+                     minHeight="100" minWidth="0" VBox.vgrow="ALWAYS">
+            <VBox fx:id="personList" spacing="10" styleClass="dashboard-card" minWidth="220" minHeight="0">
+              <padding>
+                <Insets top="16" right="14" bottom="14" left="14" />
+              </padding>
+              <HBox alignment="CENTER_LEFT" spacing="8">
+                <Label fx:id="clientListTitle" text="Clients" styleClass="dashboard-section-title" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Label fx:id="clientCount" styleClass="dashboard-caption" />
+              </HBox>
+              <Label text="Use these row numbers with view, delete and followup."
+                     styleClass="dashboard-caption" wrapText="true" maxWidth="Infinity" />
+              <StackPane fx:id="personListPanelPlaceholder" minHeight="0" VBox.vgrow="ALWAYS" />
+            </VBox>
+
+            <VBox spacing="16" styleClass="dashboard-right-column" minWidth="220" minHeight="0">
+              <VBox spacing="10" styleClass="dashboard-card" minHeight="0" VBox.vgrow="ALWAYS">
+                <padding>
+                  <Insets top="16" right="14" bottom="14" left="14" />
+                </padding>
+                <Label text="Profile" styleClass="dashboard-section-title" />
+                <StackPane fx:id="clientProfilePlaceholder" minHeight="0" VBox.vgrow="ALWAYS" />
+              </VBox>
+              <StackPane fx:id="pendingFollowUpPlaceholder" visible="false" managed="false" minHeight="0"
+                         VBox.vgrow="ALWAYS" />
+            </VBox>
+          </SplitPane>
+        </VBox>
+
+        <StackPane fx:id="statusbarPlaceholder" styleClass="dashboard-footer" VBox.vgrow="NEVER">
+          <padding>
+            <Insets top="0" right="24" bottom="12" left="24" />
           </padding>
         </StackPane>
-
-        <StackPane VBox.vgrow="NEVER" fx:id="resultDisplayPlaceholder" styleClass="pane-with-border"
-                   minHeight="100" prefHeight="100" maxHeight="100">
-          <padding>
-            <Insets top="5" right="10" bottom="5" left="10" />
-          </padding>
-        </StackPane>
-
-        <SplitPane fx:id="workspace" dividerPositions="0.5" VBox.vgrow="ALWAYS">
-          <VBox fx:id="personList" styleClass="pane-with-border" minWidth="220">
-            <padding>
-              <Insets top="10" right="10" bottom="10" left="10" />
-            </padding>
-            <StackPane fx:id="personListPanelPlaceholder" VBox.vgrow="ALWAYS"/>
-          </VBox>
-          <VBox styleClass="pane-with-border" minWidth="220">
-            <padding>
-              <Insets top="10" right="10" bottom="10" left="10" />
-            </padding>
-            <StackPane fx:id="clientProfilePlaceholder" VBox.vgrow="ALWAYS"/>
-          </VBox>
-        </SplitPane>
-
-        <StackPane fx:id="statusbarPlaceholder" VBox.vgrow="NEVER" />
       </VBox>
     </Scene>
   </scene>

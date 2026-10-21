@@ -87,6 +87,11 @@ public class LogicManager implements Logic {
     }
 
     @Override
+    public ObservableList<Person> getAllPersonList() {
+        return model.getAddressBook().getPersonList();
+    }
+
+    @Override
     public ReadOnlyObjectProperty<LocalDate> todayProperty() {
         return model.todayProperty();
     }
