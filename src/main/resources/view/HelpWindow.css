@@ -1,19 +1,59 @@
-#copyButton, #helpMessage {
-    -fx-text-fill: white;
+/* Light Help window. Rules are scoped under .help-window; this stylesheet only loads in the Help scene. */
+
+.help-window {
+    -fx-background-color: #ffffff;
 }
 
-#copyButton {
-    -fx-background-color: dimgray;
+.help-window .label {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-text-fill: #1f2933;
 }
 
-#copyButton:hover {
-    -fx-background-color: gray;
+.help-window .help-title {
+    -fx-font-family: "Segoe UI Semibold";
+    -fx-font-size: 16px;
 }
 
-#copyButton:armed {
-    -fx-background-color: darkgray;
+.help-window .help-hint,
+.help-window .help-status {
+    -fx-font-size: 12px;
+    -fx-text-fill: #5b6470;
 }
 
-#helpMessageContainer {
-    -fx-background-color: derive(#1d1d1d, 20%);
+.help-window .help-url {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-text-fill: #1f2933;
+    -fx-background-color: #d9dee4, #f6f7f9;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 4;
+}
+
+.help-window .help-url:focused {
+    -fx-background-color: #2e7d4f, #f6f7f9;
+}
+
+.help-window .button {
+    -fx-font-family: "Segoe UI Semibold";
+    -fx-font-size: 13px;
+    -fx-text-fill: #ffffff;
+    -fx-background-color: #2e7d4f;
+    -fx-background-radius: 4;
+    -fx-padding: 5 12 5 12;
+}
+
+.help-window .button:hover {
+    -fx-background-color: #276b43;
+}
+
+.help-window .button:armed {
+    -fx-background-color: #1f5636;
+}
+
+/* Visible keyboard focus ring, not colour alone. */
+.help-window .button:focused {
+    -fx-border-color: #1f2933;
+    -fx-border-width: 2;
+    -fx-border-radius: 4;
 }

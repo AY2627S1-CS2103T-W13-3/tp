@@ -1,0 +1,72 @@
+.command-bar {
+    -fx-background-color: #f4f7f5;
+    -fx-background-radius: 8;
+    -fx-border-color: #d4dfd8;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 8 10;
+}
+
+.command-bar #commandTextField {
+    -fx-background-color: #ffffff;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5;
+    -fx-border-color: #7c8f83;
+    -fx-border-insets: 0;
+    -fx-border-radius: 5;
+    -fx-border-width: 2;
+    -fx-font-family: "System";
+    -fx-font-size: 14px;
+    -fx-text-fill: #18392c;
+    -fx-prompt-text-fill: #52665b;
+    -fx-highlight-fill: #176544;
+    -fx-highlight-text-fill: #ffffff;
+    -fx-min-height: 38;
+    -fx-padding: 7 10;
+}
+
+.command-bar #commandTextField:focused {
+    -fx-border-color: #176544;
+}
+
+.command-bar #commandTextField.error {
+    -fx-background-color: #fff4f2;
+    -fx-border-color: #a2352b;
+    /* Override the host's important error color within this component only. */
+    -fx-text-fill: #8b261e !important;
+    -fx-prompt-text-fill: #8b261e;
+}
+
+.command-bar #runButton {
+    -fx-background-color: #176544;
+    -fx-background-insets: 3;
+    -fx-background-radius: 5;
+    -fx-border-color: transparent;
+    -fx-border-insets: 0;
+    -fx-border-radius: 7;
+    -fx-border-style: solid;
+    -fx-border-width: 2;
+    -fx-font-family: "System";
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+    -fx-min-height: 38;
+    -fx-padding: 7 16;
+    -fx-cursor: hand;
+}
+
+.command-bar #runButton:hover {
+    -fx-background-color: #125437;
+}
+
+.command-bar #runButton:pressed {
+    -fx-background-color: #0d422b;
+}
+
+.command-bar #runButton:focused {
+    -fx-border-color: #234e78;
+}
+
+.command-bar #runButton:disabled {
+    -fx-opacity: 0.55;
+}

@@ -27,6 +27,14 @@ public interface Logic {
     /** Returns an unmodifiable view of the filtered list of persons */
     ObservableList<Person> getFilteredPersonList();
 
+    /**
+     * Returns the stable, unmodifiable observable list of all committed clients in insertion order.
+     * Filtering and pending-list ordering do not affect this feed. Successful data changes are
+     * published only after saving; rejected commands and failed saves leave it unchanged.
+     * Elements are the canonical immutable records, including distinct clients with the same name.
+     */
+    ObservableList<Person> getAllPersonList();
+
     /** Returns the date snapshot used for displayed follow-up statuses. */
     ReadOnlyObjectProperty<LocalDate> todayProperty();
 

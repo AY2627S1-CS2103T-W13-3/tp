@@ -1,0 +1,124 @@
+/*
+ * Dashboard visual contract for v1.4 components:
+ * canvas #f4f8f6; surface #ffffff; brand #16845b;
+ * text #17352b; muted #61766d; border #dce7e1.
+ * Spacing steps: 4 / 8 / 12 / 16 / 24 px. Card radius: 10 px.
+ * Type: System, 25 px brand / 14 px section / 12 px supporting text.
+ * This sheet styles the shell only. Embedded controls retain their own skins.
+ */
+
+.dashboard-root {
+    -fx-background-color: #f4f8f6;
+    -fx-font-family: "System";
+}
+
+.dashboard-menu {
+    -fx-background-color: #ffffff;
+    -fx-padding: 2 12 2 12;
+    -fx-border-color: transparent transparent #dce7e1 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.dashboard-menu .label {
+    -fx-font-family: "System";
+    -fx-font-size: 12px;
+    -fx-text-fill: #17352b;
+    -fx-opacity: 1;
+}
+
+.dashboard-menu .menu:hover,
+.dashboard-menu .menu:showing {
+    -fx-background-color: #e4f3eb;
+}
+
+.dashboard-brand {
+    -fx-font-family: "System";
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #17352b;
+    -fx-opacity: 1;
+}
+
+.dashboard-tagline,
+.dashboard-caption,
+.dashboard-eyebrow {
+    -fx-font-family: "System";
+    -fx-font-size: 12px;
+    -fx-text-fill: #61766d;
+    -fx-opacity: 1;
+}
+
+.dashboard-eyebrow {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.dashboard-shield {
+    -fx-fill: #16845b;
+}
+
+.dashboard-shield-check {
+    -fx-fill: transparent;
+    -fx-stroke: #ffffff;
+    -fx-stroke-width: 3;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+.dashboard-command-card,
+.dashboard-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 10;
+    -fx-border-color: #dce7e1;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+}
+
+.dashboard-section-title {
+    -fx-font-family: "System";
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #17352b;
+    -fx-opacity: 1;
+}
+
+.dashboard-command-host > .stack-pane,
+.dashboard-feedback-host > .pane-with-border {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+/* Keep the existing light input text readable until the command component supplies its new skin. */
+.dashboard-command-host {
+    -fx-background-color: #383838;
+}
+
+.dashboard-workspace {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}
+
+.dashboard-workspace:horizontal > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 0 7 0 7;
+    -fx-border-width: 0;
+}
+
+.dashboard-right-column,
+.dashboard-footer {
+    -fx-background-color: transparent;
+}
+
+.dashboard-load-warning {
+    -fx-background-color: #fff0ed;
+    -fx-text-fill: #842f29;
+    -fx-border-color: #e5b3ac;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-family: "System";
+    -fx-font-size: 12px;
+    -fx-padding: 10 12 10 12;
+    -fx-opacity: 1;
+}

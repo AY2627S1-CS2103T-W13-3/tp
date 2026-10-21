@@ -4,33 +4,57 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.VBox?>
 
-<ScrollPane fitToWidth="true" hbarPolicy="NEVER" minWidth="220" styleClass="client-profile-panel"
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" minWidth="0" styleClass="client-profile-panel"
             xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
   <stylesheets>
     <URL value="@ClientProfilePanel.css" />
   </stylesheets>
   <content>
-    <VBox spacing="10" fillWidth="true">
+    <VBox spacing="16" fillWidth="true" styleClass="profile-card">
       <padding>
-        <Insets top="16" right="16" bottom="16" left="16" />
+        <Insets top="20" right="20" bottom="20" left="20" />
       </padding>
-      <Label fx:id="noSelectionMessage" styleClass="profile-empty" text="No client selected." />
-      <VBox fx:id="profileDetails" spacing="8" fillWidth="true">
-        <Label fx:id="name" styleClass="profile-name" wrapText="true" maxWidth="1.7976931348623157E308" />
-        <Label fx:id="phone" styleClass="profile-field" wrapText="true" maxWidth="1.7976931348623157E308" />
-        <Label fx:id="email" styleClass="profile-field" wrapText="true" maxWidth="1.7976931348623157E308" />
-        <Label fx:id="address" styleClass="profile-field" wrapText="true" maxWidth="1.7976931348623157E308" />
-        <Label fx:id="tags" styleClass="profile-field" wrapText="true" maxWidth="1.7976931348623157E308" />
-        <Label fx:id="followUpNone" styleClass="profile-field" />
-        <VBox fx:id="followUpDetails" spacing="8" fillWidth="true">
-          <Label fx:id="followUpDate" styleClass="profile-field" wrapText="true"
-                 maxWidth="1.7976931348623157E308" />
-          <Label fx:id="followUpAction" styleClass="profile-field" wrapText="true"
-                 maxWidth="1.7976931348623157E308" />
-          <Label fx:id="followUpStatus" styleClass="profile-status" wrapText="true"
-                 maxWidth="1.7976931348623157E308" />
+      <Label styleClass="profile-eyebrow" text="CLIENT PROFILE" />
+      <Label fx:id="noSelectionMessage" styleClass="profile-empty" text="No client selected." wrapText="true" />
+      <VBox fx:id="profileDetails" spacing="18" fillWidth="true">
+        <Label fx:id="name" styleClass="profile-name" wrapText="true" maxWidth="Infinity" />
+        <VBox spacing="12" styleClass="profile-section">
+          <Label styleClass="profile-section-title" text="CONTACT" />
+          <VBox spacing="2">
+            <Label styleClass="profile-field-label" text="PHONE" />
+            <Label fx:id="phone" styleClass="profile-field-value" wrapText="true" maxWidth="Infinity" />
+          </VBox>
+          <VBox spacing="2">
+            <Label styleClass="profile-field-label" text="EMAIL" />
+            <Label fx:id="email" styleClass="profile-field-value" wrapText="true" maxWidth="Infinity" />
+          </VBox>
+          <VBox spacing="2">
+            <Label styleClass="profile-field-label" text="ADDRESS" />
+            <Label fx:id="address" styleClass="profile-field-value" wrapText="true" maxWidth="Infinity" />
+          </VBox>
+        </VBox>
+        <VBox spacing="8" styleClass="profile-section">
+          <Label styleClass="profile-section-title" text="TAGS" />
+          <Label fx:id="tagsNone" styleClass="profile-muted" text="No tags" />
+          <FlowPane fx:id="tagChips" hgap="6" vgap="6" minWidth="0" />
+        </VBox>
+        <VBox spacing="10" styleClass="profile-section">
+          <Label styleClass="profile-section-title" text="NEXT FOLLOW-UP" />
+          <Label fx:id="followUpNone" styleClass="profile-muted" text="Follow-up: None" wrapText="true" />
+          <VBox fx:id="followUpDetails" spacing="10" fillWidth="true">
+            <Label fx:id="followUpStatus" styleClass="profile-status" wrapText="true" />
+            <VBox spacing="2">
+              <Label styleClass="profile-field-label" text="DUE DATE" />
+              <Label fx:id="followUpDate" styleClass="profile-field-value" wrapText="true" />
+            </VBox>
+            <VBox spacing="2">
+              <Label styleClass="profile-field-label" text="ACTION" />
+              <Label fx:id="followUpAction" styleClass="profile-field-value" wrapText="true" maxWidth="Infinity" />
+            </VBox>
+          </VBox>
         </VBox>
       </VBox>
     </VBox>

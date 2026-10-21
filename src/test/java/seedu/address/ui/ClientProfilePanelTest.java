@@ -2,12 +2,27 @@ package seedu.address.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.GraphicsEnvironment;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
+import javafx.application.Platform;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.FlowPane;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.PersonBuilder;
@@ -37,10 +52,10 @@ public class ClientProfilePanelTest {
         assertTrue(display.hasSelection());
         assertEquals("", display.noSelection());
         assertEquals("Rachel Lim", display.name());
-        assertEquals("Phone: 001", display.phone());
-        assertEquals("Email: Rachel@example.com", display.email());
-        assertEquals("Address: Blk 123, Main Street", display.address());
-        assertEquals("Tags: [2026] [active] [health]", display.tags());
+        assertEquals("001", display.phone());
+        assertEquals("Rachel@example.com", display.email());
+        assertEquals("Blk 123, Main Street", display.address());
+        assertEquals(List.of("2026", "active", "health"), display.tags());
         assertFalse(display.followUp().hasFollowUp());
         assertEquals("Follow-up: None", display.followUp().none());
         assertEquals("", display.followUp().date());
@@ -56,14 +71,17 @@ public class ClientProfilePanelTest {
         ClientProfilePanel.ProfileDisplay overdue = ClientProfilePanel.createDisplay(person, TODAY.plusDays(1));
         ClientProfilePanel.ProfileDisplay upcoming = ClientProfilePanel.createDisplay(person, TODAY.minusDays(1));
 
-        assertEquals("Tags: None", due.tags());
+        assertEquals(List.of(), due.tags());
         assertTrue(due.followUp().hasFollowUp());
         assertEquals("", due.followUp().none());
-        assertEquals("Follow-up date: 2026-10-12", due.followUp().date());
-        assertEquals("Follow-up action: Call client", due.followUp().action());
-        assertEquals("Status: DUE TODAY", due.followUp().status());
-        assertEquals("Status: OVERDUE", overdue.followUp().status());
-        assertEquals("Status: UPCOMING", upcoming.followUp().status());
+        assertEquals("2026-10-12", due.followUp().date());
+        assertEquals("Call client", due.followUp().action());
+        assertEquals("DUE TODAY", due.followUp().status());
+        assertEquals("OVERDUE", overdue.followUp().status());
+        assertEquals("UPCOMING", upcoming.followUp().status());
+        assertEquals("profile-status-due-today", due.followUp().statusStyleClass());
+        assertEquals("profile-status-overdue", overdue.followUp().statusStyleClass());
+        assertEquals("profile-status-upcoming", upcoming.followUp().statusStyleClass());
         assertEquals(TODAY, person.getFollowUp().orElseThrow().getDueDate());
     }
 
@@ -82,5 +100,145 @@ public class ClientProfilePanelTest {
         assertFalse(deselected.hasSelection());
         assertEquals("", deselected.name());
         assertEquals("", deselected.address());
+        assertEquals(List.of(), deselected.tags());
+    }
+
+    @Test
+    public void createDisplay_replacedActionAndLongText_keepCompleteAction() {
+        String longAction = "x".repeat(200);
+        Person original = new PersonBuilder().withFollowUp(new FollowUp(TODAY, "Old action")).build();
+        Person replaced = original.withFollowUp(new FollowUp(TODAY.plusDays(1), longAction));
+
+        ClientProfilePanel.ProfileDisplay display = ClientProfilePanel.createDisplay(replaced, TODAY);
+
+        assertEquals(longAction, display.followUp().action());
+        assertEquals("2026-10-13", display.followUp().date());
+        assertEquals("UPCOMING", display.followUp().status());
+    }
+
+    @Test
+    public void createDisplay_nullPublishedDate_rejected() {
+        assertThrows(NullPointerException.class, () -> ClientProfilePanel.createDisplay(null, null));
+    }
+
+    @Test
+    public void profileUi_selectionAndDateChanges_clearOldRenderedValues() throws InterruptedException {
+        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+        runOnFxThread(() -> {
+            Person first = new PersonBuilder().withName("First Client").withTags("health", "Active")
+                    .withFollowUp(new FollowUp(TODAY, "First action")).build();
+            SimpleObjectProperty<Person> selected = new SimpleObjectProperty<>(first);
+            SimpleObjectProperty<LocalDate> today = new SimpleObjectProperty<>(TODAY);
+            ClientProfilePanel panel = new ClientProfilePanel(selected, today);
+            FlowPane chips = (FlowPane) findById(panel.getRoot(), "tagChips");
+            Label status = (Label) findById(panel.getRoot(), "followUpStatus");
+            Label action = (Label) findById(panel.getRoot(), "followUpAction");
+            Label noSelection = (Label) findById(panel.getRoot(), "noSelectionMessage");
+
+            assertEquals(List.of("active", "health"), chips.getChildren().stream()
+                    .map(node -> ((Label) node).getText()).toList());
+            assertEquals("DUE TODAY", status.getText());
+
+            today.set(TODAY.plusDays(1));
+            assertEquals("OVERDUE", status.getText());
+            assertTrue(status.getStyleClass().contains("profile-status-overdue"));
+            assertFalse(status.getStyleClass().contains("profile-status-due-today"));
+
+            String longAction = "x".repeat(200);
+            selected.set(new PersonBuilder().withName("Second Client").withTags("travel")
+                    .withFollowUp(new FollowUp(TODAY.plusDays(5), longAction)).build());
+            assertEquals(List.of("travel"), chips.getChildren().stream()
+                    .map(node -> ((Label) node).getText()).toList());
+            assertEquals("UPCOMING", status.getText());
+            assertEquals(longAction, action.getText());
+            assertTrue(action.isWrapText());
+            new Scene(panel.getRoot(), 240, 360);
+            panel.getRoot().applyCss();
+            assertTrue(action.prefHeight(160) > action.prefHeight(1000));
+
+            selected.set(null);
+            assertTrue(chips.getChildren().isEmpty());
+            assertEquals("", action.getText());
+            assertTrue(noSelection.isVisible());
+        });
+    }
+
+    @Test
+    public void profileUi_longTag_staysInsideNarrowViewport() throws InterruptedException {
+        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+        runOnFxThread(() -> {
+            String longTag = "a".repeat(80);
+            Person person = new PersonBuilder().withTags(longTag, "short").build();
+            ClientProfilePanel panel = new ClientProfilePanel(new SimpleObjectProperty<>(person),
+                    new SimpleObjectProperty<>(TODAY));
+            ScrollPane scroll = (ScrollPane) panel.getRoot();
+            new Scene(scroll, 240, 360);
+            scroll.resize(240, 360);
+            scroll.applyCss();
+            scroll.layout();
+            scroll.layout();
+            FlowPane chips = (FlowPane) findById(scroll, "tagChips");
+            Label chip = (Label) chips.getChildren().getFirst();
+
+            assertEquals(longTag, chip.getText());
+            assertTrue(scroll.getContent().getLayoutBounds().getWidth() <= scroll.getViewportBounds().getWidth() + 1,
+                    "Content width " + scroll.getContent().getLayoutBounds().getWidth()
+                            + " exceeds viewport " + scroll.getViewportBounds().getWidth());
+            assertTrue(chip.getWidth() <= chips.getWidth() + 1);
+            assertTrue(chip.getHeight() >= chip.prefHeight(chip.getWidth()) - 1);
+            assertTrue(chip.prefHeight(120) > chip.prefHeight(1000));
+            Node nextChip = chips.getChildren().get(1);
+            assertTrue(nextChip.getBoundsInParent().getMinY() >= chip.getBoundsInParent().getMaxY(),
+                    "Long chip " + chip.getBoundsInParent() + "; next chip " + nextChip.getBoundsInParent());
+            assertTrue(nextChip.getBoundsInParent().getMaxY() <= chips.getHeight() + 1);
+
+            scroll.resize(360, 360);
+            scroll.layout();
+            assertTrue(chip.getWidth() <= chips.getWidth() + 1);
+            assertEquals(longTag, chip.getText());
+        });
+    }
+
+    private static Node findById(Node node, String id) {
+        if (id.equals(node.getId())) {
+            return node;
+        }
+        if (node instanceof ScrollPane scrollPane) {
+            return findById(scrollPane.getContent(), id);
+        }
+        if (node instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                Node match = findById(child, id);
+                if (match != null) {
+                    return match;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void runOnFxThread(Runnable task) throws InterruptedException {
+        synchronized (Platform.class) {
+            try {
+                Platform.startup(() -> { });
+            } catch (IllegalStateException alreadyStarted) {
+                // Another UI test has initialized the toolkit in this test JVM.
+            }
+        }
+        CountDownLatch completed = new CountDownLatch(1);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        Platform.runLater(() -> {
+            try {
+                task.run();
+            } catch (Throwable error) {
+                failure.set(error);
+            } finally {
+                completed.countDown();
+            }
+        });
+        assertTrue(completed.await(10, TimeUnit.SECONDS));
+        if (failure.get() != null) {
+            throw new AssertionError("JavaFX profile rendering failed", failure.get());
+        }
     }
 }
