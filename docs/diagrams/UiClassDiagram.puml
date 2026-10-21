@@ -20,6 +20,8 @@ Class PersonListPanel {
   -showingFollowUps : ReadOnlyBooleanProperty
   -selectedPerson : ReadOnlyObjectProperty<Person>
 }
+Class PendingFollowUpPanel
+Class PendingFollowUpProjection
 Class StatusBarFooter
 Class CommandBox
 }
@@ -48,16 +50,22 @@ MainWindow *-down-> "1" StatusBarFooter
 MainWindow *--> "1" ClientProfilePanel
 MainWindow --> "1" HelpWindow
 
+MainWindow *--> "1" PendingFollowUpPanel
+MainWindow *--> "1" PendingFollowUpProjection
+
 MainWindow -left-|> UiPart
 
 ResultDisplay --|> UiPart
 CommandBox --|> UiPart
 PersonListPanel --|> UiPart
+PendingFollowUpPanel --|> UiPart
 ClientProfilePanel --|> UiPart
 StatusBarFooter --|> UiPart
 HelpWindow --|> UiPart
 
 PersonListPanel ..> Model
+PendingFollowUpProjection ..> Model
+PendingFollowUpPanel ..> Model
 ClientProfilePanel ..> Model
 UiManager -right-> Logic
 MainWindow -left-> Logic

@@ -89,9 +89,8 @@
     -fx-border-width: 0;
 }
 
-/* Keep the existing light input text readable until the command component supplies its new skin. */
 .dashboard-command-host {
-    -fx-background-color: #383838;
+    -fx-background-color: transparent;
 }
 
 .dashboard-workspace {
@@ -121,4 +120,15 @@
     -fx-font-size: 12px;
     -fx-padding: 10 12 10 12;
     -fx-opacity: 1;
+}
+
+.dashboard-right-column {
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}
+
+.dashboard-right-column:vertical > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 5 0;
+    -fx-border-width: 0;
 }

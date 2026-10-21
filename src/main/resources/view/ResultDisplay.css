@@ -1,0 +1,55 @@
+.feedback-strip {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #64748b;
+    -fx-border-width: 1;
+    -fx-padding: 6 8;
+    -fx-spacing: 4;
+}
+
+.feedback-strip #resultDisplay {
+    -fx-background-color: transparent;
+    -fx-text-fill: #1f2937;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-padding: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 2;
+    -fx-border-radius: 2;
+}
+
+.feedback-strip #resultDisplay:focused {
+    -fx-border-color: #0f4c81;
+}
+
+.feedback-strip #resultDisplay .content,
+.feedback-strip #resultDisplay .viewport {
+    -fx-background-color: transparent;
+}
+
+.feedback-strip #resultDisplay .content {
+    -fx-padding: 3 4;
+}
+
+.feedback-strip #resultDisplay .scroll-bar {
+    -fx-background-color: #e2e8f0;
+}
+
+.feedback-strip #resultDisplay .scroll-bar .thumb {
+    -fx-background-color: #64748b;
+}
+
+.feedback-strip .feedback-status {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7f1d1d;
+    -fx-opacity: 1;
+}
+
+.feedback-strip:error {
+    -fx-background-color: #fef2f2;
+    -fx-border-color: #991b1b;
+}
+
+.feedback-strip:error #resultDisplay {
+    -fx-text-fill: #7f1d1d;
+}
