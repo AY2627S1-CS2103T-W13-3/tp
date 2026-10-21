@@ -228,6 +228,7 @@ public class ModelManager implements Model {
         // An equal-valued replacement may skip resetData. Bind to the actual committed instance.
         Person committedSelection = selectedIndex < 0 ? null : addressBook.getPersonList().get(selectedIndex);
         refreshDisplayedPersons(committedSelection);
+        assert !hasUnsavedChanges() : "A published command must leave the live model clean.";
     }
 
     /**
@@ -252,6 +253,10 @@ public class ModelManager implements Model {
         }
         displayedPersons.setAll(visible);
         selectedPerson.set(visible.stream().anyMatch(person -> person == selection) ? selection : null);
+        // Check settled state only, after both the displayed list and selection have been refreshed.
+        assert selectedPerson.get() == null || addressBook.getPersonList().stream()
+                .anyMatch(person -> person == selectedPerson.get())
+                : "The selected client must be a canonical committed record.";
     }
 
     /**
