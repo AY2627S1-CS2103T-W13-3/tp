@@ -12,6 +12,13 @@
     -fx-font-family: "Segoe UI";
     -fx-font-size: 13px;
     -fx-padding: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 2;
+    -fx-border-radius: 2;
+}
+
+.feedback-strip #resultDisplay:focused {
+    -fx-border-color: #0f4c81;
 }
 
 .feedback-strip #resultDisplay .content,

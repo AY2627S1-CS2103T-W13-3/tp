@@ -3,10 +3,13 @@ package seedu.address.ui;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
+import java.awt.GraphicsEnvironment;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -15,7 +18,11 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
@@ -30,21 +37,41 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.DataFormat;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
 
 public class ResultDisplayTest {
 
     @BeforeAll
     public static void initializeToolkit() throws Exception {
+        assumeFalse(GraphicsEnvironment.isHeadless(), "JavaFX control tests require a graphical session");
         FutureTask<Void> startup = new FutureTask<>(() -> {
             Platform.setImplicitExit(false);
             return null;
         });
-        Platform.startup(startup);
+        try {
+            Platform.startup(startup);
+        } catch (IllegalStateException alreadyInitialized) {
+            // Other component tests may already own the shared JavaFX runtime.
+            Platform.runLater(startup);
+        }
         startup.get(10, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void initializeToolkit_alreadyRunning_remainsUsable() throws Exception {
+        initializeToolkit();
+        initializeToolkit();
+        runOnFxThread(() -> {
+            assertTrue(Platform.isFxApplicationThread());
+            assertFalse(Platform.isImplicitExit());
+        });
     }
 
     @Test
@@ -159,22 +186,56 @@ public class ResultDisplayTest {
 
     @Test
     public void setFeedback_repeatedUpdates_preservesCommandFocusAndInput() throws Exception {
-        runOnFxThread(() -> {
+        FocusFixture fixture = callOnFxThread(() -> {
             ResultDisplay display = new ResultDisplay();
             TextField command = new TextField("list");
-            Scene scene = new Scene(new VBox(command, display.getRoot()));
+            Scene scene = new Scene(new VBox(command, display.getRoot()), 320, 180);
+            Stage stage = new Stage();
+            stage.setScene(scene);
+            stage.show();
             command.requestFocus();
             command.positionCaret(2);
-            assertSame(command, scene.getFocusOwner());
+            return new FocusFixture(stage, scene, command, display);
+        });
 
+        try {
+            awaitLayoutPulse(fixture.scene());
+            runOnFxThread(() -> assertCommandFocus(fixture));
             for (int i = 0; i < 3; i++) {
-                display.setErrorFeedbackToUser("Please retry.");
-                assertSame(command, scene.getFocusOwner());
-                display.setFeedbackToUser("Ready");
-                assertSame(command, scene.getFocusOwner());
-                assertEquals("list", command.getText());
-                assertEquals(2, command.getCaretPosition());
+                runOnFxThread(() -> fixture.display().setErrorFeedbackToUser("Please retry."));
+                awaitLayoutPulse(fixture.scene());
+                runOnFxThread(() -> assertCommandFocus(fixture));
+                runOnFxThread(() -> fixture.display().setFeedbackToUser("Ready"));
+                awaitLayoutPulse(fixture.scene());
+                runOnFxThread(() -> assertCommandFocus(fixture));
             }
+        } finally {
+            runOnFxThread(() -> fixture.stage().close());
+        }
+    }
+
+    @Test
+    public void focus_feedbackOutline_isVisibleInNormalAndErrorStates() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            layoutDisplay(display);
+            TextArea feedback = (TextArea) display.getRoot().lookup("#resultDisplay");
+            double normalHeight = display.getRoot().prefHeight(240);
+            PseudoClass focused = PseudoClass.getPseudoClass("focused");
+            Paint unfocusedBorder = feedback.getBorder() == null ? Color.TRANSPARENT
+                    : feedback.getBorder().getStrokes().get(0).getTopStroke();
+            feedback.pseudoClassStateChanged(focused, true);
+            display.getRoot().applyCss();
+            assertVisibleFocusOutline(feedback);
+            assertEquals(normalHeight, display.getRoot().prefHeight(240));
+
+            display.setErrorFeedbackToUser("Please retry.");
+            display.getRoot().applyCss();
+            assertVisibleFocusOutline(feedback);
+
+            feedback.pseudoClassStateChanged(focused, false);
+            display.getRoot().applyCss();
+            assertEquals(unfocusedBorder, feedback.getBorder().getStrokes().get(0).getTopStroke());
         });
     }
 
@@ -292,6 +353,7 @@ public class ResultDisplayTest {
         assertTrue(feedback.isFocusTraversable());
         feedback.selectAll();
         assertEquals(message, feedback.getSelectedText());
+        assertCopiedText(feedback, message);
 
         ScrollBar vertical = getScrollBar(feedback, Orientation.VERTICAL);
         ScrollBar horizontal = getScrollBar(feedback, Orientation.HORIZONTAL);
@@ -334,6 +396,57 @@ public class ResultDisplayTest {
         return ((Text) feedback.lookup(".text")).getFill();
     }
 
+    private static void assertCopiedText(TextArea feedback, String message) {
+        Clipboard clipboard = Clipboard.getSystemClipboard();
+        Map<DataFormat, Object> originalContent = new HashMap<>();
+        for (DataFormat format : clipboard.getContentTypes()) {
+            Object content = clipboard.getContent(format);
+            if (content != null) {
+                originalContent.put(format, content);
+            }
+        }
+        try {
+            clipboard.clear();
+            feedback.copy();
+            assertEquals(message, clipboard.getString());
+        } finally {
+            if (originalContent.isEmpty()) {
+                clipboard.clear();
+            } else {
+                assertTrue(clipboard.setContent(originalContent), "Could not restore clipboard contents");
+            }
+        }
+    }
+
+    private static void assertCommandFocus(FocusFixture fixture) {
+        assertTrue(fixture.stage().isShowing());
+        assertSame(fixture.command(), fixture.scene().getFocusOwner());
+        assertEquals("list", fixture.command().getText());
+        assertEquals(2, fixture.command().getCaretPosition());
+    }
+
+    private static void assertVisibleFocusOutline(TextArea feedback) {
+        assertNotNull(feedback.getBorder(), "Focused feedback must have a visible border");
+        assertTrue(feedback.getBorder().getStrokes().get(0).getWidths().getTop() > 0);
+        Color border = (Color) feedback.getBorder().getStrokes().get(0).getTopStroke();
+        assertTrue(border.getOpacity() > 0, "Focus border must not be transparent");
+    }
+
+    private static void awaitLayoutPulse(Scene scene) throws Exception {
+        CountDownLatch pulse = new CountDownLatch(1);
+        Runnable listener = pulse::countDown;
+        runOnFxThread(() -> {
+            scene.addPostLayoutPulseListener(listener);
+            scene.getRoot().requestLayout();
+            Platform.requestNextPulse();
+        });
+        try {
+            assertTrue(pulse.await(10, TimeUnit.SECONDS), "JavaFX layout pulse did not complete");
+        } finally {
+            runOnFxThread(() -> scene.removePostLayoutPulseListener(listener));
+        }
+    }
+
     private static URL getStylesheet() {
         return ResultDisplay.class.getResource("/view/ResultDisplay.css");
     }
@@ -365,5 +478,14 @@ public class ResultDisplayTest {
         FutureTask<Void> task = new FutureTask<>(action, null);
         Platform.runLater(task);
         task.get(10, TimeUnit.SECONDS);
+    }
+
+    private static <T> T callOnFxThread(Callable<T> action) throws Exception {
+        FutureTask<T> task = new FutureTask<>(action);
+        Platform.runLater(task);
+        return task.get(10, TimeUnit.SECONDS);
+    }
+
+    private record FocusFixture(Stage stage, Scene scene, TextField command, ResultDisplay display) {
     }
 }
