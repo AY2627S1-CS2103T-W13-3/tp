@@ -6,7 +6,8 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        # Use Intel macOS while the arm64 hosted pool has runner-acquisition failures.
+        platform: [ubuntu-latest, macos-15-intel, windows-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
