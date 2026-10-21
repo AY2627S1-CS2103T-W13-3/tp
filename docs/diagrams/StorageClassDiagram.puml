@@ -3,6 +3,7 @@
 skinparam arrowThickness 1.1
 skinparam arrowColor STORAGE_COLOR
 skinparam classBackgroundColor STORAGE_COLOR
+skinparam classAttributeIconSize 0
 
 package Storage as StoragePackage {
 
@@ -18,9 +19,20 @@ Class JsonAddressBookStorage
 Class JsonSerializableAddressBook
 Class JsonAdaptedPerson
 Class JsonAdaptedTag
+Class JsonAdaptedFollowUp {
+  - dueDate : String
+  - description : String
+  + toModelType() : FollowUp
+}
 }
 
 }
+
+package Model as ModelPackage {
+Class FollowUp MODEL_COLOR
+}
+
+show JsonAdaptedFollowUp members
 
 Class HiddenOutside #FFFFFF
 HiddenOutside ..> Storage
@@ -32,5 +44,7 @@ StorageManager -down-> "1" JsonAddressBookStorage
 JsonAddressBookStorage ..> JsonSerializableAddressBook
 JsonSerializableAddressBook --> "*" JsonAdaptedPerson
 JsonAdaptedPerson --> "*" JsonAdaptedTag
+JsonAdaptedPerson --> "0..1" JsonAdaptedFollowUp : followUp
+JsonAdaptedFollowUp ..> FollowUp : converts
 
 @enduml
