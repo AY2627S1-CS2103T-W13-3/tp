@@ -185,7 +185,38 @@ public class ResultDisplayTest {
     }
 
     @Test
+    public void setFeedback_repeatedLayout_preservesSceneFocusAndInput() throws Exception {
+        runOnFxThread(() -> {
+            ResultDisplay display = new ResultDisplay();
+            TextField command = new TextField("list");
+            VBox root = new VBox(command, display.getRoot());
+            Scene scene = new Scene(root, 320, 180);
+            root.applyCss();
+            root.layout();
+            command.requestFocus();
+            command.positionCaret(2);
+            for (int i = 0; i < 3; i++) {
+                display.setErrorFeedbackToUser("Please retry.");
+                root.applyCss();
+                root.layout();
+                assertCommandInput(scene, command);
+                display.setFeedbackToUser("Ready");
+                root.applyCss();
+                root.layout();
+                assertCommandInput(scene, command);
+            }
+        });
+    }
+
+    @Test
     public void setFeedback_repeatedUpdates_preservesCommandFocusAndInput() throws Exception {
+        boolean isMacActionsRunner = "true".equals(System.getenv("GITHUB_ACTIONS"))
+                && "macOS".equals(System.getenv("RUNNER_OS"));
+        boolean isNativeUiEnabled = Boolean.parseBoolean(System.getenv("POLICYHARBOR_NATIVE_UI_TESTS"));
+        // This shown-window test aborts the hosted macOS worker; scene-level coverage runs everywhere.
+        assumeFalse(isMacActionsRunner && !isNativeUiEnabled,
+                "Native window focus is opt-in on macOS Actions after SIGABRT; "
+                        + "set POLICYHARBOR_NATIVE_UI_TESTS=true on an interactive desktop runner");
         FocusFixture fixture = callOnFxThread(() -> {
             ResultDisplay display = new ResultDisplay();
             TextField command = new TextField("list");
@@ -420,9 +451,13 @@ public class ResultDisplayTest {
 
     private static void assertCommandFocus(FocusFixture fixture) {
         assertTrue(fixture.stage().isShowing());
-        assertSame(fixture.command(), fixture.scene().getFocusOwner());
-        assertEquals("list", fixture.command().getText());
-        assertEquals(2, fixture.command().getCaretPosition());
+        assertCommandInput(fixture.scene(), fixture.command());
+    }
+
+    private static void assertCommandInput(Scene scene, TextField command) {
+        assertSame(command, scene.getFocusOwner());
+        assertEquals("list", command.getText());
+        assertEquals(2, command.getCaretPosition());
     }
 
     private static void assertVisibleFocusOutline(TextArea feedback) {

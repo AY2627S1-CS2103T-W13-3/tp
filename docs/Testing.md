@@ -52,7 +52,7 @@ Pure display-function tests do not prove FXML binding, focus, wrapping or scalin
 
 `DashboardIntegrationTest` exercises the real window, Logic and temporary JSON storage: filtered indices versus the global summary, canonical selection after pending reordering, clear/delete, failed-save preservation, explicit error recovery, published-date refresh, observer cleanup and logical layout sizes.
 
-The native mouse/keyboard tests in `CommandSubmissionTest` need an interactive desktop. Its macOS Actions profile skips those three tests unless `POLICYHARBOR_NATIVE_UI_TESTS=true`; the remaining JavaFX component tests still run. A local check using that profile must report the three skipped tests explicitly. Native packaged-app interaction and the real OS/resolution/scaling matrix are separate evidence; logical scene-size checks do not prove display scaling.
+The three native mouse/keyboard tests in `CommandSubmissionTest` and the shown-window focus test in `ResultDisplayTest` need an interactive desktop. The macOS Actions profile skips these four tests unless `POLICYHARBOR_NATIVE_UI_TESTS=true`: the hosted worker aborts with SIGABRT during native window interaction. Scene-level focus, input retention, layout, feedback selection and clipboard regressions still run on every CI platform. A local check using that profile must report the four skipped tests explicitly. Native packaged-app interaction and the real OS/resolution/scaling matrix are separate evidence; logical scene-size checks do not prove display scaling.
 
 See the [Developer Guide's dashboard procedure](DeveloperGuide.md#integrated-v14-dashboard-checks) for manual acceptance and the [v1.4 release notes](releases/v1.4.md) for the user-visible increment.
 
