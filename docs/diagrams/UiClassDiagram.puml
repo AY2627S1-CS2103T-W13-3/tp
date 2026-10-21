@@ -3,6 +3,8 @@
 skinparam arrowThickness 1.1
 skinparam arrowColor UI_COLOR_T4
 skinparam classBackgroundColor UI_COLOR
+skinparam classAttributeIconSize 0
+skinparam classAttributeFontColor #FFFFFF
 
 package UI <<Rectangle>>{
 Class "<<interface>>\nUi" as Ui
@@ -12,11 +14,19 @@ Class MainWindow
 Class HelpWindow
 Class ResultDisplay
 Class ClientProfilePanel
-Class PersonListPanel
-Class PersonCard
+Class PersonListPanel {
+  -personTable : TableView<Person>
+  -today : ReadOnlyObjectProperty<LocalDate>
+  -showingFollowUps : ReadOnlyBooleanProperty
+  -selectedPerson : ReadOnlyObjectProperty<Person>
+}
 Class StatusBarFooter
 Class CommandBox
 }
+
+' style.puml hides all members; show only the fields of the indexed client table.
+' Must follow the class declaration, or PlantUML reports a syntax error.
+show PersonListPanel fields
 
 package Model <<Rectangle>> {
 Class HiddenModel #FFFFFF
@@ -38,19 +48,16 @@ MainWindow *-down-> "1" StatusBarFooter
 MainWindow *--> "1" ClientProfilePanel
 MainWindow --> "1" HelpWindow
 
-PersonListPanel -down-> "*" PersonCard
-
 MainWindow -left-|> UiPart
 
 ResultDisplay --|> UiPart
 CommandBox --|> UiPart
 PersonListPanel --|> UiPart
-PersonCard --|> UiPart
 ClientProfilePanel --|> UiPart
 StatusBarFooter --|> UiPart
 HelpWindow --|> UiPart
 
-PersonCard ..> Model
+PersonListPanel ..> Model
 ClientProfilePanel ..> Model
 UiManager -right-> Logic
 MainWindow -left-> Logic
