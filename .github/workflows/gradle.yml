@@ -31,7 +31,7 @@ jobs:
 
       - name: Build and check with Gradle
         if: runner.os != 'Linux'
-        run: ./gradlew check coverage
+        run: ./gradlew check coverage --init-script .github/ci-test-diagnostics.init.gradle
 
       # JavaFX UI tests need a display, which Linux runners lack.
       - name: Build and check with Gradle (virtual display)
@@ -43,3 +43,16 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload failed test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-diagnostics-${{ matrix.platform }}
+          path: |
+            build/test-results/
+            build/reports/tests/
+            **/hs_err_pid*.log
+            **/replay_pid*.log
+            ~/Library/Logs/DiagnosticReports/java*
+          retention-days: 7
