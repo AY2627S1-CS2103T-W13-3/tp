@@ -1,47 +1,74 @@
 @startuml
 !include style.puml
+!pragma layout smetana
 skinparam arrowThickness 1.1
 skinparam arrowColor LOGIC_COLOR_T4
 skinparam classBackgroundColor LOGIC_COLOR
+skinparam classAttributeIconSize 0
+skinparam classAttributeFontColor #FFFFFF
 
 package Logic as LogicPackage {
-
-package "Parser Classes" as ParserClasses{
-}
-Class XYZCommand
-Class CommandResult
-Class "{abstract}\nCommand" as Command
-
-
-Class "<<interface>>\nLogic" as Logic
-Class LogicManager
-}
-
-package Model {
-Class HiddenModel #FFFFFF
-}
-
-package Storage {
+    interface Logic <<interface>> {
+        + execute(commandText: String): CommandResult
+        + getFilteredPersonList(): ObservableList<Person>
+        + getAllPersonList(): ObservableList<Person>
+        + todayProperty(): ReadOnlyObjectProperty<LocalDate>
+        + showingFollowUpsProperty(): ReadOnlyBooleanProperty
+        + selectedPersonProperty(): ReadOnlyObjectProperty<Person>
+    }
+    class LogicManager
+    package "Parser Classes" as ParserClasses {
+        class AddressBookParser
+    }
+    abstract class Command
+    class XYZCommand
+    class CommandResult
 }
 
-Class HiddenOutside #FFFFFF
-HiddenOutside ..> Logic
+package Model as ModelPackage {
+    interface Model <<interface>>
+}
 
-LogicManager .right.|> Logic
-LogicManager -right->"1" ParserClasses
+package Storage as StoragePackage {
+    interface Storage <<interface>>
+}
+
+' Shared style hides members; expose only the selected Logic API above.
+show Logic methods
+
+LogicManager .up.|> Logic
+LogicManager -down-> "1" AddressBookParser
 ParserClasses ..> XYZCommand : <<create>>
 
 XYZCommand -up-|> Command
-LogicManager .left.> Command : <<call>>
+LogicManager .down.> Command : <<call>>
 
-LogicManager --> Model
-LogicManager --> Storage
-Storage --[hidden] Model
-Command .[hidden]up.> Storage
-Command .right.> Model
-note right of XYZCommand: XYZCommand = AddCommand, \nFindCommand, etc
+LogicManager -down-> "1" Model
+LogicManager -down-> "1" Storage
+Command .down.> Model : <<call>>
+Model -[hidden]right-> Storage
 
 Logic ..> CommandResult
-LogicManager .down.> CommandResult
-Command .up.> CommandResult : <<create>>
+LogicManager ..> CommandResult
+Command ..> CommandResult : <<create>>
+
+note top of Logic
+    getAllPersonList(): full committed clients in insertion order.
+    getFilteredPersonList(): filtered / pending-ordered command list.
+    Both are stable, unmodifiable views; only the latter owns indices.
+end note
+
+note as PublicationNote
+    LogicManager executes against an isolated Model candidate.
+    Saves dirty data before commitFrom publishes it.
+    A failed save does not publish the candidate.
+end note
+XYZCommand -[hidden]down-> PublicationNote
+
+note as CommandExamples
+    XYZ is a placeholder for routed commands, e.g.
+    AddCommand, ViewCommand, SetFollowUpCommand,
+    ClearFollowUpCommand and FollowUpsCommand.
+end note
+PublicationNote -[hidden]down-> CommandExamples
 @enduml
