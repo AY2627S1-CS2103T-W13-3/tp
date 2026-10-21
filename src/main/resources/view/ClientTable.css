@@ -35,23 +35,30 @@
     -fx-opacity: 1;
 }
 
+/* Author rules already override modena's selection colours, so :selected needs no extra specificity here. */
 .client-table-panel .client-table .table-row-cell,
-.client-table-panel .client-table .table-row-cell:selected,
-.client-table-panel .client-table:focused .table-row-cell:filled:focused:selected {
+.client-table-panel .client-table .table-row-cell:selected {
     -fx-background-color: #ffffff;
     -fx-border-color: transparent transparent #eef0f3 transparent;
     -fx-border-width: 0 0 1 0;
 }
 
-/* Table selection is not the viewed client; only keyboard focus gets a light outline. */
+/* Table selection is not the viewed client; only keyboard focus gets a light fill. */
 .client-table-panel .client-table:focused .table-row-cell:focused {
     -fx-background-color: #f6f7f9;
+    -fx-background-insets: 0;
 }
 
 /* The green bar is a background layer, not a border, so the viewed row's cells stay aligned. */
 .client-table-panel .client-table .table-row-cell.viewed-client,
 .client-table-panel .client-table .table-row-cell.viewed-client:selected {
     -fx-background-color: #2e7d4f, #eaf6ef;
+    -fx-background-insets: 0, 0 0 0 4;
+}
+
+/* A focused viewed row keeps its green bar, with a darker fill to show focus. */
+.client-table-panel .client-table:focused .table-row-cell.viewed-client:focused {
+    -fx-background-color: #2e7d4f, #d5eddf;
     -fx-background-insets: 0, 0 0 0 4;
 }
 
