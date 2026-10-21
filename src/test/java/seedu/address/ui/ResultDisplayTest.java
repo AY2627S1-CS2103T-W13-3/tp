@@ -213,10 +213,10 @@ public class ResultDisplayTest {
         boolean isMacActionsRunner = "true".equals(System.getenv("GITHUB_ACTIONS"))
                 && "macOS".equals(System.getenv("RUNNER_OS"));
         boolean isNativeUiEnabled = Boolean.parseBoolean(System.getenv("POLICYHARBOR_NATIVE_UI_TESTS"));
-        // This shown-window test aborts the hosted macOS worker; scene-level coverage runs everywhere.
+        // Match CommandSubmissionTest's native opt-in; scene-level coverage still runs everywhere.
         assumeFalse(isMacActionsRunner && !isNativeUiEnabled,
-                "Native window focus is opt-in on macOS Actions after SIGABRT; "
-                        + "set POLICYHARBOR_NATIVE_UI_TESTS=true on an interactive desktop runner");
+                "Native desktop tests are opt-in on macOS Actions after SIGABRT; "
+                        + "set POLICYHARBOR_NATIVE_UI_TESTS=true on a runner configured for native GUI input");
         FocusFixture fixture = callOnFxThread(() -> {
             ResultDisplay display = new ResultDisplay();
             TextField command = new TextField("list");

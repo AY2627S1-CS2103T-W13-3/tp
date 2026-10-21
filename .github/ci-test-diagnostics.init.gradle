@@ -1,8 +1,0 @@
-allprojects {
-    tasks.withType(Test).configureEach {
-        beforeTest { descriptor ->
-            logger.lifecycle("Running test: ${descriptor.className}.${descriptor.name}")
-        }
-        testLogging.showStandardStreams = true
-    }
-}
