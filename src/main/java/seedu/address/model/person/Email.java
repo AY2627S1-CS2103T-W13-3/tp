@@ -11,18 +11,6 @@ public class Email {
 
     public static final String MESSAGE_CONSTRAINTS =
             "Email format is not supported. Example: rachel.lim+work@example.com.";
-    private static final String SPECIAL_CHARACTERS = "+_.-";
-    // alphanumeric and special characters
-    private static final String ALPHANUMERIC_NO_UNDERSCORE = "[^\\W_]+"; // alphanumeric characters except underscore
-    private static final String LOCAL_PART_REGEX = "^" + ALPHANUMERIC_NO_UNDERSCORE + "([" + SPECIAL_CHARACTERS + "]"
-            + ALPHANUMERIC_NO_UNDERSCORE + ")*";
-    private static final String DOMAIN_PART_REGEX = ALPHANUMERIC_NO_UNDERSCORE
-            + "(-" + ALPHANUMERIC_NO_UNDERSCORE + ")*";
-    // Repeated domain parts require an adjacent alphanumeric pair in the last label (ab-c, but not a-b).
-    private static final String DOMAIN_LAST_PART_REGEX = "(" + DOMAIN_PART_REGEX + "){2,}$";
-    private static final String DOMAIN_REGEX = "(" + DOMAIN_PART_REGEX + "\\.)*" + DOMAIN_LAST_PART_REGEX;
-    public static final String VALIDATION_REGEX = LOCAL_PART_REGEX + "@" + DOMAIN_REGEX;
-
     public final String value;
 
     /**
@@ -38,9 +26,52 @@ public class Email {
 
     /**
      * Returns true if a given string is a valid email.
+     * Scans once without recursive regex matching, including for long input.
      */
     public static boolean isValidEmail(String test) {
-        return test.matches(VALIDATION_REGEX);
+        requireNonNull(test);
+        int separator = test.indexOf('@');
+        if (separator <= 0 || separator == test.length() - 1) {
+            return false;
+        }
+        boolean previousAlphanumeric = false;
+        for (int i = 0; i < separator; i++) {
+            char character = test.charAt(i);
+            boolean alphanumeric = isAsciiAlphanumeric(character);
+            if (!alphanumeric && (!previousAlphanumeric || "+_.-".indexOf(character) < 0)) {
+                return false;
+            }
+            previousAlphanumeric = alphanumeric;
+        }
+        if (!previousAlphanumeric) {
+            return false;
+        }
+
+        // Each domain label starts/ends with an alphanumeric character; separators cannot repeat.
+        // The last label also needs an adjacent alphanumeric pair, matching the existing grammar.
+        previousAlphanumeric = false;
+        boolean hasAdjacentPair = false;
+        for (int i = separator + 1; i < test.length(); i++) {
+            char character = test.charAt(i);
+            if (isAsciiAlphanumeric(character)) {
+                hasAdjacentPair |= previousAlphanumeric;
+                previousAlphanumeric = true;
+            } else if ((character == '-' || character == '.') && previousAlphanumeric) {
+                previousAlphanumeric = false;
+                if (character == '.') {
+                    hasAdjacentPair = false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return previousAlphanumeric && hasAdjacentPair;
+    }
+
+    private static boolean isAsciiAlphanumeric(char character) {
+        return character >= 'a' && character <= 'z'
+                || character >= 'A' && character <= 'Z'
+                || character >= '0' && character <= '9';
     }
 
     @Override
