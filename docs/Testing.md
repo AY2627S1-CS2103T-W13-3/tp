@@ -58,16 +58,34 @@ See the [Developer Guide's dashboard procedure](DeveloperGuide.md#integrated-v14
 
 ### v1.4 release GUI verification record
 
-The packaged-app checks recorded for integration revision `ffda0137` passed on the available macOS arm64 desktop with Zulu 25+FX: ordinary and assertion-enabled startup, Enter/Run, typing after a rejected command, recovery, filtered table with the global pending summary, F1/Escape and save/restart. The product screenshots were captured from that packaged app. Recheck the final release commit/JAR after all prerequisite and review changes land.
+Evidence is recorded by source revision; checks on an earlier packaged app do not establish the same coverage for the final JAR.
+
+- **Integration baseline `ffda0137`:** packaged checks passed on macOS arm64 with Zulu 25+FX for ordinary and assertion-enabled startup, Enter/Run, typing after a rejected command, recovery, filtered table with the global pending summary, F1/Escape and save/restart. The product screenshots were captured from this packaged app.
+- **Pre-release audit `9aced71d345fdbd6c9a5de59b81a121b86d36d0a` (21 October 2026):** fresh startup, add via Enter, follow-up via Run, profile selection, filtered table versus global summary, invalid-index input/focus retention, typing recovery, pending mode, F1/Escape and save/restart passed. Restart with `-ea` preserved saved clients/actions and reset selection; validation and recovery also passed. Saved bytes remained unchanged across restart and read-only commands.
+- **Final v1.4 `28ed61635311779743324517bcdce154102cce39` (21 October 2026):** fresh packaged startup and `list` passed. The broader GUI scenarios above, assertion-enabled launch and save/restart were not repeated against this final JAR.
+
+The pre-release audit and final smoke check used macOS 26.6.2 (25G83), arm64, with Zulu JDK+FX 25.0.3+9-LTS (Zulu25.34+17-CA). Physical resolution/scaling was not recorded, so these runs do not establish the display matrix below.
+
+The [published v1.4 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.4) identifies the final source revision above. Its `PolicyHarbor.jar` is 12,558,262 bytes with SHA-256:
+
+```text
+7ac65543efedbd13b34664dbff2ba091b96fa79a36705cf9be1f90b4358435b2
+```
+
+GitHub's reported asset digest matches the locally built JAR used for the final smoke check. Downloading and relaunching the uploaded asset was not separately verified.
+
+On that final source, `check coverage shadowJar` passed locally using the committed macOS Actions test profile through a temporary init script: 576 tests, 572 passed and the four native desktop tests described above skipped. Checkstyle, coverage generation and JAR packaging passed. [CI run 39600670010](https://github.com/AY2627S1-CS2103T-W13-3/tp/actions/runs/39600670010) passed on Linux, macOS and Windows for the same source revision. These automated checks are separate from packaged desktop verification.
 
 | Release check | Evidence/status |
 | --- | --- |
 | Missing saved screen | `DashboardIntegrationTest.window_unavailableSavedScreen_restoresInsidePrimaryWithoutDiscardingPreferences` verifies the real window constructor with unavailable saved coordinates, primary-screen bounds and retained preferences. Physical monitor unplug/reconnect remains untested. |
 | Invalid client-data startup | `DashboardStartupIntegrationTest` loads malformed JSON through MainApp, opens the composed UI, submits a successful query and rejected mutation, and checks the persistent warning, empty table/summary and unchanged saved bytes. |
-| Windows packaged GUI | Pending before release; platform CI does not replace running the packaged JAR. |
-| Linux packaged GUI | Pending before release; virtual-display component CI does not replace a real desktop check. |
+| Broader GUI scenarios on the final JAR | Pending repetition of Enter/Run, input/focus recovery, filtered/global views, F1/Escape, assertion-enabled launch and save/restart on `28ed6163`; only fresh startup and `list` were checked on this artifact. |
+| Uploaded asset download/relaunch | Pending; the reported digest matches the locally tested JAR, but no separate download/relaunch check was performed. |
+| Windows packaged GUI | Pending; platform CI does not replace running the packaged JAR. |
+| Linux packaged GUI | Pending; virtual-display component CI does not replace a real desktop check. |
 | 1920x1080 at 100% and 125%, on each supported OS | Physical display/scaling checks pending. |
 | 1280x720 at 150%, on each supported OS | Physical display/scaling checks pending; the 853x480 logical scene test is automated evidence only. |
 | Clipboard rejection | Pending; record whether the environment can exercise a rejected clipboard write. |
 
-Before publication, the release operator records the exact source commit, JAR SHA-256, OS/JDK, actual resolution/scaling, date, result and evidence for each exercised case. Keep unavailable combinations explicitly pending rather than treating a screenshot or green CI as proof.
+When adding verification evidence, record the exact source commit, JAR SHA-256, OS/JDK, actual resolution/scaling, date, result and evidence for each exercised case. Keep unavailable combinations explicitly pending rather than treating publication, a screenshot or green CI as proof.
