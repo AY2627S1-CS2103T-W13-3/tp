@@ -21,7 +21,7 @@ Class FollowUp {
 - description : String
 + getStatus(today : LocalDate) : FollowUpStatus
 }
-enum FollowUpStatus {
+enum FollowUpStatus <<enumeration>> {
 OVERDUE
 DUE_TODAY
 UPCOMING
