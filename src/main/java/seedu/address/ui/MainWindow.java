@@ -21,6 +21,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.logic.Logic;
@@ -52,6 +53,8 @@ public class MainWindow extends UiPart<Stage> {
     private PersonListPanel personListPanel;
     private ResultDisplay resultDisplay;
     private HelpWindow helpWindow;
+    private PendingFollowUpProjection pendingProjection;
+    private PendingFollowUpPanel pendingPanel;
 
     @FXML
     private Label loadWarning;
@@ -73,6 +76,9 @@ public class MainWindow extends UiPart<Stage> {
 
     @FXML
     private StackPane clientProfilePlaceholder;
+
+    @FXML
+    private StackPane pendingFollowUpPlaceholder;
 
     @FXML
     private StackPane resultDisplayPlaceholder;
@@ -98,6 +104,7 @@ public class MainWindow extends UiPart<Stage> {
         setAccelerators();
 
         helpWindow = new HelpWindow();
+        primaryStage.addEventHandler(WindowEvent.WINDOW_HIDDEN, event -> disposeDashboard());
     }
 
     public Stage getPrimaryStage() {
@@ -142,6 +149,9 @@ public class MainWindow extends UiPart<Stage> {
      * Fills up all the placeholders of this window.
      */
     void fillInnerParts() {
+        if (resultDisplay != null) {
+            throw new IllegalStateException("Dashboard components have already been initialized");
+        }
         bindClientListLabels(logic, clientListTitle.textProperty(), clientCount.textProperty());
 
         personListPanel = new PersonListPanel(logic.getFilteredPersonList(), logic.todayProperty(),
@@ -151,6 +161,13 @@ public class MainWindow extends UiPart<Stage> {
         ClientProfilePanel clientProfilePanel = new ClientProfilePanel(logic.selectedPersonProperty(),
                 logic.todayProperty());
         clientProfilePlaceholder.getChildren().add(clientProfilePanel.getRoot());
+
+        pendingProjection = new PendingFollowUpProjection(logic.getAllPersonList());
+        pendingPanel = new PendingFollowUpPanel(pendingProjection.getPendingPersons(),
+                logic.todayProperty(), logic.selectedPersonProperty());
+        pendingFollowUpPlaceholder.getChildren().setAll(pendingPanel.getRoot());
+        pendingFollowUpPlaceholder.setVisible(true);
+        pendingFollowUpPlaceholder.setManaged(true);
 
         boolean showLoadWarning = logic.isDataLoadingBlocked();
         loadWarning.setText(Messages.MESSAGE_LOAD_WARNING);
@@ -255,7 +272,18 @@ public class MainWindow extends UiPart<Stage> {
                 (int) primaryStage.getX(), (int) primaryStage.getY());
         logic.setGuiSettings(guiSettings);
         helpWindow.hide();
+        disposeDashboard();
         primaryStage.hide();
+    }
+
+    /** Releases the observers owned by this window, including when it is hidden programmatically. */
+    private void disposeDashboard() {
+        if (pendingPanel != null) {
+            pendingPanel.dispose();
+        }
+        if (pendingProjection != null) {
+            pendingProjection.close();
+        }
     }
 
     public PersonListPanel getPersonListPanel() {
@@ -285,7 +313,7 @@ public class MainWindow extends UiPart<Stage> {
             return commandResult;
         } catch (CommandException | ParseException e) {
             logger.info("An error occurred while executing a command.");
-            resultDisplay.setFeedbackToUser(e.getMessage());
+            resultDisplay.setErrorFeedbackToUser(e.getMessage());
             throw e;
         }
     }

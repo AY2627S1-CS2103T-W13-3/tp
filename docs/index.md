@@ -7,11 +7,11 @@ title: PolicyHarbor
 
 **Clients. Follow-ups. Made simple.**
 
-PolicyHarbor v1.3.1 helps individual insurance agents manage client contacts and one pending follow-up per client through typed commands and a graphical workspace.
+PolicyHarbor v1.4 helps individual insurance agents manage client contacts and one pending follow-up per client through typed commands and a graphical workspace.
 
 [![Pending actions and a complete client profile in PolicyHarbor](images/Ui.png)](images/Ui.png)
 
-Use `view` to open a full client profile, `find` to search names, and `followups` to review actions ordered by due date. Status badges distinguish overdue, due-today and upcoming work. Client details and follow-ups are saved locally between sessions.
+Use `view` to open a full client profile, `find` to search names, and `followups` to review actions ordered by due date. A grouped summary remains visible beside the selected profile even while the numbered table is filtered. Enter and Run share one submission path; error feedback keeps rejected input ready to correct. Client details and follow-ups are saved locally between sessions.
 
 - **Start using the app:** [Download the JAR](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases) and follow the [User Guide](UserGuide.html#quick-start).
 - **Explore the implementation:** read the [Developer Guide](DeveloperGuide.html) and [setup instructions](SettingUp.html).

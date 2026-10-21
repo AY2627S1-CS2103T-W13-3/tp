@@ -16,14 +16,13 @@
 <?import javafx.scene.shape.SVGPath?>
 
 <fx:root type="javafx.stage.Stage" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-         title="PolicyHarbor v1.3.1" minWidth="640" minHeight="600" onCloseRequest="#handleExit">
+         title="PolicyHarbor v1.4" minWidth="640" minHeight="600" onCloseRequest="#handleExit">
   <icons>
     <Image url="@/images/address_book_32.png" />
   </icons>
   <scene>
     <Scene>
       <stylesheets>
-        <URL value="@DarkTheme.css" />
         <URL value="@Extensions.css" />
         <URL value="@Dashboard.css" />
       </stylesheets>
@@ -40,7 +39,7 @@
 
         <HBox alignment="CENTER_LEFT" spacing="12" styleClass="dashboard-header" VBox.vgrow="NEVER">
           <padding>
-            <Insets top="16" right="24" bottom="18" left="24" />
+            <Insets top="10" right="24" bottom="12" left="24" />
           </padding>
           <StackPane minWidth="34" prefWidth="34" maxWidth="34" prefHeight="38">
             <SVGPath content="M 16 1 L 30 6 L 30 17 C 30 27 23 33 16 37 C 9 33 2 27 2 17 L 2 6 Z"
@@ -60,11 +59,10 @@
             <Insets top="0" right="24" bottom="12" left="24" />
           </padding>
 
-          <VBox spacing="8" styleClass="dashboard-command-card" VBox.vgrow="NEVER">
+          <VBox spacing="6" styleClass="dashboard-command-card" VBox.vgrow="NEVER">
             <padding>
-              <Insets top="12" right="16" bottom="12" left="16" />
+              <Insets top="8" right="12" bottom="8" left="12" />
             </padding>
-            <Label text="Command" styleClass="dashboard-section-title" />
             <StackPane fx:id="commandBoxPlaceholder" styleClass="dashboard-command-host" minHeight="36" />
             <StackPane fx:id="resultDisplayPlaceholder" styleClass="dashboard-feedback-host"
                        minHeight="52" prefHeight="64" maxHeight="100" />
@@ -89,17 +87,12 @@
               <StackPane fx:id="personListPanelPlaceholder" minHeight="0" VBox.vgrow="ALWAYS" />
             </VBox>
 
-            <VBox spacing="16" styleClass="dashboard-right-column" minWidth="220" minHeight="0">
-              <VBox spacing="10" styleClass="dashboard-card" minHeight="0" VBox.vgrow="ALWAYS">
-                <padding>
-                  <Insets top="16" right="14" bottom="14" left="14" />
-                </padding>
-                <Label text="Profile" styleClass="dashboard-section-title" />
-                <StackPane fx:id="clientProfilePlaceholder" minHeight="0" VBox.vgrow="ALWAYS" />
-              </VBox>
+            <SplitPane orientation="VERTICAL" dividerPositions="0.52"
+                       styleClass="dashboard-right-column" minWidth="220" minHeight="0">
+              <StackPane fx:id="clientProfilePlaceholder" minHeight="0" />
               <StackPane fx:id="pendingFollowUpPlaceholder" visible="false" managed="false" minHeight="0"
                          VBox.vgrow="ALWAYS" />
-            </VBox>
+            </SplitPane>
           </SplitPane>
         </VBox>
 

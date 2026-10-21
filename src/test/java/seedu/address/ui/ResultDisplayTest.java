@@ -43,7 +43,11 @@ public class ResultDisplayTest {
             Platform.setImplicitExit(false);
             return null;
         });
-        Platform.startup(startup);
+        try {
+            Platform.startup(startup);
+        } catch (IllegalStateException alreadyStarted) {
+            Platform.runLater(startup);
+        }
         startup.get(10, TimeUnit.SECONDS);
     }
 

@@ -74,7 +74,7 @@ The **API** of this component is specified in [`Ui.java`](https://github.com/AY2
 
 ![Structure of the UI Component](images/UiClassDiagram.png)
 
-The UI consists of a `MainWindow` and its parts, including `CommandBox`, `ResultDisplay`, `PersonListPanel`, `ClientProfilePanel` and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
+The UI consists of a `MainWindow` and its parts, including `CommandBox`, `ResultDisplay`, `PersonListPanel`, `ClientProfilePanel`, `PendingFollowUpPanel` and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
 
 The `UI` component uses the JavaFX UI framework. The layouts of these UI parts are defined in matching `.fxml` files in `src/main/resources/view`. For example, [`MainWindow.fxml`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/resources/view/MainWindow.fxml) specifies the layout of [`MainWindow`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/ui/MainWindow.java).
 
@@ -258,25 +258,31 @@ This mapping matters for an identical follow-up replacement. The candidate may c
 
 These tests establish the model boundary. `ClientProfileWorkflowIntegrationTest` adds real-command checks for pending reordering, filter exclusion, full-list and pending-list clearing, failed-save preservation, restart, and a 50-client command sequence with rejected input and saved-byte checks. The manual testing appendix covers visual profile updates and window resizing.
 
-### Client workspace and pending-list rendering
+### Integrated dashboard and data ownership
 
-`MainWindow` places `PersonListPanel` and `ClientProfilePanel` in the two placeholders of a horizontal `SplitPane`. It passes the filtered list, `todayProperty()`, `showingFollowUpsProperty()` and `selectedPersonProperty()` to the list, and the selected-person and date properties to the profile. The UI only reads these values and never samples the clock.
+`MainWindow.fillInnerParts()` composes the command bar, feedback strip, numbered table, profile and grouped pending panel. Repeated initialization is rejected to prevent duplicate controls and subscriptions. The horizontal workspace divider and the vertical sidebar divider allocate space without changing the data or selection. Component FXML loads scoped styles; `Dashboard.css` owns host geometry and branding.
 
-`PersonListPanel` keeps one panel-level listener on the date, mode and selection properties. A change refreshes the visible cells and the empty-list text. Each cell rebuilds its `PersonCard` from `updateItem` and `updateIndex`. A reused cell that moves therefore gets the right number, and an empty cell clears its graphic, so no stale badge or highlight remains.
+The left `PersonListPanel` receives only `logic.getFilteredPersonList()`. Its unsortable `TableView` uses continuous one-based command indices and variable-height cells that wrap names/contact values. Due/status columns are visible in pending mode. `createRowDisplay` derives text from immutable values and the published date. Recycled rows clear old graphics and status badges; `isViewed` uses reference identity. Table selection never writes model selection. At widths below the visible columns' minimum total, the resize policy permits horizontal scrolling instead of hiding the last columns.
 
-`PersonCard(person, index, today, showingFollowUps)` renders an ordinary row (index, name, phone and email) or a pending row, which adds the due date, action and textual status badge. The three-argument constructor renders an ordinary row. `createFollowUpDisplay` is a pure function from person, date and mode to the row text and style, so the row content is unit-tested without starting JavaFX.
+`Logic.getAllPersonList()` exposes the stable, unmodifiable complete committed feed independently of search/pending filters. `MainWindow` constructs one `PendingFollowUpProjection` from it. The projection keeps clients with a follow-up, sorts them stably by due date and retains the canonical `Person` references. It never reads the filtered command list or samples a clock. Candidate execution and failed saves cannot publish tentative records into this feed.
 
-The viewed row comes from model selection only. `PersonListPanel.isViewed` compares object identity, so a same-name or value-equal record is never highlighted by mistake. Selection in the JavaFX `ListView` is styled like an ordinary row and never writes back to the model.
+`PendingFollowUpPanel` observes the projection, `todayProperty()` and `selectedPersonProperty()`. It groups actions by status using the published date, retaining due-date order within groups. It displays full names, dates and action text without command indices. Its selection listener observes invalidation so an equal-valued replacement still updates the identity-based marker. Empty groups are unmanaged and the empty summary is explicit.
 
-A failed load shows `Messages.MESSAGE_LOAD_WARNING` in a separate `loadWarning` label that is visible for the whole session. Command results replace only the result display. `MainWindow` logs only whether a command succeeded or failed, never the feedback text, because feedback contains contact and action details.
+On window close or programmatic hiding, `MainWindow` disposes the panel and closes the projection. Both operations are idempotent and their callbacks guard against already-queued notifications after disposal. No independent timer or second client store is introduced.
+
+### Command submission and feedback
+
+`CommandBox` routes the field's Enter action and the Run button through the same submission handler. Run is not a default button, preventing a second submission on Enter. Parse/command/save failures retain input and add one error style; success clears it. Focus returns to the command field so correction can continue. Diagnostic logs record only outcome and exception category, never raw commands or exception details containing client data.
+
+`ResultDisplay.setFeedbackToUser` resets error state explicitly; `setErrorFeedbackToUser` enables an Error label and a CSS pseudo-class. `MainWindow.executeCommand` uses the error setter only in its exception branch. The message is never classified by its wording. The read-only TextArea wraps, scrolls and allows selection/copying without stealing command input focus. Required resources/injected controls are validated. JavaFX component tests reuse an existing toolkit rather than calling `Platform.startup` twice in one JVM.
+
+The saved-data warning is a separate persistent label controlled by `logic.isDataLoadingBlocked()`. Normal and error feedback updates cannot clear it. The footer formats the real data path without modifying storage; its wrapped tooltip exposes the full path. Help remains available through F1/menu and supports keyboard copy/close.
 
 ### Client profile panel
 
-`ClientProfilePanel` receives Logic's read-only selected-client and published-date properties. It listens to both and renders the immutable `Person` without selecting, saving or sampling the device clock. A selected client displays name and labeled contact fields; `Tag.formatTags` supplies the sorted lowercase tags. The follow-up status comes from `FollowUp.getStatus(today)`, so a published date change updates the status even when the selected record does not change.
+`ClientProfilePanel` observes Logic's selected-client and published-date properties. It renders the immutable record without selecting, saving or sampling the device clock. Contact values and action text wrap in a scrollable card; lowercase tags are sorted chips, with `No tags` for an empty set. No selection clears the fields and shows `No client selected.`; no action shows `Follow-up: None`. Status derives from `FollowUp.getStatus(today)`.
 
-The panel's FXML contains a scrollable, read-only layout with wrapping address and action labels. Its scoped CSS is loaded by that FXML; shared workspace styles remain in `DarkTheme.css`. On deselection the panel hides all client fields, clears their text and shows `No client selected.`. When a selected client's action clears, it hides the date, action and status and shows `Follow-up: None`.
-
-`ClientProfilePanelTest` checks exact profile text, sorted tags, the no-selection and no-action states, and overdue/due-today/upcoming values from a fixed date. `ClientProfileWorkflowIntegrationTest` checks the selection and saved-data boundaries through real commands and storage. These tests do not prove visual wrapping or window composition; inspect the rendered pane at a narrow window width with long address and action values.
+`DashboardIntegrationTest` drives the real window, Logic, model and temporary JSON storage. It verifies global-summary independence from filtering, command indices after reordering, canonical profile retention, clear/delete, date-driven groups, failed-save byte/view preservation, error recovery, cleanup and logical layout sizes. Component suites cover cell recycling, long values, feedback accessibility and command submission separately. JavaFX layout tests establish logical geometry; the final OS scaling matrix still requires manual evidence.
 
 ### Follow-up state and date handling
 
@@ -342,7 +348,7 @@ These stories are delivered in v1.3. The MVP deliberately limits each client to 
 | High | receive useful errors without losing data | correct mistakes safely |
 | Medium | categorize clients with tags | keep relevant context in the profile |
 
-Backlog ideas, outside v1.3: multiple actions/history, notifications, client archiving, import and richer filtering. They are not advertised as available commands.
+Backlog ideas, outside v1.4: multiple actions/history, notifications, client archiving, import and richer filtering. They are not advertised as available commands.
 
 ### Use cases
 
@@ -509,6 +515,16 @@ Help window and data-file footer (automated tests cover only the URL constant an
 4. Where a platform or clipboard tool can reject writes, press **Copy link** again. Expect `Could not copy the link. Select it above and copy it instead.` Record whether this was exercised.
 5. Press Esc. Expect Help to close. Press F1 again; the previous copy message is cleared.
 6. Run `StatusBarFooterLongPathFixture` (in `src/test/java/seedu/address/ui`) from the IDE. It shows the footer for a path of about 200 characters. The footer must end with `addressbook.json`. Hovering it must show the full path wrapped within the screen, without clipping, until the pointer leaves. (The app always uses `data/addressbook.json`, so this path cannot be set through `preferences.json`.)
+
+### Integrated v1.4 dashboard checks
+
+Use a disposable folder and fictional clients. Add at least three clients and assign actions for today and a future date; use the automated fixed-date fixtures for overdue/date-boundary scenarios.
+
+1. Run `list`, then `view 1`. Enter `find` with another client's name. Only the numbered table is filtered; the global pending summary retains all actions. The profile clears when its client leaves the command list.
+2. Run `followups` and select a client with `view INDEX`. Replace their action with another valid date. The table renumbers in due-date order while the profile and VIEWING markers follow the same record. Clear the action in pending mode; that row and summary card disappear and selection clears.
+3. Submit an invalid command using Enter and then Run. Each activation produces one result, keeps the exact input and restores typing focus. Correct it to `list`; the Error label and input clear. Select/copy a long multiline error and scroll to its final line.
+4. Narrow the main divider and resize the window. Verify horizontal table scrolling, independently scrollable profile/summary and the vertical sidebar divider. At logical sizes corresponding to 1920x1080 at 100%/125% and 1280x720 at 150%, keep command submission, feedback and both views accessible. Record which real OS/scaling combinations were exercised.
+5. Close and restart the packaged JAR in the same folder. Clients/actions persist; session selection resets. Repeat with `java -ea -jar PolicyHarbor.jar` and confirm ordinary validation still works.
 
 ### Save failures and automated boundaries
 

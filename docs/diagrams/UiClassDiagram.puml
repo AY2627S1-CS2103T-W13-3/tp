@@ -13,7 +13,8 @@ Class HelpWindow
 Class ResultDisplay
 Class ClientProfilePanel
 Class PersonListPanel
-Class PersonCard
+Class PendingFollowUpPanel
+Class PendingFollowUpProjection
 Class StatusBarFooter
 Class CommandBox
 }
@@ -38,19 +39,21 @@ MainWindow *-down-> "1" StatusBarFooter
 MainWindow *--> "1" ClientProfilePanel
 MainWindow --> "1" HelpWindow
 
-PersonListPanel -down-> "*" PersonCard
+MainWindow *--> "1" PendingFollowUpPanel
+MainWindow *--> "1" PendingFollowUpProjection
 
 MainWindow -left-|> UiPart
 
 ResultDisplay --|> UiPart
 CommandBox --|> UiPart
 PersonListPanel --|> UiPart
-PersonCard --|> UiPart
+PendingFollowUpPanel --|> UiPart
 ClientProfilePanel --|> UiPart
 StatusBarFooter --|> UiPart
 HelpWindow --|> UiPart
 
-PersonCard ..> Model
+PendingFollowUpProjection ..> Model
+PendingFollowUpPanel ..> Model
 ClientProfilePanel ..> Model
 UiManager -right-> Logic
 MainWindow -left-> Logic

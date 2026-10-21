@@ -47,3 +47,11 @@ For isolated manual checks, use a fresh writable folder with fictional data and 
 Tests use fixed dates and temporary data folders. Storage failure tests inject write/move failures rather than relying on OS permissions. Keep successful and rejected commands' data/view assertions together.
 
 Pure display-function tests do not prove FXML binding, focus, wrapping or scaling. Follow the Developer Guide's [manual testing appendix](DeveloperGuide.md#appendix-instructions-for-manual-testing) against the actual JAR before a release, and record the tested platform/runtime and remaining gaps.
+
+## v1.4 integrated dashboard
+
+`DashboardIntegrationTest` exercises the real window, Logic and temporary JSON storage: filtered indices versus the global summary, canonical selection after pending reordering, clear/delete, failed-save preservation, explicit error recovery, published-date refresh, observer cleanup and logical layout sizes.
+
+The native mouse/keyboard tests in `CommandSubmissionTest` need an interactive desktop. Its macOS Actions profile skips those three tests unless `POLICYHARBOR_NATIVE_UI_TESTS=true`; the remaining JavaFX component tests still run. A local check using that profile must report the three skipped tests explicitly. Native packaged-app interaction and the real OS/resolution/scaling matrix are separate evidence; logical scene-size checks do not prove display scaling.
+
+See the [Developer Guide's dashboard procedure](DeveloperGuide.md#integrated-v14-dashboard-checks) for manual acceptance and the [v1.4 release notes](releases/v1.4.md) for the user-visible increment.
