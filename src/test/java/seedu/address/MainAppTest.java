@@ -66,6 +66,22 @@ public class MainAppTest {
     }
 
     @Test
+    public void trailingJsonContent_blocksChangesAndPreservesFile() throws Exception {
+        Path file = testFolder.resolve("trailing.json");
+        for (String trailing : new String[] {"x", "{\"persons\":[]}", "[1,2]", "{"}) {
+            String original = "{\"persons\":[]}" + trailing;
+            Files.writeString(file, original);
+            Storage storage = storage(file);
+            Model model = new MainApp().initModelManager(storage, new UserPrefs());
+            assertTrue(model.isDataLoadingBlocked());
+            LogicManager logic = new LogicManager(model, storage);
+            assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () ->
+                    logic.execute("add n/Ada p/123 e/ada@example.com a/Street"));
+            assertEquals(original, Files.readString(file));
+        }
+    }
+
+    @Test
     public void nullJsonClientFile_blocksChangesWithoutOverwritingIt() throws Exception {
         Path file = testFolder.resolve("null-client.json");
         Files.writeString(file, "null");
