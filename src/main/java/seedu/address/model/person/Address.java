@@ -9,7 +9,8 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
  */
 public class Address {
 
-    public static final String MESSAGE_CONSTRAINTS = "Addresses must not be blank.";
+    public static final String MESSAGE_CONSTRAINTS =
+            "Addresses must contain valid, non-blank single-line Unicode text without control characters.";
 
     // Single-line text may contain Unicode and punctuation, but not controls or line separators.
     public static final String VALIDATION_REGEX = "[^\\x00-\\x1f\\x7f-\\x9f\\u2028\\u2029]+";
@@ -33,7 +34,24 @@ public class Address {
      */
     public static boolean isValidAddress(String test) {
         String trimmedAddress = test.replaceAll("^ +| +$", "");
-        return !trimmedAddress.isEmpty() && trimmedAddress.matches(VALIDATION_REGEX);
+        return !trimmedAddress.isEmpty() && trimmedAddress.matches(VALIDATION_REGEX)
+                && hasValidSurrogatePairs(trimmedAddress);
+    }
+
+    /** Returns whether every UTF-16 surrogate belongs to a complete high/low pair. */
+    private static boolean hasValidSurrogatePairs(String text) {
+        for (int index = 0; index < text.length(); index++) {
+            char character = text.charAt(index);
+            if (Character.isHighSurrogate(character)) {
+                if (index + 1 >= text.length() || !Character.isLowSurrogate(text.charAt(index + 1))) {
+                    return false;
+                }
+                index++;
+            } else if (Character.isLowSurrogate(character)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
