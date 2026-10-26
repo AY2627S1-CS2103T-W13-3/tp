@@ -20,6 +20,7 @@ import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.logic.LogicManager;
 import seedu.address.logic.Messages;
 import seedu.address.logic.parser.exceptions.ParseException;
+import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.UserPrefs;
 import seedu.address.storage.JsonAddressBookStorage;
@@ -68,7 +69,10 @@ public class SavedDataEncodingRecoveryTest {
         assertFalse(repairedModel.isDataLoadingBlocked());
         assertEquals("新加坡 🏠 \uFFFD", repairedLogic.getAllPersonList().getFirst().getAddress().value);
         repairedLogic.execute("add n/Bob p/456 e/bob@example.com a/Home");
-        assertEquals(2, storage.readAddressBook().orElseThrow().getPersonList().size());
+        AddressBook reloaded = new AddressBook(storage.readAddressBook().orElseThrow());
+        assertEquals(2, reloaded.getPersonList().size());
+        assertEquals("新加坡 🏠 \uFFFD", reloaded.getPersonList().getFirst().getAddress().value);
+        assertEquals(repairedModel.getAddressBook(), reloaded);
     }
 
     @Test

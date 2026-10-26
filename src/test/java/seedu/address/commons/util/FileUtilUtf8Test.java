@@ -21,7 +21,9 @@ public class FileUtilUtf8Test {
         byte[][] malformed = {
             {(byte) 0x80}, // stray continuation byte
             {(byte) 0xC3}, // truncated two-byte sequence
-            {(byte) 0xFF} // invalid leading byte
+            {(byte) 0xFF}, // invalid leading byte
+            {(byte) 0xC0, (byte) 0xAF}, // overlong encoding of '/'
+            {(byte) 0xED, (byte) 0xA0, (byte) 0x80} // encoded high surrogate
         };
         Path file = folder.resolve("malformed.txt");
         for (byte[] bytes : malformed) {
