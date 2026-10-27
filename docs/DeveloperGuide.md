@@ -188,6 +188,15 @@ Tests cover domain partitions, exact messages, validation precedence, normalized
 
 **Strict JSON parsing.** `JsonUtil.fromJsonString` reads one root value and checks that no additional tokens remain. Trailing non-whitespace content, including a second JSON value, causes loading to fail; trailing JSON whitespace remains valid. `JsonUtil.readJsonFile` also rejects a null root. These checks apply before saved client records are converted. A client-data loading failure follows the protected startup path above: the empty model blocks mutations and preserves the original file. Repair the file or restore a valid backup, then restart the application before resuming client modifications.
 
+**Private loading diagnostics.** Jackson parsing and mapping exceptions can contain source JSON, rejected field values and nested client details.
+`JsonUtil.readJsonFile` therefore logs a fixed JSON/I/O failure category and the file path, without appending exception text or attaching a throwable to the log record.
+The original `IOException` remains the cause of `DataLoadingException` for callers; retaining that chain does not make its messages or stack trace safe for ordinary logs.
+
+`JsonDiagnosticPrivacyTest` captures real log records and checks their messages, attached throwables and formatted output against synthetic client canaries.
+Its fixtures cover malformed client JSON, wrong client/preference types, a nested constructor failure and a directory-read failure, while checking exception types and preservation of input bytes.
+`LoadingDiagnosticPrivacyTest` captures the shared logger across `MainApp`, storage and commands to verify protected startup without partial client publication, allowed queries, blocked mutations and safe diagnostics.
+For a preference type-mapping failure, it checks default recovery and repair while valid client data stays byte-identical; invalid preference bytes may be replaced.
+
 A saved record uses the following JSON shape. Tags are strings, not objects; omit `followUp` (or use `null`) when no action is pending. Do not add session selection or a computed status to the file.
 
 ```json
@@ -277,6 +286,9 @@ On window close or programmatic hiding, `MainWindow` disposes the panel and clos
 ### Command submission and feedback
 
 `CommandBox` routes the field's Enter action and the Run button through the same submission handler. Run is not a default button, preventing a second submission on Enter. Parse/command/save failures retain input and add one error style; success clears it. Focus returns to the command field so correction can continue. Diagnostic logs record only outcome and exception category, never raw commands or exception details containing client data.
+
+`FollowUpCommandBoxTest` checks forwarding and exception propagation at the executor boundary; `CommandSubmissionTest` checks the shared FXML submission path, single execution, retained input and focus recovery.
+Packaged acceptance must additionally exercise Enter and Run with valid and rejected commands, then correct the retained text without refocusing. Check the rendered feedback separately: a complete accessibility value or selectable message does not establish that its text is readable on screen.
 
 `ResultDisplay.setFeedbackToUser` resets error state explicitly; `setErrorFeedbackToUser` enables an Error label and a CSS pseudo-class. `MainWindow.executeCommand` uses the error setter only in its exception branch. The message is never classified by its wording. The read-only TextArea wraps, scrolls and allows selection/copying without stealing command input focus. Required resources/injected controls are validated. JavaFX component tests reuse an existing toolkit rather than calling `Platform.startup` twice in one JVM.
 

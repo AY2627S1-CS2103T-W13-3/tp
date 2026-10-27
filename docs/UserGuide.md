@@ -96,6 +96,19 @@ The footer identifies the local data file. When its path is shortened, hover ove
 
 If saved data could not be loaded at startup, a warning stays above the workspace for the whole session, whatever command you run. Close the app and restore a valid saved copy to clear it. An ordinary command error does not dismiss that warning.
 
+### Keyboard workflow and error correction
+
+Suppose Alice Morgan and Bob Chen are already in your client list. To review Alice's next action, enter each command separately:
+
+1. `find Alice` narrows the numbered table. If several clients match, identify Alice by her contact details and use her displayed index in the next commands.
+2. `view 1` opens the first match's profile so you can check the intended client before changing a follow-up.
+3. `followup 1 d/2099-12-15 m/Call about renewal` sets Alice's action. Replace the example date with today or a later date in `YYYY-MM-DD` format.
+4. `find Bob` switches the table to Bob and clears Alice's profile. Alice's action remains in the global pending summary.
+5. `followups` returns to the numbered pending list. Read its indices again before your next command because this list is ordered by due date.
+
+If you submit `view 0` with Enter, the rejected line remains in the command field. Press Backspace, type `1` and press Enter to correct the index without clicking the field again; use another valid displayed index when needed.
+You can also reach **Run** with Tab and activate it with Space. After a rejected Run submission, typing focus returns to the field; if the retained line is selected, type the corrected command to replace it.
+
 ### Supported commands
 
 Command words are case-sensitive. The supported words are `add`, `delete`, `view`, `find`, `list`, `followup` and `followups`.
