@@ -25,6 +25,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.layout.Region;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
@@ -76,7 +77,10 @@ public class DashboardLayoutBoundaryTest {
             try (Dashboard dashboard = new Dashboard(clients)) {
                 for (double[] size : LOGICAL_SIZES) {
                     dashboard.resize(size);
-                    dashboard.table().scrollTo(999);
+                    // TableView.scrollTo places rows by estimated height, so a taller wrapped last row can
+                    // miss the viewport on another platform's fonts; scroll to the end as a user would.
+                    VirtualFlow<?> rows = (VirtualFlow<?>) dashboard.table().lookup(".virtual-flow");
+                    rows.setPosition(1);
                     dashboard.layout();
                     TableCell<?, ?> cell = dashboard.indexCell(999);
                     assertEquals("1000", ((Text) cell.lookup(".text")).getText(), "at " + size[0] + "x" + size[1]);
