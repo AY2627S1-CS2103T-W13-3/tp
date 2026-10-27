@@ -63,7 +63,8 @@ public class JsonUtil {
         try {
             jsonFile = deserializeObjectFromJsonFile(filePath, classOfObjectToDeserialize);
         } catch (IOException e) {
-            logger.warning("Error reading from jsonFile file " + filePath + ": " + e);
+            // Jackson messages and causes can include client data, so keep them out of ordinary logs.
+            logger.warning("Error reading JSON file " + filePath + " (invalid JSON or I/O failure).");
             throw new DataLoadingException(e);
         }
 
