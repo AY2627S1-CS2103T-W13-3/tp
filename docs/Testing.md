@@ -48,6 +48,10 @@ Tests use fixed dates and temporary data folders. Storage failure tests inject w
 
 Pure display-function tests do not prove FXML binding, focus, wrapping or scaling. Follow the Developer Guide's [manual testing appendix](DeveloperGuide.md#appendix-instructions-for-manual-testing) against the actual JAR before a release, and record the tested platform/runtime and remaining gaps.
 
+## v1.5 dashboard layout and platform matrix
+
+`DashboardLayoutBoundaryTest` lays out the real window at the logical sizes of the release display matrix and checks a 1,000-client table, long unbroken profile values and a full pending summary. `DisplayMatrixFixture` writes the matching 1,000-client data file for packaged-JAR checks. Record automated results and every packaged OS/resolution/scaling check in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md); combinations nobody has run stay pending.
+
 ## v1.4 integrated dashboard
 
 `DashboardIntegrationTest` exercises the real window, Logic and temporary JSON storage: filtered indices versus the global summary, canonical selection after pending reordering, clear/delete, failed-save preservation, explicit error recovery, published-date refresh, observer cleanup and logical layout sizes.
