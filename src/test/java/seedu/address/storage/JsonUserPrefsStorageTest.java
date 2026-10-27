@@ -2,9 +2,11 @@ package seedu.address.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static seedu.address.testutil.Assert.assertThrows;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -68,6 +70,42 @@ public class JsonUserPrefsStorageTest {
         UserPrefs actual = readUserPrefs("ExtraValuesUserPref.json").get();
 
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void readUserPrefs_nullGuiSettings_throwsDataLoadingException() throws IOException {
+        Path file = testFolder.resolve("null-gui.json");
+        Files.writeString(file, "{\"guiSettings\":null}");
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(file);
+
+        assertThrows(DataLoadingException.class, () -> storage.readUserPrefs(file));
+        assertThrows(DataLoadingException.class, storage::readUserPrefs);
+        assertEquals("{\"guiSettings\":null}", Files.readString(file));
+    }
+
+    @Test
+    public void readUserPrefs_nullCoordinates_preservesCustomDimensions() throws Exception {
+        Path file = testFolder.resolve("no-position.json");
+        Files.writeString(file, "{\"guiSettings\":{\"windowWidth\":1234,\"windowHeight\":789,"
+                + "\"windowCoordinates\":null}}");
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(file);
+        UserPrefs preferences = storage.readUserPrefs().orElseThrow();
+
+        assertEquals(1234, preferences.getGuiSettings().getWindowWidth());
+        assertEquals(789, preferences.getGuiSettings().getWindowHeight());
+        assertNull(preferences.getGuiSettings().getWindowCoordinates());
+        storage.saveUserPrefs(preferences);
+        assertEquals(preferences, storage.readUserPrefs().orElseThrow());
+    }
+
+    @Test
+    public void readUserPrefs_outOfRangeDimensions_leavesClampingToWindow() throws Exception {
+        UserPrefs preferences = new UserPrefs();
+        preferences.setGuiSettings(new GuiSettings(-1, 0, 10, 20));
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(testFolder.resolve("dimensions.json"));
+        storage.saveUserPrefs(preferences);
+
+        assertEquals(preferences, storage.readUserPrefs().orElseThrow());
     }
 
     private UserPrefs getTypicalUserPrefs() {
