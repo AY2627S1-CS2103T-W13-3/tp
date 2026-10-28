@@ -224,6 +224,14 @@ public class PersonTest {
     }
 
     @Test
+    public void isDuplicateOf_unicodeCaseVariants_matchSymmetrically() {
+        Person upper = new PersonBuilder().withName("ΟΣ").build();
+        Person lower = new PersonBuilder(upper).withName("οσ").build();
+        assertTrue(upper.isDuplicateOf(lower));
+        assertTrue(lower.isDuplicateOf(upper));
+    }
+
+    @Test
     public void isDuplicateOf_contactOverlap_isNonTransitive() {
         Person first = new PersonBuilder().withName("Rachel Lim").withPhone("111")
                 .withEmail("one@example.com").build();

@@ -5,7 +5,6 @@ import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 import java.text.Normalizer;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -107,18 +106,18 @@ public class Person {
     }
 
     /**
-     * Returns true if names match ignoring English case and repeated ordinary spaces, and either
+     * Returns true if names match ignoring case and Unicode composition and repeated ordinary spaces, and either
      * phones match exactly or emails match ignoring case. Other fields do not affect rejection.
      * This symmetric relation is intentionally non-transitive; do not use it as equality or record identity.
      */
     public boolean isDuplicateOf(Person otherPerson) {
         return otherPerson != null
-                && normalizedName().equals(otherPerson.normalizedName())
+                && normalizedName().equalsIgnoreCase(otherPerson.normalizedName())
                 && (phone.equals(otherPerson.phone) || email.value.equalsIgnoreCase(otherPerson.email.value));
     }
 
     private String normalizedName() {
-        return Normalizer.normalize(name.fullName.toLowerCase(Locale.ROOT), Normalizer.Form.NFC)
+        return Normalizer.normalize(name.fullName, Normalizer.Form.NFC)
                 .replaceAll(" +", " ");
     }
 
