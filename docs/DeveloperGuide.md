@@ -183,6 +183,13 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 
 `DeleteCommandParser` checks for exactly one ordinary-space-separated token before calling `ParserUtil.parseIndex`. The shared helper accepts ASCII digits, trims outer U+0020, removes leading zeroes before bounded conversion and rejects values outside `1..2147483647` without leaking `NumberFormatException`. `FollowUpParserUtil` and `ViewCommandParser` use the same helper. Delete resolves an index against `Model.getFilteredPersonList`, retaining the active mode and deleting the full record with its action.
 
+`StringUtil.trimOrdinarySpaces` is shared by command parsers, contact/follow-up validation and saved-person/tag adapters.
+It scans the two outer boundaries for U+0020 instead of retrying a trailing-space regular expression at each internal space.
+Internal spacing, case, non-ASCII characters and the existing validation order remain unchanged; tabs and other whitespace are not silently stripped by this helper.
+The address validator still checks complete UTF-16 surrogate pairs, and stored values continue through the same domain rules as command input.
+`LongWhitespaceCommandTest` exercises a long valid name through add, save/load and search, plus rejection of an overlength follow-up without changing saved bytes.
+`StringUtilTest` checks the short-input contract, including empty/blank text, internal spaces, tabs, non-breaking spaces and Unicode text. Its large-string timing regression measures only the pure trim call; workflow correctness tests do not impose a disk-I/O deadline.
+
 `LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, index and save failures preserve live data, list mode/order, selection and date; successful read-only commands do not save.
 
 Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, index boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, pending/filter indices, follow-up targeting and injected save failures. Parser tests cover syntax separately from command displayed-range checks.

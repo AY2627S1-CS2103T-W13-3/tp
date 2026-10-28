@@ -1,5 +1,7 @@
 package seedu.address.storage;
 
+import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -87,7 +89,7 @@ class JsonAdaptedPerson {
         if (phone == null) {
             throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, Phone.class.getSimpleName()));
         }
-        String trimmedPhone = phone.replaceAll("^ +| +$", "");
+        String trimmedPhone = trimOrdinarySpaces(phone);
         if (!Phone.isValidPhone(trimmedPhone)) {
             throw new IllegalValueException(Phone.MESSAGE_CONSTRAINTS);
         }
@@ -96,7 +98,7 @@ class JsonAdaptedPerson {
         if (email == null) {
             throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, Email.class.getSimpleName()));
         }
-        String trimmedEmail = email.replaceAll("^ +| +$", "");
+        String trimmedEmail = trimOrdinarySpaces(email);
         if (!Email.isValidEmail(trimmedEmail)) {
             throw new IllegalValueException(Email.MESSAGE_CONSTRAINTS);
         }
