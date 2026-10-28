@@ -18,7 +18,8 @@ public final class FollowUp {
     public static final String MESSAGE_INVALID_DATE =
             "Dates must exist and use YYYY-MM-DD format, with a year from 0001 to 9999.";
     public static final String MESSAGE_INVALID_DESCRIPTION =
-            "Follow-up descriptions must contain 1 to 200 printable English characters after trimming.";
+            "Follow-up descriptions must contain 1 to 200 Unicode code points after trimming, "
+                    + "including visible text and no controls, line breaks or invalid characters.";
 
     private final LocalDate dueDate;
     private final String description;
@@ -35,7 +36,7 @@ public final class FollowUp {
         requireNonNull(description);
         checkArgument(isValidYear(dueDate), MESSAGE_INVALID_DATE);
         String trimmedDescription = trimOrdinarySpaces(description);
-        checkArgument(trimmedDescription.matches("[ -~]{1,200}"), MESSAGE_INVALID_DESCRIPTION);
+        checkArgument(isValidDescription(trimmedDescription), MESSAGE_INVALID_DESCRIPTION);
         this.dueDate = dueDate;
         this.description = trimmedDescription;
     }
@@ -83,6 +84,39 @@ public final class FollowUp {
 
     private static boolean isValidYear(LocalDate date) {
         return date.getYear() >= 1 && date.getYear() <= 9999;
+    }
+
+    /** Validates single-line Unicode text without changing its spelling or joining sequences. */
+    private static boolean isValidDescription(String text) {
+        int codePointCount = 0;
+        boolean hasVisibleContent = false;
+        for (int index = 0; index < text.length();) {
+            int codePoint = text.codePointAt(index);
+            int type = Character.getType(codePoint);
+            codePointCount++;
+            if (codePointCount > 200 || type == Character.CONTROL || type == Character.SURROGATE
+                    || type == Character.LINE_SEPARATOR || type == Character.PARAGRAPH_SEPARATOR
+                    || type == Character.UNASSIGNED) {
+                return false;
+            }
+            hasVisibleContent |= isVisibleDescriptionCharacter(codePoint);
+            index += Character.charCount(codePoint);
+        }
+        return hasVisibleContent;
+    }
+
+    /** Marks and format characters may accompany visible text but cannot form a note by themselves. */
+    private static boolean isVisibleDescriptionCharacter(int codePoint) {
+        if (Character.isWhitespace(codePoint) || Character.isSpaceChar(codePoint)) {
+            return false;
+        }
+        return switch (Character.getType(codePoint)) {
+            case Character.FORMAT, Character.NON_SPACING_MARK, Character.COMBINING_SPACING_MARK,
+                    Character.ENCLOSING_MARK -> false;
+            // Hangul fillers and Braille blank have letter/symbol categories but do not provide visible content.
+            default -> codePoint != 0x115f && codePoint != 0x1160 && codePoint != 0x3164
+                    && codePoint != 0xffa0 && codePoint != 0x2800;
+        };
     }
 
     @Override

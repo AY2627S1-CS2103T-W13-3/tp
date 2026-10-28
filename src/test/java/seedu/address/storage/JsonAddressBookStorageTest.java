@@ -1,5 +1,6 @@
 package seedu.address.storage;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -117,6 +118,22 @@ public class JsonAddressBookStorageTest {
     @Test
     public void saveAddressBook_nullFilePath_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> saveAddressBook(new AddressBook(), null));
+    }
+
+    @Test
+    public void readAddressBook_invalidUnicodeFollowUp_preservesFileBytes() throws Exception {
+        Path file = testFolder.resolve("invalid-unicode-followup.json");
+        for (String descriptionJson : List.of("\\uD800", "\\uDC00", "\\u200B\\uFE0F", "\\u0085", "\\u2028")) {
+            String json = "{\"persons\":[{\"name\":\"Test Client\",\"phone\":\"91234567\","
+                    + "\"email\":\"client@example.com\",\"address\":\"Test Street\",\"tags\":[],"
+                    + "\"followUp\":{\"dueDate\":\"2099-12-15\",\"description\":\"" + descriptionJson + "\"}}]}";
+            Files.writeString(file, json);
+            byte[] original = Files.readAllBytes(file);
+
+            assertThrows(DataLoadingException.class, () -> new JsonAddressBookStorage(file).readAddressBook());
+
+            assertArrayEquals(original, Files.readAllBytes(file));
+        }
     }
 
     @Test
@@ -319,6 +336,7 @@ public class JsonAddressBookStorageTest {
         assertTrue(java.util.Arrays.equals(originalBytes, Files.readAllBytes(target)));
         assertEquals(original, new AddressBook(new JsonAddressBookStorage(link).readAddressBook().orElseThrow()));
     }
+
     @Test
     public void saveAddressBook_linkSwappedAfterFinalCheck_doesNotWriteThroughToTarget() throws Exception {
         Path target = testFolder.resolve("external.json");

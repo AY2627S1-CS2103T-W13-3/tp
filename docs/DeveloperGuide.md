@@ -357,6 +357,10 @@ The saved-data warning is a separate persistent label controlled by `logic.isDat
 
 `Person` contains an optional immutable `FollowUp` with a `LocalDate` due date and an action description. Recording or replacing an action creates a new `Person` that preserves every contact field and tag; clearing removes the optional action. There is no action history or completion flag.
 
+Descriptions preserve Unicode spelling without normalization and retain internal spacing, trimming only outer U+0020 spaces. The domain validator scans code points, enforcing a 1–200 limit and rejecting controls, line/paragraph separators, unpaired surrogates and unassigned code points. Each supplementary character counts once; combining marks, variation selectors and joining characters each count towards the limit.
+At least one code point must provide visible content: Unicode spaces, format characters, combining marks, Hangul fillers (U+115F/U+1160/U+3164/U+FFA0) and Braille blank (U+2800) do not qualify by themselves. Format characters and marks remain valid within notes containing visible text or symbols, preserving script shaping and joined emoji. This is a text-validation rule; actual glyph support depends on the platform's fonts.
+`JsonAdaptedFollowUp` reuses this domain validation when loading saved notes. The parser's global control-character gate and reserved `d/`/`m/` prefix handling remain unchanged.
+
 `FollowUpCommandParser` recognizes either `followup INDEX clear` or one date and one description prefix. Commands resolve the index against the current displayed list before validating a new date/action. New and replacement actions accept past dates for overdue carry-over work, using the same strict calendar, year (`0001`–`9999`) and description validation as stored actions. Date errors precede description errors; a valid past date with an invalid description reports the description error.
 
 `ArgumentTokenizer` recognizes `d/` and `m/` anywhere they immediately follow an ordinary space (U+0020), including inside a description. It does not interpret quotation marks or provide prefix escaping. Repeating either prefix therefore fails duplicate-prefix validation before command execution; an existing action stays unchanged. For example, `m/Confirm d/m/y format` repeats `d/`, while `m/Confirm day/month/year format` and `m/Check ref:d/m/y` preserve the intended descriptions.
@@ -628,9 +632,11 @@ Use a disposable writable folder and two fictional clients. Substitute actual da
 
 ### Window, help and long content
 
+For Unicode follow-up acceptance, use a disposable writable folder and a fictional client. Record `followup 1 d/2099-12-15 m/续保电话`, then replace it with Tamil, Arabic, accented text and a joined emoji such as `👩‍💻`. Verify the full note in the selected profile and pending summary, then restart and check that spelling and joining sequences are retained. Check glyph readability on each supported platform; automated tests establish text preservation, not installed-font coverage. Try a 201-code-point note or a note made only of spaces/zero-width characters; expect rejection with the previous action intact.
+
 - Test full/search/pending modes, scrolling and empty lists. Ordinary rows show no action fields; reused/empty rows show no stale badge or `VIEWING` marker.
 - Click/highlight another row while a profile is open. The viewed client must remain unchanged until a successful `view` command.
-- Use a long address and an action up to 200 characters. Narrow the split panes and verify wrapping/scrolling and access to the command box and feedback.
+- Use a long address and an action up to 200 Unicode code points. Narrow the split panes and verify wrapping/scrolling and access to the command box and feedback.
 - Check at 1920×1080 with 100%/125% scaling and at 1280×720 with 150% scaling on available platforms. Record any untested combinations.
 
 Help window and data-file footer (automated tests cover only the URL constant and feedback text):

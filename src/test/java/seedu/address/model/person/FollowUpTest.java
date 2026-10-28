@@ -35,11 +35,55 @@ public class FollowUpTest {
     @Test
     public void constructor_invalidDescription_throwsIllegalArgumentException() {
         String[] invalidDescriptions = {"", "   ", "x".repeat(201), "\tCall", "Call\n", "Call\r",
-            "Call\u0000", "Call\u007f", "Call\u0085", "Call\u2028", "Call\u2029", "café", "Call 😀",
-            "\u00a0Call ", "Call\tclient"};
+            "Call\u0000", "Call\u007f", "Call\u0085", "Call\u2028", "Call\u2029", "Call\tclient",
+            "\ud800", "\udc00", "Call\ud800end", "\udc00\ud800", "\ud800\ud800\udc00",
+            "Call\u0378", "Call\uffff"};
         for (String description : invalidDescriptions) {
             assertThrows(IllegalArgumentException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
                     new FollowUp(TODAY, description));
+        }
+    }
+
+    @Test
+    public void constructor_multilingualTextAndJoiningSequences_preservesExactDescription() {
+        String[] descriptions = {"续保电话", "வாடிக்கையாளரை அழைக்கவும்", "اتصال بشأن التجديد", "Café",
+            "Cafe\u0301", "Call 😀", "👩\u200d💻", "மீண்டும்  அழைக்கவும்", "می\u200cروم",
+            "\u00a0Call\u3000", "续保，Call — renewal!", "\ufffd"};
+        for (String description : descriptions) {
+            assertEquals(description, new FollowUp(TODAY, " " + description + " ").getDescription());
+        }
+    }
+
+    @Test
+    public void constructor_unicodeLengthBoundary_countsCodePointsRatherThanUtf16Units() {
+        for (String description : new String[] {"续".repeat(200), "😀".repeat(200), "e\u0301".repeat(100),
+            "👩\u200d💻".repeat(66) + "!!"}) {
+            assertEquals(200, description.codePointCount(0, description.length()));
+            assertEquals(description, new FollowUp(TODAY, " " + description + " ").getDescription());
+            assertThrows(IllegalArgumentException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
+                    new FollowUp(TODAY, description + "!"));
+        }
+    }
+
+    @Test
+    public void constructor_invisibleOrCombiningMarksOnly_rejectsDescription() {
+        String[] descriptions = {"\u00a0", "\u3000", "\u200b", "\u200c\u200d", "\ufeff", "\u034f",
+            "\ufe0f", "\udb40\udd00", "\u0301", "\u115f\u1160", "\u3164", "\uffa0", "\u2800",
+            " \u00a0\u200b\u3000\ufe0f "};
+        for (String description : descriptions) {
+            assertThrows(IllegalArgumentException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
+                    new FollowUp(TODAY, description));
+        }
+    }
+
+    @Test
+    public void constructor_allIsoControls_rejectsDescription() {
+        for (int codePoint = 0; codePoint <= 0x9f; codePoint++) {
+            if (Character.isISOControl(codePoint)) {
+                String description = "Call" + (char) codePoint + "client";
+                assertThrows(IllegalArgumentException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
+                        new FollowUp(TODAY, description));
+            }
         }
     }
 

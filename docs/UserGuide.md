@@ -295,7 +295,9 @@ Records one pending action for the client at an index in the **currently display
 
 Format: `followup INDEX d/DATE m/DESCRIPTION`
 
-Use an existing calendar date in `YYYY-MM-DD` format, with a year from `0001` to `9999`. A new or replacement follow-up may be due in the past, today or in the future. Use the original due date to record overdue carry-over work; a date before today displays as `OVERDUE`. An already saved follow-up can also become overdue as time passes. The description must contain 1–200 printable English ASCII characters after outer ordinary spaces are removed. Its internal spaces are retained.
+Use an existing calendar date in `YYYY-MM-DD` format, with a year from `0001` to `9999`. A new or replacement follow-up may be due in the past, today or in the future. Use the original due date to record overdue carry-over work; a date before today displays as `OVERDUE`. An already saved follow-up can also become overdue as time passes.
+
+Descriptions support multilingual text, accents, punctuation and emoji, such as `followup 1 d/2099-12-15 m/续保电话`. They must contain 1–200 Unicode code points after outer ordinary spaces are removed. A letter with a combining accent or a joined emoji can contain several code points. Original spelling and internal spaces are preserved. Notes must include visible text or a symbol; whitespace, formatting characters or combining marks alone do not form a valid note. Controls, line breaks and invalid or unassigned Unicode characters are rejected. The existing reserved-prefix rules for `d/` and `m/` still apply.
 
 Within a description, `d/` and `m/` immediately preceded by an ordinary space are reserved command prefixes. They cause a duplicate-field error, even when the description is wrapped in quotation marks; quotes do not escape prefixes. For example, `followup 1 d/2099-12-15 m/Confirm d/m/y format` is rejected. Use `followup 1 d/2099-12-15 m/Confirm day/month/year format` instead, with a valid displayed index and date. Slash text without that preceding space, such as `ref:d/m/y`, is allowed.
 
