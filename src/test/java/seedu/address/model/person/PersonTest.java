@@ -214,6 +214,16 @@ public class PersonTest {
     }
 
     @Test
+    public void isDuplicateOf_unicodeNormalizationMatchesEquivalentNames() {
+        Person composed = new PersonBuilder().withName("José Tan").withPhone("91234567")
+                .withEmail("one@example.com").build();
+        Person decomposed = new PersonBuilder(composed).withName("Jose\u0301 Tan")
+                .withEmail("two@example.com").build();
+        assertTrue(composed.isDuplicateOf(decomposed));
+        assertTrue(decomposed.isDuplicateOf(composed));
+    }
+
+    @Test
     public void isDuplicateOf_contactOverlap_isNonTransitive() {
         Person first = new PersonBuilder().withName("Rachel Lim").withPhone("111")
                 .withEmail("one@example.com").build();

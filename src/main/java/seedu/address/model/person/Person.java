@@ -2,6 +2,7 @@ package seedu.address.model.person;
 
 import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 
+import java.text.Normalizer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Locale;
@@ -117,7 +118,8 @@ public class Person {
     }
 
     private String normalizedName() {
-        return name.fullName.toLowerCase(Locale.ROOT).replaceAll(" +", " ");
+        return Normalizer.normalize(name.fullName.toLowerCase(Locale.ROOT), Normalizer.Form.NFC)
+                .replaceAll(" +", " ");
     }
 
     /**

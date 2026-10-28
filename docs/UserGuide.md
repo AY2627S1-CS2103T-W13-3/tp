@@ -133,7 +133,7 @@ Supply each required prefix exactly once. The prefixes may appear in any order a
 
 | Field | Accepted values |
 | --- | --- |
-| Name | Non-blank English letters, digits and ordinary spaces. Case and internal spaces are preserved. |
+| Name | Non-blank letters from any language, digits `0`–`9`, combining accents and ordinary spaces. Control characters and invalid Unicode are rejected. Case, accents and internal spaces are preserved. |
 | Phone | At least three digits `0`–`9`. Leading zeroes are retained. |
 | Email | Alphanumeric groups separated by single `+`, `_`, `.` or `-` before one `@`; domain labels contain alphanumeric groups separated by single hyphens and labels separated by dots. The final label must contain two adjacent letters or digits. Stored case is preserved. |
 | Address | Non-empty single-line text, including punctuation, non-English text and emoji. |
@@ -147,7 +147,7 @@ Address input and recovery:
 * When editing the saved JSON directly, use complete characters. An incomplete Unicode escape pair, such as a lone `\uD800` in an address, causes the whole client file to be rejected at startup, even if the JSON syntax is otherwise correct.
 * In that case, the app shows the saved-data warning and blocks client changes to protect the file. Close the app, back up the file, correct the affected address or restore a valid backup, then restart. Editing the file while the app is open does not clear the warning.
 
-A client is a duplicate when **their name matches and either their phone or email matches** an existing client. Names are compared ignoring English case and repeated ordinary spaces; phones match exactly, and emails ignore case. Address, tags and follow-up do not affect this check. Two clients may share a name if both their phone and email differ. Different names may share contact details. Duplicate checks include clients hidden by the current filter.
+A client is a duplicate when **their name matches and either their phone or email matches** an existing client. Names are compared ignoring case, Unicode composition and repeated ordinary spaces; phones match exactly, and emails ignore case. Address, tags and follow-up do not affect this check. Two clients may share a name if both their phone and email differ. Different names may share contact details. Duplicate checks include clients hidden by the current filter.
 
 Examples, entered into a list without these clients:
 
@@ -213,6 +213,7 @@ Searches all clients' names, including clients hidden by a prior search or pendi
 Format: `find KEYWORD [MORE_KEYWORDS]...`
 
 * Matching is case-insensitive: `rachel` matches `Rachel`.
+* Composed and decomposed Unicode spellings of the same word match, for example `José` and `José`.
 * Only whole words match: `Rach` does not match `Rachel`.
 * A client matching any keyword appears once (an OR search). Keyword order and repeated keywords do not change the result order.
 * Only names are searched; phone, email, address and tags are not searched.

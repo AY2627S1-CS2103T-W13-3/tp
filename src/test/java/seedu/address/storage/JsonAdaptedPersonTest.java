@@ -43,6 +43,13 @@ public class JsonAdaptedPersonTest {
     }
 
     @Test
+    public void toModelType_unicodeName_preservesSpelling() throws Exception {
+        Person source = new Person(new Name("Jose\u0301 Tan"), new Phone("91234567"),
+                new Email("jose@example.com"), new Address("Home"), Set.of());
+        assertEquals(source, new JsonAdaptedPerson(source).toModelType());
+    }
+
+    @Test
     public void toModelType_paddedValues_normalizesLikeCommandInput() throws Exception {
         JsonAdaptedPerson stored = new JsonAdaptedPerson("  Ada  Lovelace  ", " 012345 ",
                 " Ada+Work@Example.com ", "  10 Main Street  ",
@@ -76,6 +83,13 @@ public class JsonAdaptedPersonTest {
                 new JsonAdaptedPerson(INVALID_NAME, VALID_PHONE, VALID_EMAIL, VALID_ADDRESS, VALID_TAGS);
         String expectedMessage = Name.MESSAGE_CONSTRAINTS;
         assertThrows(IllegalValueException.class, expectedMessage, person::toModelType);
+    }
+
+    @Test
+    public void toModelType_unpairedSurrogateName_throwsIllegalValueException() {
+        JsonAdaptedPerson person = new JsonAdaptedPerson("Jose\uD800", VALID_PHONE, VALID_EMAIL,
+                VALID_ADDRESS, VALID_TAGS);
+        assertThrows(IllegalValueException.class, Name.MESSAGE_CONSTRAINTS, person::toModelType);
     }
 
     @Test

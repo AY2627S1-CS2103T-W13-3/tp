@@ -207,7 +207,7 @@ public class AddCommandParserTest {
     @Test
     public void parse_fieldValidation_followsNamePhoneEmailAddressThenTags() {
         assertParseFailure(parser, " a/ t/! e/bad p/12 n/Bad&",
-                "Names must contain only English letters, digits and spaces. Names must not be blank.");
+                Name.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, " a/ t/! e/bad p/12 n/Rachel",
                 "Phone numbers must contain only digits 0-9 and have at least 3 digits.");
         assertParseFailure(parser, " a/ t/! e/bad p/001 n/Rachel",

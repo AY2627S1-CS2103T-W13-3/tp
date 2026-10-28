@@ -57,6 +57,12 @@ public class NameContainsKeywordsPredicateTest {
     }
 
     @Test
+    public void test_unicodeComposedAndDecomposedNames_match() {
+        NameContainsKeywordsPredicate predicate = new NameContainsKeywordsPredicate(List.of("José"));
+        assertTrue(predicate.test(new PersonBuilder().withName("Jose\u0301 Tan").build()));
+    }
+
+    @Test
     public void test_nameDoesNotContainKeywords_returnsFalse() {
         // Zero keywords
         NameContainsKeywordsPredicate predicate = new NameContainsKeywordsPredicate(List.of());
