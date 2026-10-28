@@ -11,11 +11,15 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
+import seedu.address.commons.util.AppInstanceLock;
 import seedu.address.commons.util.StringUtil;
 import seedu.address.logic.Logic;
 import seedu.address.logic.LogicManager;
@@ -42,6 +46,7 @@ public class MainApp extends Application {
     private static final Logger logger = LogsCenter.getLogger(MainApp.class);
     private static final Path USER_PREFS_FILE_PATH = Paths.get("preferences.json");
     private static final Path ADDRESS_BOOK_FILE_PATH = Paths.get("data", "addressbook.json");
+    private static final Path INSTANCE_LOCK_FILE_PATH = Paths.get(".policyharbor.lock");
 
     protected Ui ui;
     protected Logic logic;
@@ -49,22 +54,44 @@ public class MainApp extends Application {
     protected Model model;
 
     private Timeline dateRefreshTimeline;
+    private AppInstanceLock instanceLock;
+    private String startupFailureMessage;
 
     @Override
     public void init() throws Exception {
         logger.info("=============================[ Initializing PolicyHarbor ]===========================");
         super.init();
 
-        JsonUserPrefsStorage userPrefsStorage = new JsonUserPrefsStorage(USER_PREFS_FILE_PATH);
-        UserPrefs userPrefs = initPrefs(userPrefsStorage);
-        JsonAddressBookStorage addressBookStorage = new JsonAddressBookStorage(ADDRESS_BOOK_FILE_PATH);
-        storage = new StorageManager(addressBookStorage, userPrefsStorage);
+        try {
+            instanceLock = AppInstanceLock.acquire(INSTANCE_LOCK_FILE_PATH);
+        } catch (AppInstanceLock.AlreadyRunningException e) {
+            startupFailureMessage = "PolicyHarbor is already running in this folder. "
+                    + "Use the existing window, or close it before opening PolicyHarbor again. "
+                    + "No client data or preferences were loaded or changed by this window.";
+            logger.warning("Startup blocked because another instance holds the data-folder lock.");
+            return;
+        } catch (IOException e) {
+            startupFailureMessage = "PolicyHarbor could not lock this folder for saving data. "
+                    + "Run it from a writable folder and check that .policyharbor.lock is a regular file. "
+                    + "No client data or preferences were loaded or changed.";
+            logger.warning("Startup blocked because the data-folder lock could not be acquired.");
+            return;
+        }
 
-        model = initModelManager(storage, userPrefs);
+        try {
+            JsonUserPrefsStorage userPrefsStorage = new JsonUserPrefsStorage(USER_PREFS_FILE_PATH);
+            UserPrefs userPrefs = initPrefs(userPrefsStorage);
+            JsonAddressBookStorage addressBookStorage = new JsonAddressBookStorage(ADDRESS_BOOK_FILE_PATH);
+            storage = new StorageManager(addressBookStorage, userPrefsStorage);
 
-        logic = new LogicManager(model, storage);
+            model = initModelManager(storage, userPrefs);
+            logic = new LogicManager(model, storage);
 
-        ui = new UiManager(logic, storage.getAddressBookFilePath());
+            ui = new UiManager(logic, storage.getAddressBookFilePath());
+        } catch (Exception | Error e) {
+            releaseInstanceLock();
+            throw e;
+        }
     }
 
     /**
@@ -119,6 +146,15 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        if (startupFailureMessage != null) {
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("PolicyHarbor could not start");
+            alert.setHeaderText("This window cannot use the data folder");
+            alert.setContentText(startupFailureMessage);
+            alert.showAndWait();
+            Platform.exit();
+            return;
+        }
         logger.info("Starting PolicyHarbor " + MainApp.VERSION);
         logic.refreshToday();
         refreshDateOnFocus(primaryStage.focusedProperty(), logic);
@@ -150,9 +186,25 @@ public class MainApp extends Application {
             dateRefreshTimeline.stop();
         }
         try {
-            storage.saveUserPrefs(model.getUserPrefs());
+            if (storage != null && model != null) {
+                storage.saveUserPrefs(model.getUserPrefs());
+            }
         } catch (IOException e) {
             logger.severe("Failed to save preferences " + StringUtil.getDetails(e));
+        } finally {
+            releaseInstanceLock();
+        }
+    }
+
+    private void releaseInstanceLock() {
+        if (instanceLock != null) {
+            try {
+                instanceLock.close();
+            } catch (IOException e) {
+                logger.warning("Could not close the data-folder lock channel.");
+            } finally {
+                instanceLock = null;
+            }
         }
     }
 }
