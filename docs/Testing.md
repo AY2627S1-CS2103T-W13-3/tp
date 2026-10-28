@@ -52,6 +52,8 @@ Pure display-function tests do not prove FXML binding, focus, wrapping or scalin
 
 `DashboardLayoutBoundaryTest` lays out the real window at the logical sizes of the release display matrix and checks a 1,000-client table, long unbroken profile values and a full pending summary. `DisplayMatrixFixture` writes the matching 1,000-client data file for packaged-JAR checks. Run `./gradlew displayMatrixFixture --args="/absolute/path/to/fresh-folder yyyy-MM-dd"`; the folder must not already contain a client-data file. `DisplayMatrixFixtureTest` checks round-trip loading, the reference-date distribution and refusal to overwrite existing data. Use `./gradlew packagedBackendCheck --args="/absolute/path/to/another-fresh-folder"` for a self-checking 1,000-client workflow and backend timings against the built JAR. This does not exercise keyboard/mouse input or rendering. Record automated results and every packaged OS/resolution/scaling check in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md); combinations nobody has run stay pending.
 
+The [28 October composed-candidate record](testing/v1.5/platform-matrix.md#composed-candidate-record-28-october-2026) identifies the exact source and JAR, 624 passing tests, three locally excluded native-input tests, packaged backend timings and limited ordinary/`-ea` startup observations. Physical resolution/scaling and desktop interaction remain pending; #135 is not complete.
+
 ## v1.4 integrated dashboard
 
 `DashboardIntegrationTest` exercises the real window, Logic and temporary JSON storage: filtered indices versus the global summary, canonical selection after pending reordering, clear/delete, failed-save preservation, explicit error recovery, published-date refresh, observer cleanup and logical layout sizes.
