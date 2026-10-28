@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.testutil.Assert.assertThrows;
 
 import java.io.IOException;
@@ -27,6 +28,7 @@ import seedu.address.model.AddressBook;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.model.person.Person;
@@ -58,7 +60,7 @@ public class ClientRecordCommandsTest {
     @BeforeEach
     public void setUp() throws Exception {
         AddressBook addressBook = new AddressBook();
-        addressBook.setPersons(List.of(rachel, otherRachel));
+        addressBook.restorePersons(List.of(rachel, otherRachel), List.of(new ClientId(2), new ClientId(17)), 42);
         model = new ModelManager(addressBook, new UserPrefs(), STARTUP_DATE, false);
         storage = new CountingStorage(temporaryFolder);
         storage.saveAddressBook(addressBook);
@@ -80,27 +82,33 @@ public class ClientRecordCommandsTest {
     }
 
     @Test
-    public void execute_addSameNameDifferentContacts_savesAndResetsPendingView() throws Exception {
+    public void execute_addSameNameDifferentContacts_savesAndRetainsPendingView() throws Exception {
         model.showPendingFollowUps();
         CommandResult result = logic.execute("add n/Rachel Lim p/004 e/third@example.com a/新加坡 🏠"
                 + " t/HEALTH t/health t/2026");
-        assertEquals("New client added: Rachel Lim; Phone: 004; Email: third@example.com; Address: 新加坡 🏠; "
-                + "Tags: [2026] [health]", result.getFeedbackToUser());
+        assertTrue(result.getFeedbackToUser().contains("42"));
+        assertTrue(result.getFeedbackToUser().contains("Rachel Lim; Phone: 004; Email: third@example.com; "
+                + "Address: 新加坡 🏠; Tags: [2026] [health]"));
         assertEquals(3, model.getAddressBook().getPersonList().size());
-        assertEquals(model.getAddressBook().getPersonList(), model.getFilteredPersonList());
-        assertFalse(model.showingFollowUpsProperty().get());
+        assertEquals(List.of(otherRachel, rachel), model.getFilteredPersonList());
+        assertTrue(model.showingFollowUpsProperty().get());
+        assertEquals(new ClientId(42), model.getAddressBook().getClientId(
+                model.getAddressBook().getPersonList().get(2)).orElseThrow());
+        assertEquals(43L, model.getAddressBook().getNextClientId());
         assertEquals(1, storage.saveCount);
         assertEquals(model.getAddressBook(), storage.readAddressBook().orElseThrow());
         assertEquals(STARTUP_DATE.plusDays(1), model.getToday());
     }
 
     @Test
-    public void execute_addWhileFiltered_resetsToFullInsertionOrder() throws Exception {
+    public void execute_addWhileFiltered_retainsPredicateAndExistingIds() throws Exception {
         model.updateFilteredPersonList(person -> person.equals(otherRachel));
-        assertEquals("New client added: John Tan; Phone: 003; Email: John@example.com; Address: Blk 3; Tags: None",
-                logic.execute(ADD_NEW).getFeedbackToUser());
-        assertEquals(List.of(rachel, otherRachel), model.getFilteredPersonList().subList(0, 2));
-        assertEquals(3, model.getFilteredPersonList().size());
+        String feedback = logic.execute(ADD_NEW).getFeedbackToUser();
+        assertTrue(feedback.contains("42"));
+        assertTrue(feedback.contains("John Tan; Phone: 003; Email: John@example.com; Address: Blk 3; Tags: None"));
+        assertEquals(List.of(otherRachel), model.getFilteredPersonList());
+        assertEquals(new ClientId(17), model.getAddressBook().getClientId(otherRachel).orElseThrow());
+        assertEquals(3, model.getAddressBook().getPersonList().size());
         assertEquals(1, storage.saveCount);
     }
 
@@ -116,11 +124,12 @@ public class ClientRecordCommandsTest {
     }
 
     @Test
-    public void execute_deleteLeadingZeroIndex_usesPendingOrderAndRetainsMode() throws Exception {
+    public void execute_deleteLeadingZeroId_ignoresPendingOrderAndRetainsMode() throws Exception {
         model.showPendingFollowUps();
         assertEquals(List.of(otherRachel, rachel), model.getFilteredPersonList());
-        CommandResult result = logic.execute("delete " + "0".repeat(10000) + "1");
-        assertEquals("Deleted client: Rachel Lim; Phone: 002; Email: other@example.com; Address: Blk 1; Tags: None",
+        CommandResult result = logic.execute("delete " + "0".repeat(10000) + "17");
+        assertEquals("Deleted client ID 17: Rachel Lim; Phone: 002; Email: other@example.com; "
+                + "Address: Blk 1; Tags: None",
                 result.getFeedbackToUser());
         assertEquals(List.of(rachel), model.getAddressBook().getPersonList());
         assertEquals(List.of(rachel), model.getFilteredPersonList());
@@ -130,9 +139,9 @@ public class ClientRecordCommandsTest {
     }
 
     @Test
-    public void execute_deleteFilteredIndex_keepsOtherSameNameRecord() throws Exception {
+    public void execute_deleteFilteredId_keepsOtherSameNameRecord() throws Exception {
         model.updateFilteredPersonList(person -> person.equals(otherRachel));
-        logic.execute("delete 01");
+        logic.execute("delete 017");
         assertEquals(List.of(rachel), model.getAddressBook().getPersonList());
         assertTrue(model.getFilteredPersonList().isEmpty());
         assertEquals(1, storage.saveCount);
@@ -142,12 +151,13 @@ public class ClientRecordCommandsTest {
     public void execute_deleteErrors_preservesDataViewDateAndBytes() throws Exception {
         model.showPendingFollowUps();
         assertRejectedWithoutChanges("delete 0 extra", ParseException.class,
-                "Invalid command format!\nUsage: delete INDEX");
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeleteCommand.MESSAGE_USAGE));
         assertRejectedWithoutChanges("delete 2147483648", ParseException.class,
-                "Index must be a positive integer from 1 to 2147483647.");
+                "Client ID must be a positive integer from 1 to 2147483647.");
         assertRejectedWithoutChanges("delete 2147483647", CommandException.class,
-                "The client index provided is invalid.");
-        assertRejectedWithoutChanges("delete", ParseException.class, "Invalid command format!\nUsage: delete INDEX");
+                "No client with ID 2147483647.");
+        assertRejectedWithoutChanges("delete", ParseException.class,
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, DeleteCommand.MESSAGE_USAGE));
     }
 
     @Test
@@ -156,14 +166,14 @@ public class ClientRecordCommandsTest {
         storage.shouldFail = true;
         assertRejectedWithoutChanges(ADD_NEW, CommandException.class,
                 String.format(LogicManager.MESSAGE_SAVE_FAILED, storage.getAddressBookFilePath()));
-        assertRejectedWithoutChanges("delete 1", CommandException.class,
+        assertRejectedWithoutChanges("delete 17", CommandException.class,
                 String.format(LogicManager.MESSAGE_SAVE_FAILED, storage.getAddressBookFilePath()));
     }
 
     @Test
-    public void execute_followUpAfterSameNameAddition_targetsDisplayedRecord() throws Exception {
+    public void execute_followUpAfterSameNameAddition_targetsPermanentId() throws Exception {
         model.showPendingFollowUps();
-        logic.execute("followup 0001 d/2026-10-11 m/Send revised quotation");
+        logic.execute("followup 0017 d/2026-10-11 m/Send revised quotation");
         assertEquals(List.of(rachel, otherRachel.withFollowUp(
                 new FollowUp(LocalDate.of(2026, 10, 11), "Send revised quotation"))), model.getFilteredPersonList());
         assertEquals(rachel, model.getAddressBook().getPersonList().getFirst());

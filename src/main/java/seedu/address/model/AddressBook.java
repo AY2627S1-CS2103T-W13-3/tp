@@ -3,9 +3,12 @@ package seedu.address.model;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 import javafx.collections.ObservableList;
 import seedu.address.commons.util.ToStringBuilder;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.Person;
 import seedu.address.model.person.UniquePersonList;
 
@@ -16,6 +19,7 @@ import seedu.address.model.person.UniquePersonList;
 public class AddressBook implements ReadOnlyAddressBook {
 
     private final UniquePersonList persons = new UniquePersonList();
+    private ClientIdentityRegistry identities = new ClientIdentityRegistry();
 
     public AddressBook() {}
 
@@ -32,9 +36,25 @@ public class AddressBook implements ReadOnlyAddressBook {
     /**
      * Replaces the contents of the person list with {@code persons}.
      * {@code persons} must not contain duplicate persons.
+     * Retained canonical references keep their IDs; new references receive fresh IDs.
+     * Removing records, including every record, never lowers the allocation counter.
      */
     public void setPersons(List<Person> persons) {
-        this.persons.setPersons(persons);
+        List<Person> replacement = List.copyOf(persons);
+        UniquePersonList validated = validatePersons(replacement);
+        publishPersons(validated, identities.withPersons(replacement));
+    }
+
+    /**
+     * Restores a complete contact/identity snapshot, validating all input before publishing.
+     * Every record needs a unique ID below the supplied next allocation value.
+     * Invalid metadata or duplicate contacts leave the existing book unchanged.
+     */
+    public void restorePersons(List<Person> persons, List<ClientId> ids, long nextClientId) {
+        List<Person> replacement = List.copyOf(persons);
+        UniquePersonList validated = validatePersons(replacement);
+        ClientIdentityRegistry restored = ClientIdentityRegistry.restore(replacement, ids, nextClientId);
+        publishPersons(validated, restored);
     }
 
     /**
@@ -43,7 +63,12 @@ public class AddressBook implements ReadOnlyAddressBook {
     public void resetData(ReadOnlyAddressBook newData) {
         requireNonNull(newData);
 
-        setPersons(newData.getPersonList());
+        List<Person> replacement = List.copyOf(newData.getPersonList());
+        UniquePersonList validated = validatePersons(replacement);
+        List<ClientId> ids = replacement.stream().map(person -> newData.getClientId(person)
+                .orElseThrow(() -> new IllegalArgumentException("A canonical client must have an ID."))).toList();
+        ClientIdentityRegistry restored = ClientIdentityRegistry.restore(replacement, ids, newData.getNextClientId());
+        publishPersons(validated, restored);
     }
 
     //// person-level operations
@@ -61,7 +86,9 @@ public class AddressBook implements ReadOnlyAddressBook {
      * The person must not already exist in the address book.
      */
     public void addPerson(Person p) {
-        persons.add(p);
+        UniquePersonList replacement = copyPersons();
+        replacement.add(p);
+        publishPersons(replacement, identities.withPersons(replacement.asUnmodifiableObservableList()));
     }
 
     /**
@@ -72,7 +99,13 @@ public class AddressBook implements ReadOnlyAddressBook {
     public void setPerson(Person target, Person editedPerson) {
         requireNonNull(editedPerson);
 
-        persons.setPerson(target, editedPerson);
+        requireNonNull(target);
+        UniquePersonList replacement = copyPersons();
+        // List mutations accept equal-valued targets; the registry itself uses canonical references.
+        int targetIndex = getPersonList().indexOf(target);
+        replacement.setPerson(target, editedPerson);
+        Person canonicalTarget = getPersonList().get(targetIndex);
+        publishPersons(replacement, identities.withReplacement(canonicalTarget, editedPerson));
     }
 
     /**
@@ -80,10 +113,35 @@ public class AddressBook implements ReadOnlyAddressBook {
      * {@code key} must exist in the address book.
      */
     public void removePerson(Person key) {
-        persons.remove(key);
+        UniquePersonList replacement = copyPersons();
+        replacement.remove(key);
+        publishPersons(replacement, identities.withPersons(replacement.asUnmodifiableObservableList()));
     }
 
     //// util methods
+
+    /** Validates contacts independently of the live book and its listeners. */
+    private static UniquePersonList validatePersons(List<Person> persons) {
+        UniquePersonList validated = new UniquePersonList();
+        validated.setPersons(persons);
+        return validated;
+    }
+
+    private UniquePersonList copyPersons() {
+        UniquePersonList copy = new UniquePersonList();
+        copy.setPersons(persons);
+        return copy;
+    }
+
+    /** Publishes metadata first so every list observer can resolve the new canonical records. */
+    private void publishPersons(UniquePersonList replacement, ClientIdentityRegistry replacementIdentities) {
+        identities = replacementIdentities;
+        persons.setPersons(replacement);
+    }
+
+    private List<ClientId> getOrderedClientIds() {
+        return getPersonList().stream().map(person -> identities.getClientId(person).orElseThrow()).toList();
+    }
 
     @Override
     public String toString() {
@@ -98,6 +156,21 @@ public class AddressBook implements ReadOnlyAddressBook {
     }
 
     @Override
+    public Optional<ClientId> getClientId(Person canonicalPerson) {
+        return identities.getClientId(canonicalPerson);
+    }
+
+    @Override
+    public Optional<Person> getPersonById(ClientId clientId) {
+        return identities.getPersonById(clientId);
+    }
+
+    @Override
+    public long getNextClientId() {
+        return identities.getNextClientId();
+    }
+
+    @Override
     public boolean equals(Object other) {
         if (other == this) {
             return true;
@@ -108,11 +181,13 @@ public class AddressBook implements ReadOnlyAddressBook {
             return false;
         }
 
-        return persons.equals(otherAddressBook.persons);
+        return persons.equals(otherAddressBook.persons)
+                && getOrderedClientIds().equals(otherAddressBook.getOrderedClientIds())
+                && getNextClientId() == otherAddressBook.getNextClientId();
     }
 
     @Override
     public int hashCode() {
-        return persons.hashCode();
+        return Objects.hash(persons, getOrderedClientIds(), getNextClientId());
     }
 }
