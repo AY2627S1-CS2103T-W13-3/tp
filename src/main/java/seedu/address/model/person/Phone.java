@@ -57,11 +57,6 @@ public class Phone {
         return other != null && digits.equals(other.digits);
     }
 
-    /** Returns whether both phone numbers contain the same digits, regardless of display formatting. */
-    boolean hasSameDigitsAs(Phone other) {
-        return other != null && digits.equals(other.digits);
-    }
-
     @Override
     public String toString() {
         return value;
