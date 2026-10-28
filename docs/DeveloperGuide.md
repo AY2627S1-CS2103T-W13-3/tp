@@ -151,7 +151,9 @@ This section describes some noteworthy details on how certain features are imple
 
 ### Client-record validation and duplicate rejection
 
-Contact values remain immutable `Name`, `Phone`, `Email` and `Address` objects inside `Person`. Name and address constructors trim outer U+0020 spaces, retaining internal spaces and case. Shared parsers trim only U+0020 for all contact fields. Names, phones and tags use ASCII validation; addresses accept Unicode single-line text but reject C0/C1 controls and U+2028/U+2029. Email keeps the existing grammar, including the adjacent alphanumeric pair in the final domain label, and preserves stored case.
+Contact values remain immutable `Name`, `Phone`, `Email` and `Address` objects inside `Person`. Name and address constructors trim outer U+0020 spaces, retaining internal spaces and case. Shared parsers trim only U+0020 for all contact fields. Names accept Unicode letters and combining marks after letters, while keeping ASCII digits and ordinary spaces; tags use ASCII validation; phones accept ASCII digits with an optional leading `+` and single spaces or hyphens between digit groups. Addresses accept Unicode single-line text but reject C0/C1 controls and U+2028/U+2029. Email accepts repeated `+`, `_` and `-` in the local part and interior repeated hyphens in domain labels, while retaining the adjacent alphanumeric pair requirement in the final domain label and preserving stored case.
+
+**Unicode client names.** `Name.isValidName` scans Unicode code points and rejects controls, invalid surrogate sequences and combining marks without a preceding letter. It retains the entered spelling. Duplicate-name comparison normalizes to NFC and collapses runs of ordinary spaces, then uses `equalsIgnoreCase` consistently with name search; name search normalizes both stored words and keywords to NFC before case-insensitive whole-word comparison. `NameTest`, `PersonTest`, `NameContainsKeywordsPredicateTest` and `JsonAdaptedPersonTest` cover acceptance, rejection and reconstruction.
 
 **Persistable Unicode addresses.** `Address.isValidAddress` also rejects unpaired UTF-16 surrogates so accepted addresses can be encoded when saved as UTF-8.
 Each high surrogate must be followed by a low surrogate; a low surrogate cannot appear on its own. The pairing scan takes O(n) time and O(1) extra space, preserving existing ordinary-space trimming and single-line restrictions.
@@ -160,9 +162,9 @@ Both `ParserUtil.parseAddress` and `JsonAdaptedPerson.toModelType` use the domai
 A JSON escape such as `\uD800` can be syntactically valid JSON but decode to an invalid address. The adapter rejects it through `IllegalValueException`; storage translates this to `DataLoadingException`, activating the existing empty, mutation-blocked startup path without overwriting the file or publishing earlier valid records.
 `AddressTest` covers malformed pairs and valid boundary pairs. `SavedAddressRecoveryTest` checks whole-file rejection, blocked mutations and unchanged bytes, valid Unicode add/save/restart, and successful saving after an address is repaired and the app restarted.
 
-**Email validation implementation.** `Email.isValidEmail` iteratively scans the local and domain parts, preserving the accepted ASCII grammar, stored case and existing length policy. Each character is examined a constant number of times, so validation takes O(n) time and O(1) auxiliary space for an address of length n. This avoids recursive regular-expression matching and its potential stack overflow on unusually long input. `EmailTest` covers valid, invalid and exceptionally long addresses; `MainAppTest.longEmail_addAndRestart_preservesSavedClient` checks a long address through command entry and save/load.
+**Email validation implementation.** `Email.isValidEmail` iteratively scans the local and domain parts, including the repeated punctuation rules, while preserving stored case and the existing length policy. Each character is examined a constant number of times, so validation takes O(n) time and O(1) auxiliary space for an address of length n. This avoids recursive regular-expression matching and its potential stack overflow on unusually long input. `EmailTest` covers valid, invalid and exceptionally long addresses; `MainAppTest.longEmail_addAndRestart_preservesSavedClient` checks a long address through command entry and save/load.
 
-`Person.isDuplicateOf` implements normalized-name equality **AND** (exact-phone equality **OR** case-insensitive-email equality). Names are normalized only for this comparison: lowercase with `Locale.ROOT` and collapse ordinary-space runs. Stored names remain unchanged. Address, tags and follow-up do not participate.
+`Person.isDuplicateOf` implements normalized-name equality **AND** (same phone digits **OR** case-insensitive-email equality). `Phone` preserves the entered display format and uses exact equality for value comparison; duplicate rejection compares the digits only so alternate international formatting does not bypass it. Names are normalized only for this comparison: NFC composition and collapsed ordinary-space runs, compared with `equalsIgnoreCase`. Stored names remain unchanged. Address, tags and follow-up do not participate.
 
 The relation is symmetric but **not transitive**. For a common name, record A `(111, one@example.com)` duplicates B `(111, two@example.com)`, and B duplicates C `(222, two@example.com)`, while A and C are allowed together. Consequently:
 
@@ -183,6 +185,13 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 
 `DeleteCommandParser` checks for exactly one ordinary-space-separated token before calling `ParserUtil.parseIndex`. The shared helper accepts ASCII digits, trims outer U+0020, removes leading zeroes before bounded conversion and rejects values outside `1..2147483647` without leaking `NumberFormatException`. `FollowUpParserUtil` and `ViewCommandParser` use the same helper. Delete resolves an index against `Model.getFilteredPersonList`, retaining the active mode and deleting the full record with its action.
 
+`StringUtil.trimOrdinarySpaces` is shared by command parsers, contact/follow-up validation and saved-person/tag adapters.
+It scans the two outer boundaries for U+0020 instead of retrying a trailing-space regular expression at each internal space.
+Internal spacing, case, non-ASCII characters and the existing validation order remain unchanged; tabs and other whitespace are not silently stripped by this helper.
+The address validator still checks complete UTF-16 surrogate pairs, and stored values continue through the same domain rules as command input.
+`LongWhitespaceCommandTest` exercises a long valid name through add, save/load and search, plus rejection of an overlength follow-up without changing saved bytes.
+`StringUtilTest` checks the short-input contract, including empty/blank text, internal spaces, tabs, non-breaking spaces and Unicode text. Its large-string timing regression measures only the pure trim call; workflow correctness tests do not impose a disk-I/O deadline.
+
 `LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, index and save failures preserve live data, list mode/order, selection and date; successful read-only commands do not save.
 
 Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, index boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, pending/filter indices, follow-up targeting and injected save failures. Parser tests cover syntax separately from command displayed-range checks.
@@ -193,7 +202,7 @@ Tests cover domain partitions, exact messages, validation precedence, normalized
 
 `JsonSerializableAddressBook` converts every record before installing the list through `AddressBook.setPersons`. That central collection operation checks every pair with `Person.isDuplicateOf`, including the non-transitive case. Missing entries, invalid values and duplicates become loading failures. `JsonAddressBookStorage` translates them to `DataLoadingException`; `MainApp` then starts with an empty, mutation-blocked model while leaving the saved file unchanged. A repaired file loads on the next startup.
 
-**Strict JSON parsing.** `JsonUtil.fromJsonString` reads one root value and checks that no additional tokens remain. Trailing non-whitespace content, including a second JSON value, causes loading to fail; trailing JSON whitespace remains valid. `JsonUtil.readJsonFile` also rejects a null root. These checks apply before saved client records are converted. A client-data loading failure follows the protected startup path above: the empty model blocks mutations and preserves the original file. Repair the file or restore a valid backup, then restart the application before resuming client modifications.
+**Strict JSON parsing.** `JsonUtil.fromJsonString` reads one root value and checks that no additional tokens remain. Client-data reads opt into Jackson's `STRICT_DUPLICATE_DETECTION` on their parser, which rejects repeated property names within any one object, including nested objects and escaped spellings of the same name; the same property name in separate objects remains valid. Trailing non-whitespace content, including a second JSON value, causes loading to fail; trailing JSON whitespace remains valid. `JsonUtil.readJsonFile` also rejects a null root. These checks apply before saved client records are converted. A client-data loading failure follows the protected startup path above: the empty model blocks mutations and preserves the original file. Repair the file or restore a valid backup, then restart the application before resuming client modifications. `JsonUserPrefsStorage` retains the legacy last-value behavior for duplicate preference properties; the shared mapper is not configured globally for strict duplicate detection. `DuplicateJsonPreferencesTest` verifies that startup retains and saves those preferences instead of replacing them with defaults. `JsonDuplicatePropertyTest` covers property uniqueness and separate-object controls; `DuplicateJsonRecoveryTest` verifies protected startup, query access, blocked mutations, byte preservation and recovery after repair for duplicate root, client and follow-up properties.
 
 **Private loading diagnostics.** Jackson parsing and mapping exceptions can contain source JSON, rejected field values and nested client details.
 `JsonUtil.readJsonFile` therefore logs a fixed warning with the file path and the category `invalid JSON/data format or I/O failure`, without appending exception text or attaching a throwable to the log record.
@@ -213,6 +222,8 @@ For a preference type-mapping failure, it checks default recovery and repair whi
 `FileUtilUtf8Test` checks the decoder partitions. `SavedDataEncodingRecoveryTest` checks protected commands, byte preservation and repair followed by a writable restart.
 
 **Filesystem retry.** `LogicManager` saves a candidate model before publishing it. If the data directory has become a regular file, `JsonAddressBookStorage` fails before replacing the destination and `LogicManager` leaves the live model unchanged. `StorageDirectoryRecoveryTest` moves a disposable directory aside, observes the real save failure, restores the directory and retries successfully. This verifies the existing atomic-save boundary without adding another fallback writer.
+
+**UTF-8 BOM compatibility.** `FileUtil.readFromFile` skips one U+FEFF only at the start of the decoded JSON text. Client data and preferences saved by BOM-producing editors load normally. Embedded U+FEFF values are retained, additional or misplaced BOMs remain invalid, and strict byte decoding and trailing-content checks still apply. Loading alone does not rewrite the file.
 
 A saved record uses the following JSON shape. Tags are strings, not objects; omit `followUp` (or use `null`) when no action is pending. Do not add session selection or a computed status to the file.
 
@@ -282,6 +293,13 @@ After the caller has successfully saved any dirty candidate, `commitFrom(candida
 
 This mapping matters for an identical follow-up replacement. The candidate may contain a new `Person` object with equal values, while publication skips resetting the live client data when it has equal values. Publishing the candidate object directly would leave selection pointing outside the live list. Mapping to the committed live record retains a canonical visible selection whether the data was reset or retained.
 
+Profile scrolling is separate from model selection: `ClientProfilePanel` starts a different client's profile at its vertical minimum.
+The UI compares unchanged name, phone, email, address and tags to retain the reading position across immutable follow-up replacements.
+It does not compare names alone, so selecting a separate same-name client resets the scroll position.
+This continuity check is only a presentation policy; canonical-record membership and selection still belong to the model.
+Repeated views, date refreshes and failed commands do not reset the current profile; reopening a closed profile starts at the top.
+`ClientProfileScrollTest` checks rendered scrolling, same-name clients and real Logic commands, including follow-up replacement and failed saving.
+
 #### Selection transition evidence
 
 `ClientProfileSelectionTest` covers model-level selection transitions using a fixed date of `2026-10-12`: same-name records, pending reordering, filter exclusion, follow-up clearing, deletion, candidate isolation and equal-value replacement. Canonical-object assertions distinguish correct record tracking from value equality. The existing model and pending-list suites provide regression coverage for the authoritative displayed list and stable due-date ordering.
@@ -337,6 +355,8 @@ The saved-data warning is a separate persistent label controlled by `logic.isDat
 
 `FollowUpCommandParser` recognizes either `followup INDEX clear` or one date and one description prefix. Commands resolve the index against the current displayed list before validating a new date/action. New actions cannot be dated before the candidate's sampled date. Stored overdue actions remain valid: JSON conversion checks calendar/description validity without imposing a today-based restriction.
 
+`ArgumentTokenizer` recognizes `d/` and `m/` anywhere they immediately follow an ordinary space (U+0020), including inside a description. It does not interpret quotation marks or provide prefix escaping. Repeating either prefix therefore fails duplicate-prefix validation before command execution; an existing action stays unchanged. For example, `m/Confirm d/m/y format` repeats `d/`, while `m/Confirm day/month/year format` and `m/Check ref:d/m/y` preserve the intended descriptions.
+
 `showPendingFollowUps()` includes every client with an action and sorts by due date. Stable sorting preserves full-list insertion order on equal dates. Chronological order naturally groups overdue, due-today and upcoming actions. `FollowUpStatus` derives those labels from the due date and published date; neither status nor the selected client is stored in JSON.
 
 `LogicManager` samples its injected clock once per command candidate. The date is published only when that command succeeds. Separately, `MainApp` refreshes the live date on startup, window focus and a one-minute timer, so statuses update across midnight without a command. A failed command does not itself advance the date; independent focus/timer refreshes can still occur. `MainAppTest` and `LogicManagerTest` cover these two date paths.
@@ -351,7 +371,15 @@ The saved-data warning is a separate persistent label controlled by `logic.isDat
 4. Save the candidate only when its data is dirty.
 5. Publish its data, preferences, mode, date and selection to the live model.
 
-A save failure becomes `CommandException` with `MESSAGE_SAVE_FAILED` formatted with the storage destination; no candidate state is published. The message suggests checking directory access and free space without displaying exception text, which may contain client data. `JsonAddressBookStorage` writes a sibling temporary file, then replaces the destination with an atomic move. On failure it attempts to remove the temporary file and preserves the existing destination. Unsupported atomic replacement is reported as a save failure, rather than falling back to a partial write. See `JsonAddressBookStorageTest` for write/move failure coverage.
+A save failure becomes `CommandException` with `MESSAGE_SAVE_FAILED` formatted with the storage destination; no candidate state is published. The message suggests checking directory access and free space without displaying exception text, which may contain client data. `JsonAddressBookStorage` writes a sibling temporary file, then replaces the destination with an atomic move. It rejects a symbolic-link destination before writing and checks again before replacement; these checks are best effort and cannot prevent an external process from swapping the path after the final check. Such a late swap can replace the link itself, but the atomic move does not write through to its target. The app does not synchronize with external filesystem writers; `LogicManager` shows a specific recovery message for that case. On failure it attempts to remove the temporary file and preserves the existing destination. Unsupported atomic replacement is reported as a save failure, rather than falling back to a partial write. See `JsonAddressBookStorageTest` for write/move and symlink failure coverage.
+
+### Application instance ownership
+
+Before loading preferences or client data, `MainApp.init()` acquires an exclusive operating-system file lock through `AppInstanceLock` on `.policyharbor.lock` in the working folder. A competing launch or lock I/O failure leaves the services uninitialized; `start()` explains the failure and exits. `stop()` skips preference writes for a blocked instance and releases an acquired lock after normal shutdown. Initialization failures also release it, and process termination releases the OS lock.
+
+The marker is retained because deleting it could allow a new process to lock a replacement file while an existing process still owns the original. An in-process registry, keyed by the normalized path with its real parent directory, rejects duplicate acquisitions before opening another descriptor: on some systems, closing that second descriptor could release the first descriptor's OS lock. Separate working folders remain independent; this protects against concurrent PolicyHarbor instances rather than synchronizing external file edits.
+
+`MainAppInstanceTest` and `AppInstanceLockTest` use separate JVMs to verify blocked launches preserve saved bytes, separate folders work independently, normal shutdown and abrupt exit release ownership, retained markers permit restart, and a rejected same-JVM acquisition does not release ownership to another process.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -500,6 +528,13 @@ Test the packaged JAR in a fresh writable folder with Java 25 (the prescribed Zu
 4. Enter `followups`, then `view 1`. Expect Amanda before Rachel, the correct profile, and continuous numbering. Replace Amanda's action with today's date to verify the `DUE TODAY` badge.
 5. Close/relaunch from the same folder. Expect all contacts/actions in full insertion order and no profile selection. Resize/move the window, close/relaunch and verify window preferences.
 
+### Concurrent launches and restart
+
+1. In a disposable writable folder, launch the packaged JAR, add a fictional client and record a follow-up. Keep this window open and copy the saved client file for comparison.
+2. From a second terminal in the same folder, launch the same JAR. Expect a startup error explaining that PolicyHarbor is already running. Dismiss it; the first window remains usable and the saved client file is unchanged. The rejected launch must not write preferences.
+3. Close the first window and launch again from the same folder. Expect the client and follow-up to load, even though `.policyharbor.lock` remains. Repeat after terminating the owner process.
+4. Launch the JAR from a separate disposable folder while the first is open. Expect an independent empty dataset. Do not delete or replace an active folder's lock marker.
+
 ### Profile transitions and displayed indices
 
 From the two-client dataset above:
@@ -535,6 +570,19 @@ Start fresh with Rachel and Amanda from the basic workflow.
 | `add a/ t/! e/bad p/12 n/Bad&` | Name constraint first; no record is added. |
 
 After each rejected command, verify that the input stays editable/focused and the client data, list and selected profile are unchanged. On success the command box clears. Date preservation is checked per command; the independent focus/minute refresh can update displayed statuses.
+
+### Reserved prefixes in follow-up descriptions
+
+Start in a fresh folder and add Rachel and Amanda using only the two `add` commands from the basic workflow. Use the two sample dates consistently throughout this scenario. If needed, substitute today's date for the first and tomorrow's date for the second; this keeps the prefix checks independent of date-policy changes. Enter `list`, `view 1`, then `followup 1 d/2099-12-14 m/Call about renewal`. Expect Rachel's action to be recorded.
+
+| Input | Expected result |
+| --- | --- |
+| `followup 1 d/2099-12-15 m/Confirm d/m/y format` | `Multiple values specified for the following single-valued field(s): d/` |
+| `followup 1 d/2099-12-15 m/Confirm m/y format` | The same duplicate-field diagnostic ending in `m/`. |
+| `followup 1 d/2099-12-15 m/"Confirm d/m/y format"` | The duplicate-field diagnostic ending in `d/`; quotation marks do not escape the internal prefix. |
+| `followup 1 d/2099-12-15 m/"Confirm m/y format"` | The duplicate-field diagnostic ending in `m/`. |
+
+After each rejection, confirm Rachel still has `Call about renewal` due on `2099-12-14` (or the substituted date), with the same displayed list and selected profile. Then enter `followup 1 d/2099-12-15 m/Confirm day/month/year format`; expect `Follow-up for Rachel Lim updated to 2099-12-15.` and the complete replacement description. Finally, `followup 1 d/2099-12-15 m/Check ref:d/m/y` must also succeed: an embedded `d/` without a preceding ordinary space is description text. Use the substituted date in these commands and expected results if necessary.
 
 ### Loading protection and saved-data compatibility
 
@@ -587,3 +635,12 @@ Run these on each real OS and resolution/scaling combination available, and reco
 `JsonAddressBookStorageTest` injects write/move failures. `ClientProfileWorkflowIntegrationTest` checks failed add/delete/action replacement/clearing without changing saved bytes, selection, list mode/order or date. `ClientRecordCommandsTest` covers additional duplicate and index partitions; `ClientProfileSelectionTest` covers canonical identity and equal-value publication.
 
 For an optional manual failure check, keep the app open and make only its test `data` directory unwritable. Attempt a mutation. Expect `Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.` with the previous data/list/profile retained. Restore directory permissions before continuing. Use disposable data; automated fault injection is the reproducible evidence where platform permissions differ.
+
+### Inaccessible client data at startup
+
+`JsonUtil.readJsonFile` returns an empty result only when `Files.notExists` establishes that the data file is absent.
+When access prevents determining existence, both `Files.exists` and `Files.notExists` can return false; treating that case as a first launch could overwrite existing clients after access returns.
+The reader instead attempts the load, allowing the existing I/O-to-`DataLoadingException` path to create a mutation-blocked model.
+Restoring folder access does not unlock that model: the user must restart so that the original client data is loaded before changes resume.
+`InaccessibleDataRecoveryTest` uses temporary POSIX directory permissions to verify protected startup, unchanged bytes after access returns, and successful recovery after restart.
+The permission-specific cases skip on platforms without POSIX support or accounts that bypass the access restriction; existing missing-file tests retain portable first-launch coverage.

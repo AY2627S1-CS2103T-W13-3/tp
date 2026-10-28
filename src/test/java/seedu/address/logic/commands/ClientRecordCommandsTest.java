@@ -67,6 +67,19 @@ public class ClientRecordCommandsTest {
     }
 
     @Test
+    public void execute_unicodeCaseDuplicate_rejectsWithoutSaving() throws Exception {
+        logic.execute("add n/ΟΣ p/555 e/greek@example.com a/Home");
+        byte[] saved = Files.readAllBytes(storage.getAddressBookFilePath());
+        int saves = storage.saveCount;
+        assertThrows(CommandException.class, () -> logic.execute("add n/οσ p/555 e/greek@example.com a/Home"));
+        assertEquals(saves, storage.saveCount);
+        assertEquals(3, model.getAddressBook().getPersonList().size());
+        assertArrayEquals(saved, Files.readAllBytes(storage.getAddressBookFilePath()));
+        logic.execute("find οσ");
+        assertEquals(1, model.getFilteredPersonList().size());
+    }
+
+    @Test
     public void execute_addSameNameDifferentContacts_savesAndResetsPendingView() throws Exception {
         model.showPendingFollowUps();
         CommandResult result = logic.execute("add n/Rachel Lim p/004 e/third@example.com a/新加坡 🏠"

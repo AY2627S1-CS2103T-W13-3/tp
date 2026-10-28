@@ -65,7 +65,7 @@
             </padding>
             <StackPane fx:id="commandBoxPlaceholder" styleClass="dashboard-command-host" minHeight="36" />
             <StackPane fx:id="resultDisplayPlaceholder" styleClass="dashboard-feedback-host"
-                       minHeight="52" prefHeight="64" maxHeight="100" />
+                       minHeight="-Infinity" maxHeight="100" />
           </VBox>
 
           <Label fx:id="loadWarning" styleClass="load-warning, dashboard-load-warning" wrapText="true"
