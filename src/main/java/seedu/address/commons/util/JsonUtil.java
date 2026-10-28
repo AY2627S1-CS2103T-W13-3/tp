@@ -36,9 +36,10 @@ public class JsonUtil {
         FileUtil.writeToFile(jsonFile, toJsonString(objectToSerialize));
     }
 
-    static <T> T deserializeObjectFromJsonFile(Path jsonFile, Class<T> classOfObjectToDeserialize)
+    static <T> T deserializeObjectFromJsonFile(Path jsonFile, Class<T> classOfObjectToDeserialize,
+            DeserializationFeature... features)
             throws IOException {
-        return fromJsonString(FileUtil.readFromFile(jsonFile), classOfObjectToDeserialize);
+        return fromJsonString(FileUtil.readFromFile(jsonFile), classOfObjectToDeserialize, features);
     }
 
     /**
@@ -50,7 +51,8 @@ public class JsonUtil {
      * @throws DataLoadingException if loading of the JSON file failed.
      */
     public static <T> Optional<T> readJsonFile(
-            Path filePath, Class<T> classOfObjectToDeserialize) throws DataLoadingException {
+            Path filePath, Class<T> classOfObjectToDeserialize, DeserializationFeature... features)
+            throws DataLoadingException {
         requireNonNull(filePath);
 
         if (!Files.exists(filePath)) {
@@ -61,7 +63,7 @@ public class JsonUtil {
         T jsonFile;
 
         try {
-            jsonFile = deserializeObjectFromJsonFile(filePath, classOfObjectToDeserialize);
+            jsonFile = deserializeObjectFromJsonFile(filePath, classOfObjectToDeserialize, features);
         } catch (IOException e) {
             // Jackson messages and causes can include client data, so keep them out of ordinary logs.
             logger.warning("Error reading JSON file " + filePath + " (invalid JSON/data format or I/O failure).");
@@ -95,9 +97,10 @@ public class JsonUtil {
      * @param <T> The generic type to create an instance of
      * @return The instance of T with the specified values in the JSON string
      */
-    public static <T> T fromJsonString(String json, Class<T> instanceClass) throws IOException {
+    public static <T> T fromJsonString(String json, Class<T> instanceClass, DeserializationFeature... features)
+            throws IOException {
         try (JsonParser parser = objectMapper.getFactory().createParser(json)) {
-            T value = objectMapper.readValue(parser, instanceClass);
+            T value = objectMapper.readerFor(instanceClass).withFeatures(features).readValue(parser);
             if (parser.nextToken() != null) {
                 throw new IOException("Unexpected content after the JSON root.");
             }

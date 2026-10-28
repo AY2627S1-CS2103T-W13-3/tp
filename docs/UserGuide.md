@@ -315,7 +315,7 @@ If you see the saved-data warning after editing the file, close PolicyHarbor and
 
 <div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
 If the data file contains an invalid client or duplicate clients, PolicyHarbor starts with an empty displayed list and blocks client changes. It does not overwrite or partly load the invalid file. Correct the file or restore a backup, then restart the app. Back up the file before editing it.<br>
-Names, addresses, phone numbers, email addresses and tags follow the same validation rules used when adding a client. Outer ordinary spaces are removed; tags are stored in lowercase without duplicates. Missing tags mean no tags. Existing valid overdue follow-ups are preserved.
+Names, addresses, phone numbers, email addresses and tags follow the same validation rules used when adding a client. Outer ordinary spaces are removed; tags are stored in lowercase without duplicates. Missing tags mean no tags. Existing valid overdue follow-ups are preserved. Unrecognised field names are rejected so that misspellings such as `tag` or `followup` cannot silently discard data. Use `tags` and `followUp` exactly as shown in the Developer Guide.
 </div>
 
 --------------------------------------------------------------------------------------------------------------------

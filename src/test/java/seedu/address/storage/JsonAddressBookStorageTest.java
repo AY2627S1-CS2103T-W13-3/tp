@@ -194,6 +194,29 @@ public class JsonAddressBookStorageTest {
     }
 
     @Test
+    public void readAddressBook_unknownFields_rejectsWholeFileWithoutChangingBytes() throws Exception {
+        Path file = testFolder.resolve("unknown-fields.json");
+        String person = "{\"name\":\"Alice Tan\",\"phone\":\"91110001\","
+                + "\"email\":\"alice@example.com\",\"address\":\"Blk 1\"%s}";
+        String[] unknownFields = {
+            ",\"tag\":[\"vip\"]",
+            ",\"followup\":{\"dueDate\":\"2099-01-01\",\"description\":\"Renewal call\"}",
+            ",\"followUp\":{\"dueDate\":\"2099-01-01\",\"description\":\"Call\",\"note\":\"Keep me\"}"
+        };
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(file);
+        for (String unknownField : unknownFields) {
+            String original = "{\"persons\":[" + String.format(person, unknownField) + "]}";
+            Files.writeString(file, original);
+            assertThrows(DataLoadingException.class, storage::readAddressBook);
+            assertEquals(original, Files.readString(file));
+        }
+        String original = "{\"persons\":[],\"clients\":[" + String.format(person, "") + "]}";
+        Files.writeString(file, original);
+        assertThrows(DataLoadingException.class, storage::readAddressBook);
+        assertEquals(original, Files.readString(file));
+    }
+
+    @Test
     public void readAddressBook_normalizedDuplicate_rejectsWholeFile() throws Exception {
         Path file = testFolder.resolve("duplicate-contacts.json");
         String original = "{\"persons\":[{\"name\":\"Ada  Lovelace\",\"phone\":\"12345\","
