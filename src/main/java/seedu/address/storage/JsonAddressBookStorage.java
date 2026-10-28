@@ -10,6 +10,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.commons.exceptions.IllegalValueException;
@@ -53,7 +55,8 @@ public class JsonAddressBookStorage {
         requireNonNull(filePath);
 
         Optional<JsonSerializableAddressBook> jsonAddressBook = JsonUtil.readJsonFile(
-                filePath, JsonSerializableAddressBook.class, true);
+                filePath, JsonSerializableAddressBook.class, true,
+                DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         if (!jsonAddressBook.isPresent()) {
             return Optional.empty();
         }

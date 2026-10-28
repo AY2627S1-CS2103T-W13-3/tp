@@ -66,6 +66,23 @@ public class MainAppTest {
     }
 
     @Test
+    public void unknownSavedFields_blockChangesWithoutOverwritingFile() throws Exception {
+        Path file = testFolder.resolve("unknown-fields.json");
+        String original = "{\"persons\":[{\"name\":\"Alice Tan\",\"phone\":\"91110001\","
+                + "\"email\":\"alice@example.com\",\"address\":\"Blk 1\",\"tag\":[\"vip\"]}]}";
+        Files.writeString(file, original);
+        Storage storage = storage(file);
+        Model model = new MainApp().initModelManager(storage, new UserPrefs());
+        assertTrue(model.isDataLoadingBlocked());
+        assertTrue(model.getAddressBook().getPersonList().isEmpty());
+        LogicManager logic = new LogicManager(model, storage);
+        logic.execute("list");
+        assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () ->
+                logic.execute("add n/Bob p/123 e/bob@example.com a/Street"));
+        assertEquals(original, Files.readString(file));
+    }
+
+    @Test
     public void trailingJsonContent_blocksChangesAndPreservesFile() throws Exception {
         Path file = testFolder.resolve("trailing.json");
         for (String trailing : new String[] {"x", "{\"persons\":[]}", "[1,2]", "{"}) {
