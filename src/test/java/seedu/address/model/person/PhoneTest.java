@@ -31,12 +31,14 @@ public class PhoneTest {
         assertFalse(Phone.isValidPhone("91")); // less than 3 numbers
         assertFalse(Phone.isValidPhone("phone")); // non-numeric
         assertFalse(Phone.isValidPhone("9011p041")); // alphabets within digits
-        assertFalse(Phone.isValidPhone("9312 1534")); // spaces within digits
+        assertFalse(Phone.isValidPhone("9312  1534")); // repeated separators
 
         // valid phone numbers
         assertTrue(Phone.isValidPhone("911")); // exactly 3 numbers
         assertTrue(Phone.isValidPhone("93121534"));
         assertTrue(Phone.isValidPhone("124293842033123")); // long phone numbers
+        assertTrue(Phone.isValidPhone("+65 9123 4567"));
+        assertTrue(Phone.isValidPhone("65-9123-4567"));
     }
 
     @Test
@@ -63,9 +65,19 @@ public class PhoneTest {
     public void constructor_asciiDigits_preservesLeadingZeroesWithoutLengthLimit() {
         assertEquals("001", new Phone("001").value);
         assertTrue(Phone.isValidPhone("1".repeat(1000)));
-        for (String invalid : new String[] {"12", "+123", "1 23", "١٢٣", "１２３"}) {
+        for (String invalid : new String[] {"12", "1+23", "١٢٣", "１２３", "+12", "123-", "-123"}) {
             assertFalse(Phone.isValidPhone(invalid));
         }
+        assertEquals("+65 9123 4567", new Phone("+65 9123 4567").value);
+    }
+
+    @Test
+    public void hasSameDigitsAs_differentFormatting_matches() {
+        Phone formatted = new Phone("+65 9123 4567");
+        assertTrue(formatted.hasSameDigitsAs(new Phone("6591234567")));
+        assertTrue(formatted.hasSameDigitsAs(new Phone("65-9123-4567")));
+        assertFalse(formatted.hasSameDigitsAs(new Phone("6591234568")));
+        assertFalse(formatted.equals(new Phone("6591234567")));
     }
 
 }

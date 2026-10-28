@@ -134,7 +134,7 @@ Supply each required prefix exactly once. The prefixes may appear in any order a
 | Field | Accepted values |
 | --- | --- |
 | Name | Non-blank English letters, digits and ordinary spaces. Case and internal spaces are preserved. |
-| Phone | At least three digits `0`–`9`. Leading zeroes are retained. |
+| Phone | At least three digits `0`–`9`, with an optional leading `+` and single spaces or hyphens between digit groups, such as `+65 9123 4567`. The entered format and leading zeroes are retained. |
 | Email | Alphanumeric groups separated by single `+`, `_`, `.` or `-` before one `@`; domain labels contain alphanumeric groups separated by single hyphens and labels separated by dots. The final label must contain two adjacent letters or digits. Stored case is preserved. |
 | Address | Non-empty single-line text, including punctuation, non-English text and emoji. |
 | Tag | One or more English letters or digits. Tags are stored in lowercase; repeated case variants become one tag. |
@@ -147,7 +147,7 @@ Address input and recovery:
 * When editing the saved JSON directly, use complete characters. An incomplete Unicode escape pair, such as a lone `\uD800` in an address, causes the whole client file to be rejected at startup, even if the JSON syntax is otherwise correct.
 * In that case, the app shows the saved-data warning and blocks client changes to protect the file. Close the app, back up the file, correct the affected address or restore a valid backup, then restart. Editing the file while the app is open does not clear the warning.
 
-A client is a duplicate when **their name matches and either their phone or email matches** an existing client. Names are compared ignoring English case and repeated ordinary spaces; phones match exactly, and emails ignore case. Address, tags and follow-up do not affect this check. Two clients may share a name if both their phone and email differ. Different names may share contact details. Duplicate checks include clients hidden by the current filter.
+A client is a duplicate when **their name matches and either their phone or email matches** an existing client. Names are compared ignoring English case and repeated ordinary spaces; phones are compared by digits (so `+65 9123 4567` and `65-9123-4567` match), and emails ignore case. Address, tags and follow-up do not affect this check. Two clients may share a name if both their phone and email differ. Different names may share contact details. Duplicate checks include clients hidden by the current filter.
 
 Examples, entered into a list without these clients:
 
