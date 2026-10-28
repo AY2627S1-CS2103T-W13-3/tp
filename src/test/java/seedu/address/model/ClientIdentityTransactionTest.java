@@ -221,7 +221,7 @@ public class ClientIdentityTransactionTest {
         StorageManager storage = new StorageManager(failing,
                 new JsonUserPrefsStorage(testFolder.resolve("preferences.json")));
         LogicManager logic = new LogicManager(live, storage,
-                Clock.fixed(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC));
+                Clock.fixed(TODAY.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC));
         String saveMessage = String.format(LogicManager.MESSAGE_SAVE_FAILED, file);
         for (String command : List.of("delete 17", "followup 17 d/2026-10-20 m/保单更新", "followup 17 clear")) {
             assertThrows(CommandException.class, saveMessage, () -> logic.execute(command));
