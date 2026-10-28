@@ -12,7 +12,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import seedu.address.commons.core.index.Index;
 import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.FindCommand;
@@ -20,12 +19,13 @@ import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.person.ClientContainsKeywordsPredicate;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.AddressBookBuilder;
 
 /**
- * Checks pending-list and existing commands together, before parser routing is added.
+ * Checks permanent-ID targeting and pending-mode retention across candidate publication.
  */
 public class FollowUpListIntegrationTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 4);
@@ -33,12 +33,12 @@ public class FollowUpListIntegrationTest {
     private static final Person EARLY = BENSON.withFollowUp(new FollowUp(TODAY, "Call Benson"));
 
     @Test
-    public void delete_pendingCandidate_targetsDisplayedRowAndPublishesOnlyOnCommit() throws Exception {
+    public void delete_pendingCandidate_targetsPermanentIdAndPublishesOnlyOnCommit() throws Exception {
         Model live = createModel();
         new FollowUpsCommand().execute(live);
         Model candidate = live.forkForCommand(TODAY.plusDays(1));
 
-        new DeleteCommand(Index.fromOneBased(1)).execute(candidate);
+        new DeleteCommand(new ClientId(2)).execute(candidate);
 
         assertEquals(List.of(LATE), candidate.getFilteredPersonList());
         assertTrue(candidate.hasUnsavedChanges());
@@ -55,7 +55,7 @@ public class FollowUpListIntegrationTest {
         Model live = createModel();
         new FollowUpsCommand().execute(live);
         Model failed = live.forkForCommand(TODAY.plusDays(1));
-        assertThrows(CommandException.class, () -> new DeleteCommand(Index.fromOneBased(3)).execute(failed));
+        assertThrows(CommandException.class, () -> new DeleteCommand(new ClientId(3)).execute(failed));
         assertFalse(failed.hasUnsavedChanges());
         assertEquals(List.of(EARLY, LATE), live.getFilteredPersonList());
         assertEquals(TODAY, live.getToday());
@@ -72,10 +72,10 @@ public class FollowUpListIntegrationTest {
         assertFalse(candidate.hasUnsavedChanges());
 
         new FollowUpsCommand().execute(candidate);
-        new DeleteCommand(Index.fromOneBased(1)).execute(candidate);
+        new DeleteCommand(new ClientId(2)).execute(candidate);
         new AddCommand(EARLY).execute(candidate);
-        assertEquals(List.of(LATE, EARLY), candidate.getFilteredPersonList());
-        assertFalse(candidate.showingFollowUpsProperty().get());
+        assertEquals(List.of(EARLY, LATE), candidate.getFilteredPersonList());
+        assertTrue(candidate.showingFollowUpsProperty().get());
         assertTrue(candidate.hasUnsavedChanges());
     }
 

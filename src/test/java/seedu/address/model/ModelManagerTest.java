@@ -220,7 +220,7 @@ public class ModelManagerTest {
     }
 
     @Test
-    public void mutations_searchMode_reapplyPredicateAndAddResetsView() {
+    public void mutations_searchMode_reapplyPredicateAndRetainModeOnAdd() {
         Model model = modelWith(ALICE, BENSON);
         model.updateFilteredPersonList(person -> person.getName().fullName.startsWith("Alice"));
         Person renamed = new PersonBuilder(ALICE).withName("Zelda").build();
@@ -229,13 +229,13 @@ public class ModelManagerTest {
         model.deletePerson(BENSON);
         assertTrue(model.getFilteredPersonList().isEmpty());
         model.addPerson(BENSON);
-        assertEquals(List.of(renamed, BENSON), model.getFilteredPersonList());
+        assertTrue(model.getFilteredPersonList().isEmpty());
         assertFalse(model.showingFollowUpsProperty().get());
 
         model.showPendingFollowUps();
         model.addPerson(ALICE);
-        assertEquals(List.of(renamed, BENSON, ALICE), model.getFilteredPersonList());
-        assertFalse(model.showingFollowUpsProperty().get());
+        assertTrue(model.getFilteredPersonList().isEmpty());
+        assertTrue(model.showingFollowUpsProperty().get());
     }
 
     @Test

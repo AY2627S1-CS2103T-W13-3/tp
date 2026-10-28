@@ -32,7 +32,8 @@ public interface Model {
     void setGuiSettings(GuiSettings guiSettings);
 
     /**
-     * Replaces address book data with the data in {@code addressBook}.
+     * Replaces client data, permanent IDs and the allocation counter with the supplied aggregate state.
+     * Reconciles selection by ID and retains the active display mode and predicate.
      */
     void setAddressBook(ReadOnlyAddressBook addressBook);
 
@@ -46,19 +47,20 @@ public interface Model {
     boolean hasPerson(Person person);
 
     /**
-     * Deletes the given person.
+     * Deletes the given canonical client resolved globally by permanent ID.
      * The person must exist in the address book.
      */
     void deletePerson(Person target);
 
     /**
-     * Adds the given person.
+     * Adds the given person using the aggregate's next permanent ID, retaining the active display mode.
      * {@code person} must not already exist in the address book.
      */
     void addPerson(Person person);
 
     /**
-     * Replaces the given person {@code target} with {@code editedPerson}.
+     * Replaces the given person {@code target} with {@code editedPerson}, retaining its permanent ID.
+     * Re-evaluates the active predicate and retains selection only while the client remains visible.
      * {@code target} must exist in the address book.
      * {@code editedPerson} must not duplicate any record other than the replaced target.
      */
@@ -86,7 +88,9 @@ public interface Model {
 
     /**
      * Selects the exact canonical record in the current displayed list, without marking data dirty.
-     * Only the view command explicitly selects a client; other operations reconcile or clear it.
+     * Only the view command explicitly selects a client; it resolves permanent IDs globally and
+     * restores the full list when necessary before selecting a hidden client. Other operations
+     * reconcile the selected ID to the committed canonical instance or clear it.
      *
      * @throws NullPointerException if {@code person} is null.
      * @throws IllegalArgumentException if that instance is not in the current displayed list.
@@ -98,6 +102,7 @@ public interface Model {
 
     /**
      * Copies data, preferences and view state, including selection, into an isolated, initially clean candidate.
+     * The aggregate copy preserves IDs/counter with an independent identity ledger.
      * The caller supplies the command's sampled date. Discard the candidate on failure.
      */
     Model forkForCommand(LocalDate today);
@@ -109,10 +114,12 @@ public interface Model {
      * Publishes a validated candidate produced by {@link #forkForCommand(LocalDate)}.
      * The caller must save dirty candidates successfully before calling this method.
      * Performs no file I/O and retains the live observable list and properties.
+     * Publishes identity metadata even when contact values compare equal, and resolves
+     * candidate selection by permanent ID rather than displayed or insertion-order offsets.
      */
     void commitFrom(Model candidate);
 
-    /** Returns the stable, unmodifiable displayed list, authoritative for command indices. */
+    /** Returns the stable, unmodifiable display list; command targets use permanent IDs, not row positions. */
     ObservableList<Person> getFilteredPersonList();
 
     /**
