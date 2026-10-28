@@ -283,7 +283,9 @@ Records one pending action for the client at an index in the **currently display
 
 Format: `followup INDEX d/DATE m/DESCRIPTION`
 
-Use a calendar date in `YYYY-MM-DD` format. A new or replacement date may be today or later; past dates are rejected with `Follow-up date cannot be in the past.` An already saved follow-up can become overdue as time passes. The description must contain 1–200 printable English ASCII characters after outer ordinary spaces are removed. Its internal spaces are retained.
+Use a calendar date in `YYYY-MM-DD` format. A new or replacement date may be today or later; past dates are rejected with `Follow-up date cannot be in the past.` An already saved follow-up can become overdue as time passes.
+
+Descriptions support multilingual text, accents, punctuation and emoji, such as `followup 1 d/2099-12-15 m/续保电话`. They must contain 1–200 Unicode code points after outer ordinary spaces are removed. A letter with a combining accent or a joined emoji can contain several code points. Original spelling and internal spaces are preserved. Notes must include visible text or a symbol; whitespace, formatting characters or combining marks alone do not form a valid note. Controls, line breaks and invalid or unassigned Unicode characters are rejected. The existing reserved-prefix rules for `d/` and `m/` still apply.
 
 For example, `followup 2 d/2099-12-15 m/Discuss renewal options` records the action for the second displayed client, provided that date has not passed. Success reports `Follow-up for NAME recorded for DATE.` or `Follow-up for NAME updated to DATE.` The list and profile refresh immediately. In the pending list, changing the due date may move the client to another row; the open profile stays with that client.
 

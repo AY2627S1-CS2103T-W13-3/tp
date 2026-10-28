@@ -117,7 +117,7 @@ public class SetFollowUpCommandTest {
     @Test
     public void execute_invalidDescription_preservesExistingAction() {
         Person alice = ALICE.withFollowUp(new FollowUp(TODAY, "Keep this"));
-        for (String description : List.of("", "   ", "x".repeat(201), "Call\nAlice", "Café")) {
+        for (String description : List.of("", "   ", "x".repeat(201), "Call\nAlice", "\ud800", "\u200b")) {
             assertFailureUnchanged(new SetFollowUpCommand(FIRST, "2026-10-08", description), modelWith(alice),
                     FollowUp.MESSAGE_INVALID_DESCRIPTION);
         }
@@ -125,7 +125,7 @@ public class SetFollowUpCommandTest {
 
     @Test
     public void execute_boundaryDescriptionLengths_acceptsAfterTrimming() throws Exception {
-        for (String description : List.of("x", "x".repeat(200))) {
+        for (String description : List.of("x", "x".repeat(200), "续保电话", "Café", "😀".repeat(200))) {
             Model model = modelWith(ALICE);
             new SetFollowUpCommand(FIRST, "9999-12-31", " " + description + " ").execute(model);
             FollowUp action = model.getFilteredPersonList().get(0).getFollowUp().orElseThrow();

@@ -1,7 +1,9 @@
 package seedu.address.logic;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
@@ -74,6 +76,73 @@ public class FollowUpWorkflowIntegrationTest {
     }
 
     @Test
+    public void unicodeNotes_recordReplaceAndRestart_preserveTextAndContact() throws Exception {
+        Path file = testFolder.resolve("unicode.json");
+        Person rachel = new PersonBuilder().withName("Rachel Lim").withTags("health").build();
+        AddressBook book = new AddressBook();
+        book.addPerson(rachel);
+        ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
+        LogicManager logic = new LogicManager(model, storage(file), clock());
+        logic.execute("view 1");
+
+        for (String description : List.of("续保电话", "வாடிக்கையாளரை அழைக்கவும்", "اتصال بشأن التجديد",
+                "Cafe\u0301", "👩\u200d💻", "😀".repeat(200))) {
+            logic.execute("followup 1 d/2099-12-15 m/ " + description + " ");
+
+            Person updated = rachel.withFollowUp(new FollowUp(LocalDate.of(2099, 12, 15), description));
+            assertEquals(List.of(updated), model.getAddressBook().getPersonList());
+            assertSame(model.getFilteredPersonList().get(0), model.selectedPersonProperty().get());
+            assertTrue(Files.readString(file).contains(description),
+                    "Saved UTF-8 text must preserve the original note");
+            AddressBook loaded = new AddressBook(new JsonAddressBookStorage(file).readAddressBook().orElseThrow());
+            ModelManager restarted = new ModelManager(loaded, new UserPrefs(), TODAY, false);
+            assertEquals(List.of(updated), restarted.getFilteredPersonList());
+            assertEquals(description, restarted.getFilteredPersonList().get(0).getFollowUp().orElseThrow()
+                    .getDescription());
+        }
+    }
+
+    @Test
+    public void invalidUnicodeNotes_rejectedBeforeSaveAndPublication() throws Exception {
+        Path file = testFolder.resolve("rejected-unicode.json");
+        Person rachel = new PersonBuilder().withName("Rachel Lim")
+                .withFollowUp(new FollowUp(TODAY.plusDays(1), "Keep this action")).build();
+        AddressBook book = new AddressBook();
+        book.addPerson(rachel);
+        new JsonAddressBookStorage(file).saveAddressBook(book);
+        byte[] saved = Files.readAllBytes(file);
+        ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
+        model.showPendingFollowUps();
+        model.selectPerson(rachel);
+        int[] saveCalls = {0};
+        StorageManager rejectingStorage = new StorageManager(new JsonAddressBookStorage(file),
+                new JsonUserPrefsStorage(testFolder.resolve("prefs.json"))) {
+            @Override
+            public void saveAddressBook(ReadOnlyAddressBook addressBook) {
+                saveCalls[0]++;
+                throw new AssertionError("Invalid descriptions must not reach storage");
+            }
+        };
+        MutableClock clock = clock();
+        clock.setInstant(Instant.parse("2026-10-05T00:00:00Z"));
+        LogicManager logic = new LogicManager(model, rejectingStorage, clock);
+        for (String description : List.of("\ud800", "\udc00", "\u00a0\u200b\ufe0f", "😀".repeat(201))) {
+            assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
+                    logic.execute("followup 1 d/2099-12-15 m/" + description));
+            assertEquals(List.of(rachel), model.getAddressBook().getPersonList());
+            assertEquals(List.of(rachel), model.getFilteredPersonList());
+            assertSame(rachel, model.selectedPersonProperty().get());
+            assertEquals(TODAY, model.getToday());
+            assertTrue(model.showingFollowUpsProperty().get());
+            assertArrayEquals(saved, Files.readAllBytes(file));
+        }
+        assertThrows(ParseException.class, Messages.MESSAGE_INVALID_CHARACTERS, () ->
+                logic.execute("followup 1 d/2099-12-15 m/Call\u0085client"));
+        assertEquals(0, saveCalls[0]);
+        assertArrayEquals(saved, Files.readAllBytes(file));
+    }
+
+    @Test
     public void failedSavesAndUnsupportedCommands_preserveLiveDataViewDateAndFile() throws Exception {
         Path file = testFolder.resolve("book.json");
         Person rachel = new PersonBuilder().withName("Rachel Lim")
@@ -97,7 +166,7 @@ public class FollowUpWorkflowIntegrationTest {
         List<String> unsupportedCommands = List.of("edit 1 n/Updated Rachel", "clear", "help", "exit");
         for (String command : List.of("add n/Bob p/92345678 e/bob@example.com a/Street",
                 "delete 1", "edit 1 n/Updated Rachel", "followup 1 d/2026-10-06 m/Replace",
-                "followup 1 clear", "clear", "help", "exit")) {
+                "followup 1 d/2026-10-06 m/续保电话 👩\u200d💻", "followup 1 clear", "clear", "help", "exit")) {
             if (unsupportedCommands.contains(command)) {
                 assertThrows(ParseException.class, "Unknown command.", () -> logic.execute(command));
             } else {
