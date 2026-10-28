@@ -38,10 +38,11 @@ public class FileUtil {
     }
 
     /**
-     * Reads existing UTF-8 text, rejecting malformed bytes instead of replacing them.
+     * Reads existing UTF-8 text, ignoring one leading BOM and rejecting malformed bytes.
      */
     public static String readFromFile(Path file) throws IOException {
-        return Files.readString(file, StandardCharsets.UTF_8);
+        String text = Files.readString(file, StandardCharsets.UTF_8);
+        return text.startsWith("\ufeff") ? text.substring(1) : text;
     }
 
     /**

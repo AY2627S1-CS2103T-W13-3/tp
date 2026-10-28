@@ -21,6 +21,7 @@ import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.Model;
 import seedu.address.model.person.Person;
 import seedu.address.storage.Storage;
+import seedu.address.storage.SymbolicLinkSaveException;
 
 /**
  * The main LogicManager of the app.
@@ -28,6 +29,9 @@ import seedu.address.storage.Storage;
 public class LogicManager implements Logic {
     public static final String MESSAGE_SAVE_FAILED =
             "Changes could not be saved. No changes were kept. Try the command again.";
+    public static final String MESSAGE_SYMLINK_SAVE_FAILED =
+            "Changes could not be saved because data/addressbook.json is a symbolic link."
+                    + " No changes were kept. Close the app, replace the link with a regular file, then try again.";
 
     private final Logger logger = LogsCenter.getLogger(LogicManager.class);
 
@@ -72,6 +76,8 @@ public class LogicManager implements Logic {
         if (candidate.hasUnsavedChanges()) {
             try {
                 storage.saveAddressBook(candidate.getAddressBook());
+            } catch (SymbolicLinkSaveException e) {
+                throw new CommandException(MESSAGE_SYMLINK_SAVE_FAILED, e);
             } catch (IOException e) {
                 throw new CommandException(MESSAGE_SAVE_FAILED, e);
             }
