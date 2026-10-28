@@ -247,7 +247,7 @@ A saved record uses the following JSON shape. Tags are strings, not objects; omi
 }
 ```
 
-### View parsing, name search and supported command routing
+### View parsing, client search and supported command routing
 
 `ViewCommand`, `ViewCommandParser`, `FindCommand` and `AddressBookParser` use the shared index helper and model selection API. `Logic.selectedPersonProperty()` delegates to the live model, allowing the workspace and profile to observe the same selection.
 
@@ -259,9 +259,9 @@ At execution, `ViewCommand` obtains `Model.getFilteredPersonList()` and checks t
 
 The current list is authoritative in full, search and pending modes. Selection does not change data, order, mode or the dirty flag. Through the existing `LogicManager` execution path, the command selects on an isolated candidate; successful publication transfers selection and the sampled date without saving client data. A failed parse or range check publishes nothing. The command never samples a date itself.
 
-#### Name-search behavior
+#### Name and phone search behavior
 
-`FindCommandParser` reports the exact usage `Usage: find KEYWORD [MORE_KEYWORDS]...` for empty arguments. After global validation, it trims only outer U+0020 and splits keywords on runs of ordinary spaces. Quotes and punctuation remain literal tokens. `NameContainsKeywordsPredicate` retains whole-word, case-insensitive OR matching against names; it adds no substring, tag or contact search.
+`FindCommandParser` reports the exact usage `Usage: find KEYWORD [MORE_KEYWORDS]...` for empty arguments. After global validation, it trims only outer U+0020 and splits keywords on runs of ordinary spaces. Quotes and punctuation remain literal tokens. `ClientContainsKeywordsPredicate` copies the keywords and composes the existing `NameContainsKeywordsPredicate` with exact full-phone matching. Name matching remains whole-word and case-insensitive; a client matches if any keyword matches either field. Phone keywords must contain at least three ASCII digits and no formatting. They are converted to `Phone` values and compared through `Phone.hasSameDigitsAs`, preserving leading zeroes and rejecting partial numbers. This comparison ignores a stored phone's display formatting (a leading `+`, ordinary spaces and hyphens); phone input validation remains unchanged. Numeric keywords remain eligible for name matching, and separate tokens are never concatenated. Email, address and tags are not searched.
 
 `FindCommand` applies that predicate to the full dataset with `updateFilteredPersonList`, leaving pending mode and restoring insertion-order results. Each client appears once regardless of repeated keywords. It uses the existing shared count message, `%1$d client(s) listed!`. The model retains selection only if its exact record remains visible; search does not explicitly select any record or mark data dirty.
 
@@ -278,6 +278,8 @@ Legacy command classes, their direct unit tests, the GUI Help menu and the windo
 `ViewCommandParserTest` covers shape-before-syntax precedence, ASCII index boundaries and long leading-zero runs. `ViewCommandTest` uses date `2026-10-12` and two permitted same-name clients to verify exact displayed-record selection in full/search/pending modes, unchanged list/data/mode, failure preservation, and selection/date publication through Logic without a storage write.
 
 `FindCommandParserTest`, `FindCommandTest` and `AddressBookParserTest` cover literal usage/result text, ordinary-space splitting, whole-word OR matching, insertion order, repeated keywords, all-data search after filtering/pending mode, selection reconciliation and global validation. Dispatcher tests reject all four unsupported routes in normal and blocked sessions and retain singular follow-up clearing. `LogicManagerTest` and `FollowUpWorkflowIntegrationTest` provide compatibility evidence for blocked-session rejection and preservation of state and saved bytes.
+
+`ClientContainsKeywordsPredicateTest` covers exact phone matching, leading zeroes, numeric name words, unchanged name matching and excluded fields. `FindPhoneWorkflowIntegrationTest` exercises the real parser and Logic path with shared phone numbers, mixed name/phone keywords and pending/search transitions. It verifies insertion order, one result per client, selection reconciliation and unchanged client data and saved bytes, with storage configured to fail if search attempts a save.
 
 Command tests alone do not certify rendered profile behavior. The workspace and profile sections below describe the integrated UI and its separate checks.
 
@@ -436,7 +438,7 @@ These stories are delivered in v1.3. The MVP deliberately limits each client to 
 | Priority | As an insurance agent, I want to... | So that I can... |
 | --- | --- | --- |
 | High | add a client or prospect with contact details | keep their information in one place |
-| High | list clients and search by name | find the record I need |
+| High | list clients and search by name or phone number | find the record I need |
 | High | view a client's complete profile | review context before making contact |
 | High | delete an incorrect client record | remove inaccurate information |
 | High | reload saved data after restarting | retain my work between sessions |
@@ -454,7 +456,7 @@ The actor is an individual insurance agent and the system is PolicyHarbor. Each 
 
 **UC01 — Retrieve a client profile**
 
-1. The agent lists all clients or searches their names.
+1. The agent lists all clients or searches their names or phone numbers.
 2. The system displays matching clients with current row numbers.
 3. The agent enters `view INDEX`.
 4. The system opens that client's complete profile without changing saved data.
@@ -581,7 +583,10 @@ Start fresh with Rachel and Amanda from the basic workflow.
 | Input | Expected result |
 | --- | --- |
 | `find lim AMANDA Lim` | `2 client(s) listed!`, Rachel then Amanda, each once. |
-| `find Rach`, `find "Rachel"`, `find Rachel,`, `find rachel@example.com` | Each returns `0 client(s) listed!`; only whole name words match. |
+| `find Rach`, `find "Rachel"`, `find Rachel,`, `find rachel@example.com` | Each returns `0 client(s) listed!`; partial names, quoted/punctuated tokens and email do not match these clients. |
+| `find 001` | `1 client(s) listed!`, Rachel; the full phone number retains its leading zeroes. |
+| `find 01`, `find 0001`, `find 0 01` | Each returns `0 client(s) listed!`; phone matching is exact and separate tokens are not joined. |
+| `find 001 AMANDA Lim 001` | `2 client(s) listed!`, Rachel then Amanda, each once. |
 | `find` | `Invalid command format!` then `Usage: find KEYWORD [MORE_KEYWORDS]...`. |
 | `view 0 extra`, `delete 0 extra` | Format error and the corresponding usage, before index syntax. |
 | `view 0`, `view 2147483648`, `delete 0` | `Index must be a positive integer from 1 to 2147483647.` |

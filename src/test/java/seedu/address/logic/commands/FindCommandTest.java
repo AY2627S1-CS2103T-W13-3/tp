@@ -20,8 +20,8 @@ import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.ClientContainsKeywordsPredicate;
 import seedu.address.model.person.FollowUp;
-import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.PersonBuilder;
 
@@ -34,10 +34,10 @@ public class FindCommandTest {
 
     @Test
     public void equals() {
-        NameContainsKeywordsPredicate firstPredicate =
-                new NameContainsKeywordsPredicate(List.of("first"));
-        NameContainsKeywordsPredicate secondPredicate =
-                new NameContainsKeywordsPredicate(List.of("second"));
+        ClientContainsKeywordsPredicate firstPredicate =
+                new ClientContainsKeywordsPredicate(List.of("first"));
+        ClientContainsKeywordsPredicate secondPredicate =
+                new ClientContainsKeywordsPredicate(List.of("second"));
 
         FindCommand findFirstCommand = new FindCommand(firstPredicate);
         FindCommand findSecondCommand = new FindCommand(secondPredicate);
@@ -62,7 +62,7 @@ public class FindCommandTest {
     @Test
     public void execute_zeroKeywords_noPersonFound() {
         String expectedMessage = "0 client(s) listed!";
-        NameContainsKeywordsPredicate predicate = preparePredicate(" ");
+        ClientContainsKeywordsPredicate predicate = preparePredicate(" ");
         FindCommand command = new FindCommand(predicate);
         expectedModel.updateFilteredPersonList(predicate);
         assertCommandSuccess(command, model, expectedMessage, expectedModel);
@@ -72,7 +72,7 @@ public class FindCommandTest {
     @Test
     public void execute_multipleKeywords_multiplePersonsFound() {
         String expectedMessage = "3 client(s) listed!";
-        NameContainsKeywordsPredicate predicate = preparePredicate("Kurz Elle Kunz");
+        ClientContainsKeywordsPredicate predicate = preparePredicate("Kurz Elle Kunz");
         FindCommand command = new FindCommand(predicate);
         expectedModel.updateFilteredPersonList(predicate);
         assertCommandSuccess(command, model, expectedMessage, expectedModel);
@@ -81,7 +81,7 @@ public class FindCommandTest {
 
     @Test
     public void toStringMethod() {
-        NameContainsKeywordsPredicate predicate = new NameContainsKeywordsPredicate(List.of("keyword"));
+        ClientContainsKeywordsPredicate predicate = new ClientContainsKeywordsPredicate(List.of("keyword"));
         FindCommand findCommand = new FindCommand(predicate);
         String expected = FindCommand.class.getCanonicalName() + "{predicate=" + predicate + "}";
         assertEquals(expected, findCommand.toString());
@@ -89,20 +89,28 @@ public class FindCommandTest {
 
     @Test
     public void execute_caseInsensitiveWholeWordOr_preservesInsertionOrderAndAvoidsDuplicates() {
-        NameContainsKeywordsPredicate predicate = preparePredicate("kUnZ ELLE kUrZ Elle");
+        ClientContainsKeywordsPredicate predicate = preparePredicate("kUnZ ELLE kUrZ Elle");
         assertEquals("3 client(s) listed!", new FindCommand(predicate).execute(model).getFeedbackToUser());
         assertEquals(List.of(CARL, ELLE, FIONA), model.getFilteredPersonList());
         assertFalse(model.hasUnsavedChanges());
     }
 
     @Test
-    public void execute_substringsQuotesPunctuationAndContactFields_doNotMatchNames() {
-        for (String keyword : List.of("Car", "\"Carl\"", "Carl,", CARL.getPhone().value,
+    public void execute_substringsQuotesPunctuationAndOtherContactFields_doNotMatch() {
+        for (String keyword : List.of("Car", "\"Carl\"", "Carl,",
                 CARL.getEmail().value, "heinz", "owesMoney")) {
             assertEquals("0 client(s) listed!",
                     new FindCommand(preparePredicate(keyword)).execute(model).getFeedbackToUser());
             assertTrue(model.getFilteredPersonList().isEmpty());
         }
+    }
+
+    @Test
+    public void execute_fullPhoneAndRepeatedName_matchesClientOnce() {
+        assertEquals("1 client(s) listed!", new FindCommand(preparePredicate(CARL.getPhone().value + " Carl "
+                + CARL.getPhone().value)).execute(model).getFeedbackToUser());
+        assertEquals(List.of(CARL), model.getFilteredPersonList());
+        assertFalse(model.hasUnsavedChanges());
     }
 
     @Test
@@ -139,9 +147,9 @@ public class FindCommandTest {
     }
 
     /**
-     * Parses {@code userInput} into a {@code NameContainsKeywordsPredicate}.
+     * Parses {@code userInput} into a {@code ClientContainsKeywordsPredicate}.
      */
-    private NameContainsKeywordsPredicate preparePredicate(String userInput) {
-        return new NameContainsKeywordsPredicate(List.of(userInput.split("\\s+")));
+    private ClientContainsKeywordsPredicate preparePredicate(String userInput) {
+        return new ClientContainsKeywordsPredicate(List.of(userInput.split("\\s+")));
     }
 }
