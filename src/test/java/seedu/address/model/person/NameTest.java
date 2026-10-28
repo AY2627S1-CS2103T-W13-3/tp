@@ -40,6 +40,19 @@ public class NameTest {
     }
 
     @Test
+    public void constructor_localNameForms_preservesPunctuationAndSpacing() {
+        for (String name : new String[] {"Ravi s/o Kumar", "Priya d/o Raj", "Mary-Ann Lim", "Sean O'Brien",
+            "Tan Ah Kow @ Tan Ah Kau", "Dr. Lim", "A/B", "R@chel"}) {
+            assertTrue(Name.isValidName(name));
+            assertEquals(name, new Name("  " + name + "  ").fullName);
+        }
+        for (String invalid : new String[] {"-", "'", "@", ".", "/", "-Mary", "Sean_OBrien", "Mary\nAnn"}) {
+            assertFalse(Name.isValidName(invalid));
+            assertThrows(IllegalArgumentException.class, () -> new Name(invalid));
+        }
+    }
+
+    @Test
     public void equals() {
         Name name = new Name("Valid Name");
 
@@ -62,7 +75,19 @@ public class NameTest {
     @Test
     public void constructor_outerOrdinarySpaces_preservesCaseAndInternalSpaces() {
         assertEquals("Rachel  Lim", new Name("  Rachel  Lim  ").fullName);
-        for (String invalid : new String[] {"张三", "Émile", "Rachel\tLim", "Rachel\u00a0Lim"}) {
+        for (String invalid : new String[] {"Rachel\tLim", "Rachel\u00a0Lim"}) {
+            assertFalse(Name.isValidName(invalid));
+        }
+    }
+
+    @Test
+    public void isValidName_unicodeLettersAndCombiningMarks() {
+        for (String valid : new String[] {"José Tan", "陈小明", "நிலா", "Jose\u0301 Tan"}) {
+            assertTrue(Name.isValidName(valid));
+            assertEquals(valid, new Name(valid).fullName);
+        }
+        String[] invalidNames = {"\u0301Jose", "Jose \u0301", "Jose\u0000 Tan", "Jose\uD800", "Jose\uDC00"};
+        for (String invalid : invalidNames) {
             assertFalse(Name.isValidName(invalid));
         }
     }

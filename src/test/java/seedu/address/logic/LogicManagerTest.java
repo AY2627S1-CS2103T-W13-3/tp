@@ -26,6 +26,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -90,12 +91,61 @@ public class LogicManagerTest {
 
     @Test
     public void execute_storageThrowsIoException_throwsCommandException() {
-        assertCommandFailureForExceptionFromStorage(DUMMY_IO_EXCEPTION, LogicManager.MESSAGE_SAVE_FAILED);
+        assertCommandFailureForExceptionFromStorage(DUMMY_IO_EXCEPTION,
+                String.format(LogicManager.MESSAGE_SAVE_FAILED, temporaryFolder.resolve("ExceptionUserPrefs.json")));
     }
 
     @Test
     public void execute_storageThrowsAdException_throwsCommandException() {
-        assertCommandFailureForExceptionFromStorage(DUMMY_AD_EXCEPTION, LogicManager.MESSAGE_SAVE_FAILED);
+        assertCommandFailureForExceptionFromStorage(DUMMY_AD_EXCEPTION,
+                String.format(LogicManager.MESSAGE_SAVE_FAILED, temporaryFolder.resolve("ExceptionUserPrefs.json")));
+    }
+
+    @Test
+    public void execute_saveFailure_identifiesDestinationAndRecoveryWithoutLeakingCause() {
+        Path destination = temporaryFolder.resolve("client data/addressbook.json");
+        IOException failure = new AccessDeniedException("private client text must not appear");
+        JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(destination) {
+            @Override
+            public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                throw failure;
+            }
+        };
+        Logic failingLogic = new LogicManager(model, new StorageManager(failingStorage,
+                new JsonUserPrefsStorage(temporaryFolder.resolve("preferences.json"))));
+        CommandException error = org.junit.jupiter.api.Assertions.assertThrows(CommandException.class, () ->
+                failingLogic.execute("add n/Alice Tan p/91110001 e/alice@example.com a/Blk 1"));
+        assertTrue(error.getMessage().contains(destination.toString()));
+        assertTrue(error.getMessage().contains("writable"));
+        assertFalse(error.getMessage().contains("private client text"));
+        assertSame(failure, error.getCause());
+        assertTrue(model.getAddressBook().getPersonList().isEmpty());
+        assertFalse(Files.exists(destination));
+    }
+
+    @Test
+    public void execute_symbolicLinkSaveFailure_preservesModelAndLink() throws Exception {
+        Path target = temporaryFolder.resolve("original.json");
+        Path link = temporaryFolder.resolve("addressBook-link.json");
+        new JsonAddressBookStorage(target).saveAddressBook(model.getAddressBook());
+        byte[] originalBytes = Files.readAllBytes(target);
+        try {
+            Files.createSymbolicLink(link, target.getFileName());
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            Assumptions.assumeTrue(false, "Symbolic links unavailable: " + e.getMessage());
+        }
+        storage = new StorageManager(new JsonAddressBookStorage(link),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json")));
+        logic = new LogicManager(model, storage);
+
+        String addCommand = AddCommand.COMMAND_WORD + NAME_DESC_AMY + PHONE_DESC_AMY
+                + EMAIL_DESC_AMY + ADDRESS_DESC_AMY;
+        Model expectedModel = new ModelManager(model.getAddressBook(), model.getUserPrefs(), model.getToday(),
+                model.isDataLoadingBlocked());
+        assertCommandFailure(addCommand, CommandException.class, LogicManager.MESSAGE_SYMLINK_SAVE_FAILED,
+                expectedModel);
+        assertTrue(Files.isSymbolicLink(link));
+        assertTrue(java.util.Arrays.equals(originalBytes, Files.readAllBytes(target)));
     }
 
     @Test

@@ -433,7 +433,7 @@ public class CommandSubmissionTest {
                 for (int attempt = 0; attempt < 2; attempt++) {
                     fixture.submit(method);
                     assertEquals("delete 1", fixture.commandTextField.getText());
-                    assertEquals(LogicManager.MESSAGE_SAVE_FAILED, failures.getLast());
+                    assertEquals(String.format(LogicManager.MESSAGE_SAVE_FAILED, dataFile), failures.getLast());
                     assertEquals(1, errorClassCount(fixture.commandTextField));
                     assertSame(fixture.commandTextField, fixture.scene.getFocusOwner());
                     assertEquals(addressBook, model.getAddressBook());

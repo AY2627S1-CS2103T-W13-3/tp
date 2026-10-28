@@ -144,7 +144,7 @@ public class ClientProfilePanelTest {
             assertTrue(status.getStyleClass().contains("profile-status-overdue"));
             assertFalse(status.getStyleClass().contains("profile-status-due-today"));
 
-            String longAction = "x".repeat(200);
+            String longAction = "续保电话 👩\u200d💻 " + "x".repeat(191);
             selected.set(new PersonBuilder().withName("Second Client").withTags("travel")
                     .withFollowUp(new FollowUp(TODAY.plusDays(5), longAction)).build());
             assertEquals(List.of("travel"), chips.getChildren().stream()

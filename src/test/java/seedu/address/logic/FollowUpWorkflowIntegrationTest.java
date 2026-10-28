@@ -1,7 +1,10 @@
 package seedu.address.logic;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
@@ -24,6 +27,7 @@ import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.UserPrefs;
 import seedu.address.model.person.FollowUp;
+import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
@@ -74,6 +78,191 @@ public class FollowUpWorkflowIntegrationTest {
     }
 
     @Test
+    public void unicodeNotes_recordReplaceAndRestart_preserveTextAndContact() throws Exception {
+        Path file = testFolder.resolve("unicode.json");
+        Person rachel = new PersonBuilder().withName("Rachel Lim").withTags("health").build();
+        AddressBook book = new AddressBook();
+        book.addPerson(rachel);
+        ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
+        LogicManager logic = new LogicManager(model, storage(file), clock());
+        logic.execute("view 1");
+
+        for (String description : List.of("续保电话", "வாடிக்கையாளரை அழைக்கவும்", "اتصال بشأن التجديد",
+                "Cafe\u0301", "👩\u200d💻", "😀".repeat(200))) {
+            logic.execute("followup 1 d/2099-12-15 m/ " + description + " ");
+
+            Person updated = rachel.withFollowUp(new FollowUp(LocalDate.of(2099, 12, 15), description));
+            assertEquals(List.of(updated), model.getAddressBook().getPersonList());
+            assertSame(model.getFilteredPersonList().get(0), model.selectedPersonProperty().get());
+            assertTrue(Files.readString(file).contains(description),
+                    "Saved UTF-8 text must preserve the original note");
+            AddressBook loaded = new AddressBook(new JsonAddressBookStorage(file).readAddressBook().orElseThrow());
+            ModelManager restarted = new ModelManager(loaded, new UserPrefs(), TODAY, false);
+            assertEquals(List.of(updated), restarted.getFilteredPersonList());
+            assertEquals(description, restarted.getFilteredPersonList().get(0).getFollowUp().orElseThrow()
+                    .getDescription());
+        }
+    }
+
+    @Test
+    public void invalidUnicodeNotes_rejectedBeforeSaveAndPublication() throws Exception {
+        Path file = testFolder.resolve("rejected-unicode.json");
+        Person rachel = new PersonBuilder().withName("Rachel Lim")
+                .withFollowUp(new FollowUp(TODAY.plusDays(1), "Keep this action")).build();
+        AddressBook book = new AddressBook();
+        book.addPerson(rachel);
+        new JsonAddressBookStorage(file).saveAddressBook(book);
+        byte[] saved = Files.readAllBytes(file);
+        ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
+        model.showPendingFollowUps();
+        model.selectPerson(rachel);
+        int[] saveCalls = {0};
+        StorageManager rejectingStorage = new StorageManager(new JsonAddressBookStorage(file),
+                new JsonUserPrefsStorage(testFolder.resolve("prefs.json"))) {
+            @Override
+            public void saveAddressBook(ReadOnlyAddressBook addressBook) {
+                saveCalls[0]++;
+                throw new AssertionError("Invalid descriptions must not reach storage");
+            }
+        };
+        MutableClock clock = clock();
+        clock.setInstant(Instant.parse("2026-10-05T00:00:00Z"));
+        LogicManager logic = new LogicManager(model, rejectingStorage, clock);
+        for (String description : List.of("\ud800", "\udc00", "\u00a0\u200b\ufe0f", "😀".repeat(201))) {
+            assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
+                    logic.execute("followup 1 d/2099-12-15 m/" + description));
+            assertEquals(List.of(rachel), model.getAddressBook().getPersonList());
+            assertEquals(List.of(rachel), model.getFilteredPersonList());
+            assertSame(rachel, model.selectedPersonProperty().get());
+            assertEquals(TODAY, model.getToday());
+            assertTrue(model.showingFollowUpsProperty().get());
+            assertArrayEquals(saved, Files.readAllBytes(file));
+        }
+        assertThrows(ParseException.class, Messages.MESSAGE_INVALID_CHARACTERS, () ->
+                logic.execute("followup 1 d/2099-12-15 m/Call\u0085client"));
+        assertEquals(0, saveCalls[0]);
+        assertArrayEquals(saved, Files.readAllBytes(file));
+    }
+
+    @Test
+    public void overdueFollowUps_recordAndReplace_preserveSelectionOrderAndRestartData() throws Exception {
+        Path file = testFolder.resolve("overdue.json");
+        Person rachel = new PersonBuilder().withName("Rachel Lim").withTags("health", "active").build();
+        Person amanda = new PersonBuilder().withName("Amanda Lee").withPhone("91234567")
+                .withFollowUp(new FollowUp(TODAY, "Call Amanda")).build();
+        Person john = new PersonBuilder().withName("John Tan").withPhone("92345678")
+                .withFollowUp(new FollowUp(TODAY.plusDays(1), "Call John")).build();
+        AddressBook book = new AddressBook();
+        book.setPersons(List.of(rachel, amanda, john));
+        ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
+        LogicManager logic = new LogicManager(model, storage(file), clock());
+
+        logic.execute("find Rachel");
+        logic.execute("view 1");
+        assertEquals("Follow-up for Rachel Lim recorded for 2026-10-03.",
+                logic.execute("followup 1 d/2026-10-03 m/Carry-over call").getFeedbackToUser());
+        Person overdueRachel = rachel.withFollowUp(new FollowUp(TODAY.minusDays(1), "Carry-over call"));
+        assertEquals(List.of(overdueRachel), model.getFilteredPersonList());
+        assertFalse(model.showingFollowUpsProperty().get());
+        assertSame(model.getFilteredPersonList().get(0), model.selectedPersonProperty().get());
+        assertEquals(List.of(overdueRachel, amanda, john), model.getAddressBook().getPersonList());
+
+        logic.execute("followups");
+        assertEquals(List.of(overdueRachel, amanda, john), model.getFilteredPersonList());
+        assertEquals(List.of(FollowUpStatus.OVERDUE, FollowUpStatus.DUE_TODAY, FollowUpStatus.UPCOMING),
+                model.getFilteredPersonList().stream()
+                        .map(person -> person.getFollowUp().orElseThrow().getStatus(model.getToday())).toList());
+        logic.execute("view 2");
+        assertEquals("Follow-up for Amanda Lee updated to 2026-10-03.",
+                logic.execute("followup 2 d/2026-10-03 m/Overdue renewal").getFeedbackToUser());
+        Person overdueAmanda = amanda.withFollowUp(new FollowUp(TODAY.minusDays(1), "Overdue renewal"));
+        // Equal dates retain full-list insertion order, even when the viewed action is replaced.
+        assertEquals(List.of(overdueRachel, overdueAmanda, john), model.getFilteredPersonList());
+        assertSame(model.getFilteredPersonList().get(1), model.selectedPersonProperty().get());
+
+        logic.execute("followup 2 d/2026-10-02 m/Earlier carry-over task");
+        Person earlierAmanda = amanda.withFollowUp(new FollowUp(TODAY.minusDays(2), "Earlier carry-over task"));
+        assertEquals(List.of(earlierAmanda, overdueRachel, john), model.getFilteredPersonList());
+        assertSame(model.getFilteredPersonList().get(0), model.selectedPersonProperty().get());
+        assertTrue(model.showingFollowUpsProperty().get());
+        List<Person> expectedFullList = List.of(overdueRachel, earlierAmanda, john);
+        assertEquals(expectedFullList, model.getAddressBook().getPersonList());
+        assertFalse(model.hasUnsavedChanges());
+
+        AddressBook loaded = new AddressBook(new JsonAddressBookStorage(file).readAddressBook().orElseThrow());
+        assertEquals(expectedFullList, loaded.getPersonList());
+        ModelManager restarted = new ModelManager(loaded, new UserPrefs(), TODAY, false);
+        assertNull(restarted.selectedPersonProperty().get());
+        LogicManager restartedLogic = new LogicManager(restarted, storage(file), clock());
+        restartedLogic.execute("followups");
+        assertEquals(List.of(earlierAmanda, overdueRachel, john), restarted.getFilteredPersonList());
+        assertEquals(FollowUpStatus.OVERDUE,
+                restarted.getFilteredPersonList().get(0).getFollowUp().orElseThrow().getStatus(restarted.getToday()));
+        assertEquals(FollowUpStatus.OVERDUE,
+                restarted.getFilteredPersonList().get(1).getFollowUp().orElseThrow().getStatus(restarted.getToday()));
+    }
+
+    @Test
+    public void earliestFollowUpDate_recordAndRestart_preservesDateAndOverdueStatus() throws Exception {
+        Path file = testFolder.resolve("earliest-date.json");
+        Person rachel = new PersonBuilder().withName("Rachel Lim").build();
+        AddressBook book = new AddressBook();
+        book.addPerson(rachel);
+        ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
+        LogicManager logic = new LogicManager(model, storage(file), clock());
+
+        assertEquals("Follow-up for Rachel Lim recorded for 0001-01-01.",
+                logic.execute("followup 1 d/0001-01-01 m/Carry-over call").getFeedbackToUser());
+        Person expected = rachel.withFollowUp(new FollowUp(LocalDate.of(1, 1, 1), "Carry-over call"));
+        assertEquals(List.of(expected), model.getAddressBook().getPersonList());
+        assertTrue(Files.readString(file).contains("\"0001-01-01\""));
+
+        AddressBook loaded = new AddressBook(new JsonAddressBookStorage(file).readAddressBook().orElseThrow());
+        ModelManager restarted = new ModelManager(loaded, new UserPrefs(), TODAY, false);
+        LogicManager restartedLogic = new LogicManager(restarted, storage(file), clock());
+        restartedLogic.execute("followups");
+
+        assertEquals(List.of(expected), restarted.getFilteredPersonList());
+        FollowUp restored = restarted.getFilteredPersonList().get(0).getFollowUp().orElseThrow();
+        assertEquals(LocalDate.of(1, 1, 1), restored.getDueDate());
+        assertEquals(FollowUpStatus.OVERDUE, restored.getStatus(restarted.getToday()));
+    }
+
+    @Test
+    public void overdueFollowUp_saveCrossesMidnight_publishesOneSampledDate() throws Exception {
+        Path file = testFolder.resolve("midnight.json");
+        Person rachel = new PersonBuilder().withName("Rachel Lim").build();
+        AddressBook book = new AddressBook();
+        book.addPerson(rachel);
+        ModelManager model = new ModelManager(book, new UserPrefs(), TODAY.minusDays(1), false);
+        int[] samples = {0};
+        MutableClock clock = new MutableClock(Instant.parse("2026-10-04T23:59:59Z"), ZoneId.of("UTC")) {
+            @Override
+            public Instant instant() {
+                samples[0]++;
+                return super.instant();
+            }
+        };
+        StorageManager storage = new StorageManager(new JsonAddressBookStorage(file),
+                new JsonUserPrefsStorage(testFolder.resolve("prefs.json"))) {
+            @Override
+            public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                clock.setInstant(Instant.parse("2026-10-05T00:00:00Z"));
+                super.saveAddressBook(addressBook);
+            }
+        };
+        LogicManager logic = new LogicManager(model, storage, clock);
+
+        logic.execute("followup 1 d/2026-10-03 m/Carry-over call");
+
+        assertEquals(1, samples[0]);
+        assertEquals(TODAY, model.getToday());
+        assertEquals(FollowUpStatus.OVERDUE,
+                model.getFilteredPersonList().get(0).getFollowUp().orElseThrow().getStatus(model.getToday()));
+        assertEquals(model.getAddressBook(), new JsonAddressBookStorage(file).readAddressBook().orElseThrow());
+    }
+
+    @Test
     public void failedSavesAndUnsupportedCommands_preserveLiveDataViewDateAndFile() throws Exception {
         Path file = testFolder.resolve("book.json");
         Person rachel = new PersonBuilder().withName("Rachel Lim")
@@ -84,6 +273,7 @@ public class FollowUpWorkflowIntegrationTest {
         byte[] original = Files.readAllBytes(file);
         ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
         model.showPendingFollowUps();
+        model.selectPerson(rachel);
         MutableClock clock = clock();
         clock.setInstant(Instant.parse("2026-10-05T00:00:00Z"));
         StorageManager failingStorage = new StorageManager(new JsonAddressBookStorage(file),
@@ -97,19 +287,36 @@ public class FollowUpWorkflowIntegrationTest {
         List<String> unsupportedCommands = List.of("edit 1 n/Updated Rachel", "clear", "help", "exit");
         for (String command : List.of("add n/Bob p/92345678 e/bob@example.com a/Street",
                 "delete 1", "edit 1 n/Updated Rachel", "followup 1 d/2026-10-06 m/Replace",
+                "followup 1 d/2026-10-06 m/续保电话 👩\u200d💻",
+                "followup 1 d/2026-10-03 m/Overdue replacement",
                 "followup 1 clear", "clear", "help", "exit")) {
             if (unsupportedCommands.contains(command)) {
                 assertThrows(ParseException.class, "Unknown command.", () -> logic.execute(command));
             } else {
-                assertThrows(CommandException.class, LogicManager.MESSAGE_SAVE_FAILED, () -> logic.execute(command));
+                assertThrows(CommandException.class, String.format(LogicManager.MESSAGE_SAVE_FAILED, file), () ->
+                    logic.execute(command));
             }
             assertEquals(TODAY, model.getToday());
             assertTrue(model.showingFollowUpsProperty().get());
+            assertSame(rachel, model.selectedPersonProperty().get());
+            assertEquals(List.of(rachel), model.getAddressBook().getPersonList());
+            assertFalse(model.hasUnsavedChanges());
             assertEquals(List.of("Rachel Lim"), names(model.getFilteredPersonList()));
             assertEquals(new FollowUp(TODAY.plusDays(1), "Call"), model.getFilteredPersonList().get(0)
                     .getFollowUp().orElseThrow());
-            assertTrue(java.util.Arrays.equals(original, Files.readAllBytes(file)));
+            assertArrayEquals(original, Files.readAllBytes(file));
         }
+        assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DATE, () ->
+                logic.execute("followup 1 d/2026-02-29 m/Invalid calendar date"));
+        assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
+                logic.execute("followup 1 d/2026-10-03 m/"));
+        assertEquals(TODAY, model.getToday());
+        assertTrue(model.showingFollowUpsProperty().get());
+        assertSame(rachel, model.selectedPersonProperty().get());
+        assertEquals(List.of(rachel), model.getAddressBook().getPersonList());
+        assertEquals(List.of(rachel), model.getFilteredPersonList());
+        assertFalse(model.hasUnsavedChanges());
+        assertArrayEquals(original, Files.readAllBytes(file));
     }
 
     @Test
