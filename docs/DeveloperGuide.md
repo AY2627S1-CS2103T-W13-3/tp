@@ -353,6 +353,14 @@ The saved-data warning is a separate persistent label controlled by `logic.isDat
 
 A save failure becomes `CommandException` with `MESSAGE_SAVE_FAILED`; no candidate state is published. `JsonAddressBookStorage` writes a sibling temporary file, then replaces the destination with an atomic move. On failure it attempts to remove the temporary file and preserves the existing destination. Unsupported atomic replacement is reported as a save failure, rather than falling back to a partial write. See `JsonAddressBookStorageTest` for write/move failure coverage.
 
+### Application instance ownership
+
+Before loading preferences or client data, `MainApp.init()` acquires an exclusive operating-system file lock through `AppInstanceLock` on `.policyharbor.lock` in the working folder. A competing launch or lock I/O failure leaves the services uninitialized; `start()` explains the failure and exits. `stop()` skips preference writes for a blocked instance and releases an acquired lock after normal shutdown. Initialization failures also release it, and process termination releases the OS lock.
+
+The marker is retained because deleting it could allow a new process to lock a replacement file while an existing process still owns the original. An in-process registry, keyed by the normalized path with its real parent directory, rejects duplicate acquisitions before opening another descriptor: on some systems, closing that second descriptor could release the first descriptor's OS lock. Separate working folders remain independent; this protects against concurrent PolicyHarbor instances rather than synchronizing external file edits.
+
+`MainAppInstanceTest` and `AppInstanceLockTest` use separate JVMs to verify blocked launches preserve saved bytes, separate folders work independently, normal shutdown and abrupt exit release ownership, retained markers permit restart, and a rejected same-JVM acquisition does not release ownership to another process.
+
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Documentation, logging, testing, dev-ops**
@@ -499,6 +507,13 @@ Test the packaged JAR in a fresh writable folder with Java 25 (the prescribed Zu
 3. Record Rachel's action for today + 2 days and Amanda's for today + 1 day using `followup INDEX d/DATE m/ACTION`. Use actual `YYYY-MM-DD` dates.
 4. Enter `followups`, then `view 1`. Expect Amanda before Rachel, the correct profile, and continuous numbering. Replace Amanda's action with today's date to verify the `DUE TODAY` badge.
 5. Close/relaunch from the same folder. Expect all contacts/actions in full insertion order and no profile selection. Resize/move the window, close/relaunch and verify window preferences.
+
+### Concurrent launches and restart
+
+1. In a disposable writable folder, launch the packaged JAR, add a fictional client and record a follow-up. Keep this window open and copy the saved client file for comparison.
+2. From a second terminal in the same folder, launch the same JAR. Expect a startup error explaining that PolicyHarbor is already running. Dismiss it; the first window remains usable and the saved client file is unchanged. The rejected launch must not write preferences.
+3. Close the first window and launch again from the same folder. Expect the client and follow-up to load, even though `.policyharbor.lock` remains. Repeat after terminating the owner process.
+4. Launch the JAR from a separate disposable folder while the first is open. Expect an independent empty dataset. Do not delete or replace an active folder's lock marker.
 
 ### Profile transitions and displayed indices
 

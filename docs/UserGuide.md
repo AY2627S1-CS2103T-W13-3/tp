@@ -329,6 +329,8 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 ## Troubleshooting and known limitations
 
+* **If another PolicyHarbor window is already running in this folder:** use that window, or close it before launching again. Only one instance can use a folder at a time; a second launch stops before loading or changing client data and preferences. Separate folders can hold independent datasets.
+* **If PolicyHarbor cannot lock the folder:** run it from a writable folder and check that `.policyharbor.lock` is a regular file. This marker normally remains after the app closes; its presence alone does not prevent startup. Do not delete or replace it while the app is running. Closing the app or terminating its process releases the operating-system lock.
 * **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar PolicyHarbor.jar`. A different active Java installation may cause JavaFX loading errors.
 * **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
 * **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.4.
