@@ -14,6 +14,7 @@ public class Phone {
             "Phone numbers must contain only digits 0-9 and have at least 3 digits.";
     public static final String VALIDATION_REGEX = "[0-9]{3,}";
     public final String value;
+    private final String digits;
 
     /**
      * Constructs a {@code Phone}.
@@ -24,6 +25,7 @@ public class Phone {
         requireNonNull(phone);
         checkArgument(isValidPhone(phone), MESSAGE_CONSTRAINTS);
         value = phone;
+        digits = phone.replace("+", "").replace(" ", "").replace("-", "");
     }
 
     /**
@@ -31,6 +33,11 @@ public class Phone {
      */
     public static boolean isValidPhone(String test) {
         return test.matches(VALIDATION_REGEX);
+    }
+
+    /** Returns whether both phone numbers contain the same digits, regardless of display formatting. */
+    boolean hasSameDigitsAs(Phone other) {
+        return other != null && digits.equals(other.digits);
     }
 
     @Override

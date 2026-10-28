@@ -8,7 +8,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import seedu.address.logic.commands.FindCommand;
-import seedu.address.model.person.NameContainsKeywordsPredicate;
+import seedu.address.model.person.ClientContainsKeywordsPredicate;
 
 public class FindCommandParserTest {
 
@@ -24,7 +24,7 @@ public class FindCommandParserTest {
     public void parse_validArgs_returnsFindCommand() {
         // no leading and trailing whitespaces
         FindCommand expectedFindCommand =
-                new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice", "Bob")));
+                new FindCommand(new ClientContainsKeywordsPredicate(List.of("Alice", "Bob")));
         assertParseSuccess(parser, "Alice Bob", expectedFindCommand);
 
         // Only ordinary spaces separate keywords after global character validation.
@@ -32,9 +32,18 @@ public class FindCommandParserTest {
     }
 
     @Test
+    public void parse_phoneAndMixedKeywords_preservesDigitsAndIndependentTokens() {
+        assertParseSuccess(parser, "00123456 Bob 81234562 81234562",
+                new FindCommand(new ClientContainsKeywordsPredicate(
+                        List.of("00123456", "Bob", "81234562", "81234562"))));
+        assertParseSuccess(parser, "8123 4562",
+                new FindCommand(new ClientContainsKeywordsPredicate(List.of("8123", "4562"))));
+    }
+
+    @Test
     public void parse_quotesPunctuationAndNonOrdinarySpaces_remainLiteral() {
         assertParseSuccess(parser, "\"Alice Bob\" Alice, Alice\u00a0Bob",
-                new FindCommand(new NameContainsKeywordsPredicate(List.of("\"Alice", "Bob\"",
+                new FindCommand(new ClientContainsKeywordsPredicate(List.of("\"Alice", "Bob\"",
                         "Alice,", "Alice\u00a0Bob"))));
     }
 

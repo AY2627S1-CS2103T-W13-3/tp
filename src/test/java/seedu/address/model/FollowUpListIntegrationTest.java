@@ -19,8 +19,8 @@ import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
+import seedu.address.model.person.ClientContainsKeywordsPredicate;
 import seedu.address.model.person.FollowUp;
-import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.AddressBookBuilder;
 
@@ -66,7 +66,7 @@ public class FollowUpListIntegrationTest {
         assertFalse(candidate.showingFollowUpsProperty().get());
         assertFalse(candidate.hasUnsavedChanges());
         new FollowUpsCommand().execute(candidate);
-        new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice"))).execute(candidate);
+        new FindCommand(new ClientContainsKeywordsPredicate(List.of("Alice"))).execute(candidate);
         assertEquals(List.of(LATE), candidate.getFilteredPersonList());
         assertFalse(candidate.showingFollowUpsProperty().get());
         assertFalse(candidate.hasUnsavedChanges());

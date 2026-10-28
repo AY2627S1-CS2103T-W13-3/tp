@@ -23,7 +23,7 @@ import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.SetFollowUpCommand;
 import seedu.address.logic.commands.ViewCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
-import seedu.address.model.person.NameContainsKeywordsPredicate;
+import seedu.address.model.person.ClientContainsKeywordsPredicate;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.PersonBuilder;
 import seedu.address.testutil.PersonUtil;
@@ -89,13 +89,13 @@ public class AddressBookParserTest {
         List<String> keywords = List.of("foo", "bar", "baz");
         FindCommand command = (FindCommand) parser.parseCommand(
                 FindCommand.COMMAND_WORD + " " + keywords.stream().collect(Collectors.joining(" ")));
-        assertEquals(new FindCommand(new NameContainsKeywordsPredicate(keywords)), command);
+        assertEquals(new FindCommand(new ClientContainsKeywordsPredicate(keywords)), command);
     }
 
     @Test
     public void parseCommand_find_validatesGloballyBeforeParsingInNormalAndBlockedSessions() throws Exception {
         for (boolean blocked : List.of(false, true)) {
-            assertEquals(new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice", "Bob"))),
+            assertEquals(new FindCommand(new ClientContainsKeywordsPredicate(List.of("Alice", "Bob"))),
                     parser.parseCommand(" find   Alice  Bob ", blocked));
             assertThrows(ParseException.class, "Invalid command format!\nUsage: find KEYWORD [MORE_KEYWORDS]...", () ->
                     parser.parseCommand("find   ", blocked));

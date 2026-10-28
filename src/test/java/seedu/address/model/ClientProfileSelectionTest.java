@@ -20,8 +20,8 @@ import javafx.collections.ObservableList;
 import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.commands.ListCommand;
+import seedu.address.model.person.ClientContainsKeywordsPredicate;
 import seedu.address.model.person.FollowUp;
-import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.model.person.Person;
 import seedu.address.model.person.exceptions.DuplicatePersonException;
 import seedu.address.model.person.exceptions.PersonNotFoundException;
@@ -92,7 +92,7 @@ public class ClientProfileSelectionTest {
         for (boolean isSearchMode : List.of(false, true)) {
             Model model = createModel(RACHEL, AMANDA);
             if (isSearchMode) {
-                new FindCommand(new NameContainsKeywordsPredicate(List.of("Amanda"))).execute(model);
+                new FindCommand(new ClientContainsKeywordsPredicate(List.of("Amanda"))).execute(model);
             }
             model.selectPerson(AMANDA);
             Person cleared = new PersonBuilder(AMANDA).withoutFollowUp().build();
@@ -125,9 +125,9 @@ public class ClientProfileSelectionTest {
     public void findAndFollowUps_excludedSelection_clearsAndNeverAutomaticallyReopens() throws Exception {
         Model model = createModel(RACHEL, AMANDA, OTHER_AMANDA);
         model.selectPerson(AMANDA);
-        new FindCommand(new NameContainsKeywordsPredicate(List.of("Amanda"))).execute(model);
+        new FindCommand(new ClientContainsKeywordsPredicate(List.of("Amanda"))).execute(model);
         assertSame(AMANDA, model.selectedPersonProperty().get());
-        new FindCommand(new NameContainsKeywordsPredicate(List.of("Rachel"))).execute(model);
+        new FindCommand(new ClientContainsKeywordsPredicate(List.of("Rachel"))).execute(model);
         assertNull(model.selectedPersonProperty().get());
         new ListCommand().execute(model);
         assertNull(model.selectedPersonProperty().get());

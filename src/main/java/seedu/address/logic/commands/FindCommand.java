@@ -5,11 +5,11 @@ import static java.util.Objects.requireNonNull;
 import seedu.address.commons.util.ToStringBuilder;
 import seedu.address.logic.Messages;
 import seedu.address.model.Model;
-import seedu.address.model.person.NameContainsKeywordsPredicate;
+import seedu.address.model.person.ClientContainsKeywordsPredicate;
 
 /**
- * Finds and lists all clients whose names contain any of the argument keywords as whole words.
- * Keyword matching is case insensitive, and results retain insertion order.
+ * Finds clients by whole name words or exact full phone numbers, using OR matching across keywords.
+ * Name matching is case insensitive, and results retain insertion order.
  */
 public class FindCommand extends Command {
 
@@ -17,9 +17,9 @@ public class FindCommand extends Command {
 
     public static final String MESSAGE_USAGE = "Usage: find KEYWORD [MORE_KEYWORDS]...";
 
-    private final NameContainsKeywordsPredicate predicate;
+    private final ClientContainsKeywordsPredicate predicate;
 
-    public FindCommand(NameContainsKeywordsPredicate predicate) {
+    public FindCommand(ClientContainsKeywordsPredicate predicate) {
         this.predicate = predicate;
     }
 

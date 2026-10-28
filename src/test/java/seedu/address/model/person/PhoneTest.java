@@ -60,6 +60,18 @@ public class PhoneTest {
     }
 
     @Test
+    public void hasSameDigitsAs_requiresAllDigitsAndPreservesLeadingZeroes() {
+        Phone phone = new Phone("00123456");
+        assertTrue(phone.hasSameDigitsAs(new Phone("00123456")));
+        assertFalse(phone.hasSameDigitsAs(new Phone("123456")));
+        assertFalse(phone.hasSameDigitsAs(new Phone("000123456")));
+        assertFalse(phone.hasSameDigitsAs(new Phone("0012345")));
+        assertFalse(phone.hasSameDigitsAs(null));
+        String longNumber = "0" + "1".repeat(1000);
+        assertTrue(new Phone(longNumber).hasSameDigitsAs(new Phone(longNumber)));
+    }
+
+    @Test
     public void constructor_asciiDigits_preservesLeadingZeroesWithoutLengthLimit() {
         assertEquals("001", new Phone("001").value);
         assertTrue(Phone.isValidPhone("1".repeat(1000)));

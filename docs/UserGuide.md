@@ -206,19 +206,22 @@ On success, `view` opens the selected client's full profile in the right pane an
 
 [![Full client list with Rachel Lim's contact details and follow-up](images/ClientProfile.png)](images/ClientProfile.png)
 
-### Locating clients by name: `find`
+### Locating clients by name or phone: `find`
 
-Searches all clients' names, including clients hidden by a prior search or pending list, and displays matches in their original insertion order. It leaves pending mode and returns `COUNT client(s) listed!`, for example `2 client(s) listed!` or `0 client(s) listed!`.
+Searches all clients' names and phone numbers, including clients hidden by a prior search or pending list, and displays matches in their original insertion order. It leaves pending mode and returns `COUNT client(s) listed!`, for example `2 client(s) listed!` or `0 client(s) listed!`.
 
 Format: `find KEYWORD [MORE_KEYWORDS]...`
 
-* Matching is case-insensitive: `rachel` matches `Rachel`.
-* Only whole words match: `Rach` does not match `Rachel`.
+* Name matching is case-insensitive and uses whole words: `rachel` matches `Rachel`, but `Rach` does not.
+* Search for a phone using its full digits as one keyword, including leading zeroes: `00123456` matches that phone number, but `123456` and `0012` do not. Do not include `+` or hyphens in the search keyword.
 * A client matching any keyword appears once (an OR search). Keyword order and repeated keywords do not change the result order.
-* Only names are searched; phone, email, address and tags are not searched.
+* Email, address and tags are not searched. A numeric keyword can also match a whole word in a client's name.
 * Separate keywords with ordinary spaces. Multiple ordinary spaces are allowed. Quotes and punctuation are literal: `find "Rachel"` and `find Rachel,` do not match the name `Rachel Lim`.
+* Numbers separated by spaces are independent keywords: `find 8123 4562` does not join them into `81234562`.
 
 For a dataset containing Rachel Lim and Amanda Lee, `find rachel AMANDA` returns both in insertion order. `find Lim` returns Rachel Lim; `find Rach` returns no matches unless another client has that exact name word.
+
+If Bob Baker's phone number is `81234562`, `find 81234562` finds Bob and any other clients with that full number or name word. `find Rachel 81234562` finds clients matching either keyword, each once.
 
 A missing keyword produces exactly these two lines:
 
@@ -347,7 +350,7 @@ Action | Format, Examples
 **Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **View** | `view INDEX`<br> e.g., `view 02`
-**Find** | `find KEYWORD [MORE_KEYWORDS]...`<br> e.g., `find James Jake`
+**Find** | `find KEYWORD [MORE_KEYWORDS]...`<br> e.g., `find James 81234562`
 **List** | `list`
 **Record or replace follow-up** | `followup INDEX d/DATE m/DESCRIPTION`
 **Clear follow-up** | `followup INDEX clear`
