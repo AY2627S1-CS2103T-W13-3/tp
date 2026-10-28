@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -284,4 +285,52 @@ public class JsonAddressBookStorageTest {
             }
         }
     }
+
+    @Test
+    public void saveAddressBook_symbolicLink_preservesLinkAndTarget() throws Exception {
+        Path target = testFolder.resolve("original.json");
+        Path link = testFolder.resolve("addressbook.json");
+        AddressBook original = getTypicalAddressBook();
+        new JsonAddressBookStorage(target).saveAddressBook(original);
+        byte[] originalBytes = Files.readAllBytes(target);
+        try {
+            Files.createSymbolicLink(link, target.getFileName());
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            Assumptions.assumeTrue(false, "Symbolic links unavailable: " + e.getMessage());
+        }
+
+        AddressBook changed = new AddressBook(original);
+        changed.addPerson(HOON);
+        assertThrows(SymbolicLinkSaveException.class, () -> new JsonAddressBookStorage(link).saveAddressBook(changed));
+        assertTrue(Files.isSymbolicLink(link));
+        assertEquals(target.getFileName(), Files.readSymbolicLink(link));
+        assertTrue(java.util.Arrays.equals(originalBytes, Files.readAllBytes(target)));
+        assertEquals(original, new AddressBook(new JsonAddressBookStorage(link).readAddressBook().orElseThrow()));
+    }
+    @Test
+    public void saveAddressBook_linkSwappedAfterFinalCheck_doesNotWriteThroughToTarget() throws Exception {
+        Path target = testFolder.resolve("external.json");
+        Path destination = testFolder.resolve("book.json");
+        Files.writeString(target, "external data");
+        try {
+            Files.createSymbolicLink(destination, target.getFileName());
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            Assumptions.assumeTrue(false, "Symbolic links unavailable: " + e.getMessage());
+        }
+        Files.delete(destination);
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(destination) {
+            @Override
+            void replaceFile(Path temporaryFile, Path file) throws IOException {
+                // Simulate another process changing the path after the final best-effort check.
+                Files.createSymbolicLink(file, target.getFileName());
+                super.replaceFile(temporaryFile, file);
+            }
+        };
+        AddressBook book = getTypicalAddressBook();
+        storage.saveAddressBook(book);
+        assertEquals("external data", Files.readString(target));
+        assertFalse(Files.isSymbolicLink(destination));
+        assertEquals(book, new AddressBook(storage.readAddressBook().orElseThrow()));
+    }
+
 }
