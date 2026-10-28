@@ -147,6 +147,7 @@ Long internal space runs do not add a new name or address length restriction; th
 
 Address input and recovery:
 
+* An address must include text beyond spaces and invisible formatting characters. Non-breaking spaces, full-width spaces or zero-width spaces alone are rejected.
 * Non-English text and emoji are supported. An address containing an invalid Unicode character sequence is rejected; correct the address and submit it again.
 * When editing the saved JSON directly, use complete characters. An incomplete Unicode escape pair, such as a lone `\uD800` in an address, causes the whole client file to be rejected at startup, even if the JSON syntax is otherwise correct.
 * In that case, the app shows the saved-data warning and blocks client changes to protect the file. Close the app, back up the file, correct the affected address or restore a valid backup, then restart. Editing the file while the app is open does not clear the warning.

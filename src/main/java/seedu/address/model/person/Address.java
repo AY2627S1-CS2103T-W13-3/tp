@@ -35,7 +35,9 @@ public class Address {
      */
     public static boolean isValidAddress(String test) {
         String trimmedAddress = trimOrdinarySpaces(test);
-        return !trimmedAddress.isEmpty() && trimmedAddress.matches(VALIDATION_REGEX)
+        return trimmedAddress.codePoints().anyMatch(codePoint -> !Character.isWhitespace(codePoint)
+                && !Character.isSpaceChar(codePoint) && Character.getType(codePoint) != Character.FORMAT)
+                && trimmedAddress.matches(VALIDATION_REGEX)
                 && hasValidSurrogatePairs(trimmedAddress);
     }
 

@@ -58,10 +58,21 @@ public class AddressTest {
     @Test
     public void constructor_singleLineUnicode_trimsOrdinarySpacesAndPreservesText() {
         assertEquals("新加坡 🏠 #02-01", new Address("  新加坡 🏠 #02-01  ").value);
-        assertTrue(Address.isValidAddress("\u00a0"));
         for (String invalid : new String[] {"A\nB", "A\rB", "A\tB", "A\u0085B", "A\u2028B", "A\u2029B"}) {
             assertFalse(Address.isValidAddress(invalid));
             assertThrows(IllegalArgumentException.class, () -> new Address(invalid));
+        }
+    }
+
+    @Test
+    public void isValidAddress_onlyUnicodeSpacesOrFormatting_rejectsBlankText() {
+        for (String invisible : new String[] {"\u00a0", "\u3000", "\u200b", "\u2007", "\u202f",
+            "\ufeff", "\u200c\u200d", " \u00a0\u3000\u200b "}) {
+            assertFalse(Address.isValidAddress(invisible));
+            assertThrows(IllegalArgumentException.class, () -> new Address(invisible));
+            String visible = "Blk" + invisible + "1";
+            assertTrue(Address.isValidAddress(visible));
+            assertEquals(visible, new Address(visible).value);
         }
     }
 

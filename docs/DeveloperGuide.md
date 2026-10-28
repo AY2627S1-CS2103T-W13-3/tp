@@ -406,6 +406,9 @@ On POSIX, also repeat from a disposable readable/searchable but non-writable fol
 
 --------------------------------------------------------------------------------------------------------------------
 
+**Blank Unicode addresses.** `Address.isValidAddress` requires at least one code point that is neither Unicode whitespace, a space character nor a formatting character. Non-breaking/full-width spaces and zero-width formatting characters alone (or mixed together) are rejected. Visible addresses retain their Unicode content, including internal separators and formatting used by scripts. Parser and storage adapters share this validator.
+
+
 ## **Appendix: Requirements**
 
 ### Product scope
