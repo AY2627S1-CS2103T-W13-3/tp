@@ -39,6 +39,25 @@ public class StringUtil {
     }
 
     /**
+     * Removes only leading and trailing ordinary spaces (U+0020), preserving all other characters.
+     * The bounded scan avoids repeatedly matching a trailing-space pattern inside long values.
+     *
+     * @throws NullPointerException if {@code text} is null.
+     */
+    public static String trimOrdinarySpaces(String text) {
+        requireNonNull(text);
+        int first = 0;
+        int last = text.length();
+        while (first < last && text.charAt(first) == ' ') {
+            first++;
+        }
+        while (last > first && text.charAt(last - 1) == ' ') {
+            last--;
+        }
+        return text.substring(first, last);
+    }
+
+    /**
      * Returns a detailed message of {@code t}, including the stack trace.
      */
     public static String getDetails(Throwable t) {

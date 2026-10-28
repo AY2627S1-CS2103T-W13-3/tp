@@ -26,6 +26,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -96,6 +97,31 @@ public class LogicManagerTest {
     @Test
     public void execute_storageThrowsAdException_throwsCommandException() {
         assertCommandFailureForExceptionFromStorage(DUMMY_AD_EXCEPTION, LogicManager.MESSAGE_SAVE_FAILED);
+    }
+
+    @Test
+    public void execute_symbolicLinkSaveFailure_preservesModelAndLink() throws Exception {
+        Path target = temporaryFolder.resolve("original.json");
+        Path link = temporaryFolder.resolve("addressBook-link.json");
+        new JsonAddressBookStorage(target).saveAddressBook(model.getAddressBook());
+        byte[] originalBytes = Files.readAllBytes(target);
+        try {
+            Files.createSymbolicLink(link, target.getFileName());
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            Assumptions.assumeTrue(false, "Symbolic links unavailable: " + e.getMessage());
+        }
+        storage = new StorageManager(new JsonAddressBookStorage(link),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json")));
+        logic = new LogicManager(model, storage);
+
+        String addCommand = AddCommand.COMMAND_WORD + NAME_DESC_AMY + PHONE_DESC_AMY
+                + EMAIL_DESC_AMY + ADDRESS_DESC_AMY;
+        Model expectedModel = new ModelManager(model.getAddressBook(), model.getUserPrefs(), model.getToday(),
+                model.isDataLoadingBlocked());
+        assertCommandFailure(addCommand, CommandException.class, LogicManager.MESSAGE_SYMLINK_SAVE_FAILED,
+                expectedModel);
+        assertTrue(Files.isSymbolicLink(link));
+        assertTrue(java.util.Arrays.equals(originalBytes, Files.readAllBytes(target)));
     }
 
     @Test

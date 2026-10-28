@@ -1,5 +1,6 @@
 package seedu.address.logic.parser;
 
+import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 
 import seedu.address.logic.commands.ViewCommand;
@@ -17,7 +18,7 @@ public final class ViewCommandParser implements Parser<ViewCommand> {
      */
     @Override
     public ViewCommand parse(String args) throws ParseException {
-        String trimmedArgs = args.replaceAll("^ +| +$", "");
+        String trimmedArgs = trimOrdinarySpaces(args);
         if (trimmedArgs.isEmpty() || trimmedArgs.contains(" ")) {
             throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, ViewCommand.MESSAGE_USAGE));
         }

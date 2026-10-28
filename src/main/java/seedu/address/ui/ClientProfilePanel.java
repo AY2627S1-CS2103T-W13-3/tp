@@ -9,6 +9,7 @@ import java.util.List;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -58,9 +59,25 @@ public class ClientProfilePanel extends UiPart<Region> {
         super(FXML);
         requireNonNull(selectedPerson);
         requireNonNull(today);
-        selectedPerson.addListener((observable, oldPerson, newPerson) -> render(newPerson, today.get()));
+        selectedPerson.addListener((observable, oldPerson, newPerson) -> {
+            render(newPerson, today.get());
+            if (!hasSameContactDetails(oldPerson, newPerson)) {
+                ScrollPane scroll = (ScrollPane) getRoot();
+                scroll.setVvalue(scroll.getVmin());
+            }
+        });
         today.addListener((observable, oldDate, newDate) -> render(selectedPerson.get(), newDate));
         render(selectedPerson.get(), today.get());
+    }
+
+    /** Follow-up replacements preserve these fields; this check controls scrolling, not model identity. */
+    private static boolean hasSameContactDetails(Person previous, Person current) {
+        return previous != null && current != null
+                && previous.getName().equals(current.getName())
+                && previous.getPhone().equals(current.getPhone())
+                && previous.getEmail().equals(current.getEmail())
+                && previous.getAddress().equals(current.getAddress())
+                && previous.getTags().equals(current.getTags());
     }
 
     private void render(Person selectedPerson, LocalDate today) {

@@ -2,6 +2,7 @@ package seedu.address.model.person;
 
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
+import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
 
 /**
  * Represents a Person's name in the address book.
@@ -10,13 +11,8 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
 public class Name {
 
     public static final String MESSAGE_CONSTRAINTS =
-            "Names must contain only English letters, digits and spaces. Names must not be blank.";
-
-    /*
-     * The first character of the name must not be a whitespace,
-     * otherwise " " (a blank string) becomes a valid input.
-     */
-    public static final String VALIDATION_REGEX = "[A-Za-z0-9][A-Za-z0-9 ]*";
+            "Names may contain letters from any language, digits 0-9, combining accents and ordinary spaces."
+                    + " Names must not be blank.";
 
     public final String fullName;
 
@@ -27,7 +23,7 @@ public class Name {
      */
     public Name(String name) {
         requireNonNull(name);
-        String trimmedName = name.replaceAll("^ +| +$", "");
+        String trimmedName = trimOrdinarySpaces(name);
         checkArgument(isValidName(trimmedName), MESSAGE_CONSTRAINTS);
         fullName = trimmedName;
     }
@@ -36,7 +32,29 @@ public class Name {
      * Returns true if a given string is a valid name.
      */
     public static boolean isValidName(String test) {
-        return test.replaceAll("^ +| +$", "").matches(VALIDATION_REGEX);
+        requireNonNull(test);
+        String trimmedName = trimOrdinarySpaces(test);
+        if (trimmedName.isEmpty()) {
+            return false;
+        }
+        boolean canHaveCombiningMark = false;
+        for (int offset = 0; offset < trimmedName.length();) {
+            int codePoint = trimmedName.codePointAt(offset);
+            if (Character.isLetter(codePoint)) {
+                canHaveCombiningMark = true;
+            } else if (codePoint >= '0' && codePoint <= '9' || codePoint == ' ') {
+                canHaveCombiningMark = false;
+            } else if (!canHaveCombiningMark || !isCombiningMark(codePoint)) {
+                return false;
+            }
+            offset += Character.charCount(codePoint);
+        }
+        return true;
+    }
+
+    private static boolean isCombiningMark(int codePoint) {
+        int type = Character.getType(codePoint);
+        return type == Character.NON_SPACING_MARK || type == Character.COMBINING_SPACING_MARK;
     }
 
 
