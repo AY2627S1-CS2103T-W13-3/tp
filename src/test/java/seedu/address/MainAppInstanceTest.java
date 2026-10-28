@@ -3,10 +3,13 @@ package seedu.address;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.abort;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -93,6 +96,42 @@ public class MainAppInstanceTest {
         }
         assertEquals("null\n", Files.readString(preferences));
         assertEquals("{invalid data kept}", Files.readString(data));
+    }
+
+    @Test
+    public void init_lockMarkerIsSymbolicLink_blocksBeforeLoadingAndPreservesFiles() throws Exception {
+        Path target = testFolder.resolve("fictional-lock-target.txt");
+        byte[] targetContents = "Fictional target canary\n".getBytes(StandardCharsets.UTF_8);
+        Files.write(target, targetContents);
+        Path marker = testFolder.resolve(".policyharbor.lock");
+        Path linkTarget = target.getFileName();
+        try {
+            Files.createSymbolicLink(marker, linkTarget);
+        } catch (UnsupportedOperationException | SecurityException e) {
+            abort("Symbolic link creation is unavailable: " + e);
+        } catch (FileSystemException e) {
+            if (e instanceof AccessDeniedException
+                    || "A required privilege is not held by the client".equals(e.getReason())) {
+                abort("Symbolic link creation is not permitted: " + e);
+            }
+            throw e;
+        }
+        Path preferences = testFolder.resolve("preferences.json");
+        byte[] preferenceContents = "null\n".getBytes(StandardCharsets.UTF_8);
+        Files.write(preferences, preferenceContents);
+        Path data = Files.createDirectories(testFolder.resolve("data")).resolve("addressbook.json");
+        byte[] dataContents = "{fictional client data kept}\n".getBytes(StandardCharsets.UTF_8);
+        Files.write(data, dataContents);
+
+        try (JavaChildProcess blocked = JavaChildProcess.start(testFolder, Probe.class, "probe")) {
+            assertEquals("BLOCKED", blocked.readStatus());
+            assertEquals(0, blocked.waitForExit());
+        }
+        assertTrue(Files.isSymbolicLink(marker));
+        assertEquals(linkTarget, Files.readSymbolicLink(marker));
+        assertArrayEquals(targetContents, Files.readAllBytes(target));
+        assertArrayEquals(preferenceContents, Files.readAllBytes(preferences));
+        assertArrayEquals(dataContents, Files.readAllBytes(data));
     }
 
     private void assertRestartAllowed() throws Exception {
