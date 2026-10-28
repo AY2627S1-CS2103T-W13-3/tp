@@ -136,6 +136,32 @@ public class FollowUpWorkflowIntegrationTest {
     }
 
     @Test
+    public void earliestFollowUpDate_recordAndRestart_preservesDateAndOverdueStatus() throws Exception {
+        Path file = testFolder.resolve("earliest-date.json");
+        Person rachel = new PersonBuilder().withName("Rachel Lim").build();
+        AddressBook book = new AddressBook();
+        book.addPerson(rachel);
+        ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
+        LogicManager logic = new LogicManager(model, storage(file), clock());
+
+        assertEquals("Follow-up for Rachel Lim recorded for 0001-01-01.",
+                logic.execute("followup 1 d/0001-01-01 m/Carry-over call").getFeedbackToUser());
+        Person expected = rachel.withFollowUp(new FollowUp(LocalDate.of(1, 1, 1), "Carry-over call"));
+        assertEquals(List.of(expected), model.getAddressBook().getPersonList());
+        assertTrue(Files.readString(file).contains("\"0001-01-01\""));
+
+        AddressBook loaded = new AddressBook(new JsonAddressBookStorage(file).readAddressBook().orElseThrow());
+        ModelManager restarted = new ModelManager(loaded, new UserPrefs(), TODAY, false);
+        LogicManager restartedLogic = new LogicManager(restarted, storage(file), clock());
+        restartedLogic.execute("followups");
+
+        assertEquals(List.of(expected), restarted.getFilteredPersonList());
+        FollowUp restored = restarted.getFilteredPersonList().get(0).getFollowUp().orElseThrow();
+        assertEquals(LocalDate.of(1, 1, 1), restored.getDueDate());
+        assertEquals(FollowUpStatus.OVERDUE, restored.getStatus(restarted.getToday()));
+    }
+
+    @Test
     public void overdueFollowUp_saveCrossesMidnight_publishesOneSampledDate() throws Exception {
         Path file = testFolder.resolve("midnight.json");
         Person rachel = new PersonBuilder().withName("Rachel Lim").build();
