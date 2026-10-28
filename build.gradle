@@ -96,3 +96,10 @@ tasks.register('displayMatrixFixture', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'seedu.address.ui.DisplayMatrixFixture'
 }
+
+// Load production classes from the JAR so backend timings cannot be mistaken for a desktop check.
+tasks.register('packagedBackendCheck', JavaExec) {
+    dependsOn shadowJar, testClasses
+    classpath = files(shadowJar.archiveFile) + sourceSets.test.output
+    mainClass = 'seedu.address.PackagedBackendCheck'
+}

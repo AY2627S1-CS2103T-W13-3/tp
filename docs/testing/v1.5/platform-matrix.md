@@ -35,6 +35,12 @@ The wrapping tests were checked against a regression: turning off wrapping on th
 3. Copy the JAR into that folder and launch it from a terminal there with `java -jar PolicyHarbor.jar`. Run `java -version` first and record the JDK.
 4. Set the physical resolution and OS scaling for the row being checked.
 
+### Separate backend acceptance and timing
+
+Run `./gradlew packagedBackendCheck --args="/absolute/path/to/another-fresh-folder"` (Windows: `gradlew.bat`). This builds the JAR, loads production classes from that JAR ahead of test outputs, generates 1,000 fictional clients and checks filter/index mapping, long profile data, rejected input, follow-up reorder/clear/delete and save/reload. Assertions must be enabled; the task enables them and the checker refuses to run without them. The fixture refuses to replace existing client data.
+
+The output identifies the loaded JAR and reports backend command times, including persistence for mutations. These are single-run observations, not a performance guarantee. They exclude rendering, scrolling, keyboard/mouse submission and physical display scaling; none of the desktop matrix rows can be marked passed from this command.
+
 ### Scenarios for each row
 
 - **A. Table:** `list`, scroll to the end. Row `1000` is fully readable; `view 1000` opens Client 1000.
