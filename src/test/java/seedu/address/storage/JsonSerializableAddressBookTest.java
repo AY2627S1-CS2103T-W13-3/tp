@@ -88,4 +88,19 @@ public class JsonSerializableAddressBookTest {
         assertThrows(IllegalValueException.class, stored::toModelType);
     }
 
+    @Test
+    public void toModelType_newFormatGap_preservesIdsAndCounter() throws Exception {
+        String json = "{\"nextClientId\":18,\"persons\":["
+                + "{\"clientId\":2,\"name\":\"Ada\",\"phone\":\"111\","
+                + "\"email\":\"ada@example.com\",\"address\":\"Home\"},"
+                + "{\"clientId\":17,\"name\":\"Bob\",\"phone\":\"222\","
+                + "\"email\":\"bob@example.com\",\"address\":\"Home\"}]}";
+        AddressBook book = JsonUtil.fromJsonString(json, JsonSerializableAddressBook.class).toModelType();
+        assertEquals(18, book.getNextClientId());
+        assertEquals(List.of(2, 17), book.getPersonList().stream()
+                .map(person -> book.getClientId(person).orElseThrow().getValue()).toList());
+        String saved = JsonUtil.toJsonString(new JsonSerializableAddressBook(book));
+        assertEquals(book, JsonUtil.fromJsonString(saved, JsonSerializableAddressBook.class).toModelType());
+    }
+
 }

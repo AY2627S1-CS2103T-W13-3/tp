@@ -42,10 +42,11 @@ public class PackagedBackendCheck {
         LogicManager logic = new LogicManager(model, storage);
         execute(logic, "find Client");
         assert logic.getFilteredPersonList().size() == 999;
-        execute(logic, "view 999");
+        execute(logic, "view " + idNamed(model, "Client 1000"));
         assert logic.selectedPersonProperty().get().getName().fullName.equals("Client 1000");
         execute(logic, "list");
-        execute(logic, "view 1");
+        execute(logic, "view " + model.getAddressBook().getClientId(
+                model.getAddressBook().getPersonList().getFirst()).orElseThrow());
         assert logic.selectedPersonProperty().get().getEmail().value.length() == 125;
         byte[] beforeError = Files.readAllBytes(data);
         try {
@@ -56,18 +57,28 @@ public class PackagedBackendCheck {
         }
         execute(logic, "followups");
         assert logic.getFilteredPersonList().size() == 101;
-        execute(logic, "followup 1 d/" + today.plusDays(90) + " m/Reordered action");
+        int reorderedId = model.getAddressBook().getClientId(
+                logic.getFilteredPersonList().getFirst()).orElseThrow().getValue();
+        execute(logic, "followup " + reorderedId + " d/" + today.plusDays(90) + " m/Reordered action");
         assert logic.getFilteredPersonList().getLast().getName().fullName.equals("Client 10");
-        execute(logic, "followup 101 clear");
+        execute(logic, "followup " + reorderedId + " clear");
         assert logic.getFilteredPersonList().size() == 100;
-        execute(logic, "delete 1");
+        execute(logic, "delete " + model.getAddressBook().getClientId(
+                logic.getFilteredPersonList().getFirst()).orElseThrow());
         assert model.getAddressBook().getPersonList().size() == 999;
         Model restarted = new MainApp().initModelManager(storage, new UserPrefs());
         assert !restarted.isDataLoadingBlocked();
         assert restarted.selectedPersonProperty().get() == null;
         assert restarted.getAddressBook().equals(model.getAddressBook());
-        System.out.println("PASS: filter/index, long profile, rejected input, reorder, clear, delete and reload.");
+        System.out.println("PASS: filter/permanent-ID, long profile, rejected input, "
+                + "reorder, clear, delete and reload.");
         System.out.println("Backend timings only; input, rendering, scrolling and OS scaling remain separate.");
+    }
+
+    private static int idNamed(Model model, String name) {
+        var person = model.getAddressBook().getPersonList().stream()
+                .filter(client -> client.getName().fullName.equals(name)).findFirst().orElseThrow();
+        return model.getAddressBook().getClientId(person).orElseThrow().getValue();
     }
 
     private static void execute(LogicManager logic, String command) throws Exception {
