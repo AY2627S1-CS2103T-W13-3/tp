@@ -111,6 +111,13 @@ public class ParserUtilTest {
     }
 
     @Test
+    public void parseAddress_invisibleOnly_throwsParseException() {
+        for (String blank : new String[] {"\u00a0", "\u3000", "\u200b", " \u00a0\u200b "}) {
+            assertThrows(ParseException.class, Address.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseAddress(blank));
+        }
+    }
+
+    @Test
     public void parseAddress_validValueWithoutWhitespace_returnsAddress() throws Exception {
         Address expectedAddress = new Address(VALID_ADDRESS);
         assertEquals(expectedAddress, ParserUtil.parseAddress(VALID_ADDRESS));
