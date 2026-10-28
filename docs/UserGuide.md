@@ -330,7 +330,9 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 ## Troubleshooting and known limitations
 
 * **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar PolicyHarbor.jar`. A different active Java installation may cause JavaFX loading errors.
-* **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
+* **Saved-data warning:** close the app and back up `data/addressbook.json` before repairing invalid data or restoring a valid backup. If startup could not access the data folder, restore its access permissions instead of replacing valid client data, then restart to reload.
+  The app stays protected for the current session even after access returns; query commands cannot remove the warning.
+  Only a confirmed missing data file starts an empty, writable client list.
 * **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.4.
 
 
