@@ -624,3 +624,12 @@ Run these on each real OS and resolution/scaling combination available, and reco
 `JsonAddressBookStorageTest` injects write/move failures. `ClientProfileWorkflowIntegrationTest` checks failed add/delete/action replacement/clearing without changing saved bytes, selection, list mode/order or date. `ClientRecordCommandsTest` covers additional duplicate and index partitions; `ClientProfileSelectionTest` covers canonical identity and equal-value publication.
 
 For an optional manual failure check, keep the app open and make only its test `data` directory unwritable. Attempt a mutation. Expect `Changes could not be saved. No changes were kept. Try the command again.` with the previous data/list/profile retained. Restore directory permissions before continuing. Use disposable data; automated fault injection is the reproducible evidence where platform permissions differ.
+
+### Inaccessible client data at startup
+
+`JsonUtil.readJsonFile` returns an empty result only when `Files.notExists` establishes that the data file is absent.
+When access prevents determining existence, both `Files.exists` and `Files.notExists` can return false; treating that case as a first launch could overwrite existing clients after access returns.
+The reader instead attempts the load, allowing the existing I/O-to-`DataLoadingException` path to create a mutation-blocked model.
+Restoring folder access does not unlock that model: the user must restart so that the original client data is loaded before changes resume.
+`InaccessibleDataRecoveryTest` uses temporary POSIX directory permissions to verify protected startup, unchanged bytes after access returns, and successful recovery after restart.
+The permission-specific cases skip on platforms without POSIX support or accounts that bypass the access restriction; existing missing-file tests retain portable first-launch coverage.
