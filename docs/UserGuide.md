@@ -327,6 +327,7 @@ If you see the saved-data warning after editing the file, close PolicyHarbor and
 
 <div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
 If the data file contains an invalid client or duplicate clients, PolicyHarbor starts with an empty displayed list and blocks client changes. It does not overwrite or partly load the invalid file. Correct the file or restore a backup, then restart the app. Back up the file before editing it.<br>
+Repeated JSON property names within the same object are also rejected, even if their values match. For example, keep only one `persons` property in the file's outer object and one `description` property in each follow-up object. Compare the repeated values with your backup before choosing which value to keep; then restart the app. Different client objects may each have their own `name`, `phone` and other properties.<br>
 Names, addresses, phone numbers, email addresses and tags follow the same validation rules used when adding a client. Outer ordinary spaces are removed; tags are stored in lowercase without duplicates. Missing tags mean no tags. Existing valid overdue follow-ups are preserved.
 </div>
 

@@ -53,7 +53,7 @@ public class JsonAddressBookStorage {
         requireNonNull(filePath);
 
         Optional<JsonSerializableAddressBook> jsonAddressBook = JsonUtil.readJsonFile(
-                filePath, JsonSerializableAddressBook.class);
+                filePath, JsonSerializableAddressBook.class, true);
         if (!jsonAddressBook.isPresent()) {
             return Optional.empty();
         }
