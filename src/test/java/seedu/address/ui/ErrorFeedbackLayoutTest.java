@@ -28,6 +28,9 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import seedu.address.logic.LogicManager;
+import seedu.address.logic.commands.CommandResult;
+import seedu.address.logic.commands.exceptions.CommandException;
+import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.AddressBook;
 import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
@@ -40,6 +43,7 @@ public class ErrorFeedbackLayoutTest {
     // Default window, minimum window, and 1280x720 at 150% in logical scene pixels.
     private static final double[][] LOGICAL_SIZES = {{1000, 720}, {640, 600}, {853, 480}};
     private static final double ROUNDING_TOLERANCE = 1;
+    private static final String ERROR_COMMAND = "layout-test-error";
 
     @TempDir
     public Path folder;
@@ -88,41 +92,63 @@ public class ErrorFeedbackLayoutTest {
     }
 
     @Test
-    public void multilineError_scrollsToCompleteLastLineAndReturnsToCompactSuccess() throws Exception {
-        Dashboard dashboard = callOnFx(Dashboard::new);
+    public void multilineError_fitsWithoutScrolling_remainsCompletelyReadable() throws Exception {
+        String message = "Please retry.\nUse a valid command.";
+        runOnFx(() -> {
+            try (Dashboard dashboard = new Dashboard(message)) {
+                for (double[] size : LOGICAL_SIZES) {
+                    dashboard.resize(size);
+                    dashboard.submit(ERROR_COMMAND);
+                    TextArea feedback = dashboard.feedback();
+                    assertEquals(message, feedback.getText());
+                    assertTextRangeInsideViewport(feedback, 0, message.length());
+                    assertFalse(getVerticalScrollBar(feedback).isVisible(),
+                            "Two short lines should fit the feedback area's preferred two rows");
+                    assertEquals(0, feedback.getScrollTop());
+                }
+            }
+        });
+    }
+
+    @Test
+    public void overflowingError_scrollsToCompleteLastLineAndReturnsToCompactSuccess() throws Exception {
+        // Explicit lines guarantee overflow regardless of platform fonts or usage-message wrapping.
+        String message = "Additional error details.\n".repeat(40) + "Last line: retry the command.";
+        Dashboard dashboard = callOnFx(() -> new Dashboard(message));
         try {
             for (double[] size : LOGICAL_SIZES) {
                 runOnFx(() -> {
                     dashboard.resize(size);
-                    dashboard.submit("followup");
+                    dashboard.submit(ERROR_COMMAND);
                 });
                 // TextAreaSkin queues scroll/layout work; allow it to run between the user actions.
                 double errorHeight = callOnFx(() -> {
                     dashboard.layout();
                     TextArea feedback = dashboard.feedback();
-                    String message = feedback.getText();
-                    assertTrue(message.contains("\n"), "Incomplete followup command should display multiline usage");
+                    assertEquals(message, feedback.getText());
                     assertFalse(feedback.isEditable());
                     assertTrue(feedback.isFocusTraversable());
                     assertCharacterInsideViewport(feedback, 0);
+                    Text text = (Text) feedback.lookup(".text");
+                    Node viewport = feedback.lookup(".viewport");
+                    assertTrue(text.getLayoutBounds().getHeight() > viewport.getLayoutBounds().getHeight(),
+                            "The fixture must actually overflow before requiring a scrollbar");
                     double height = dashboard.node("#resultDisplayPlaceholder").getLayoutBounds().getHeight();
                     assertTrue(height < 100, "Long messages must not expand the compact feedback strip");
                     feedback.selectAll();
                     assertEquals(message, feedback.getSelectedText(),
                             "The full error must remain selectable for copying");
-                    ScrollBar vertical = feedback.lookupAll(".scroll-bar").stream()
-                            .map(node -> (ScrollBar) node)
-                            .filter(bar -> bar.getOrientation() == Orientation.VERTICAL)
-                            .findFirst().orElseThrow();
-                    assertTrue(vertical.isVisible());
-                    vertical.setValue(vertical.getMax());
+                    assertTrue(getVerticalScrollBar(feedback).isVisible());
+                    feedback.setScrollTop(text.getLayoutBounds().getHeight());
                     return height;
                 });
                 runOnFx(() -> {
                     dashboard.layout();
                     TextArea feedback = dashboard.feedback();
                     assertTrue(feedback.getScrollTop() > 0);
-                    assertCharacterInsideViewport(feedback, feedback.getLength() - 1);
+                    assertTextRangeInsideViewport(feedback, message.lastIndexOf('\n') + 1, message.length());
+                    assertEquals(message, feedback.getSelectedText(), "Scrolling must preserve the full selection");
+                    dashboard.assertCommandFocus();
                     dashboard.submit("list");
                 });
                 runOnFx(() -> {
@@ -143,16 +169,29 @@ public class ErrorFeedbackLayoutTest {
         }
     }
 
-    /** Uses the rendered character's line box, including its ascent and descent, inside the actual skin viewport. */
     private static void assertCharacterInsideViewport(TextArea feedback, int character) {
+        assertTextRangeInsideViewport(feedback, character, character + 1);
+    }
+
+    /** Checks complete line boxes, including ascent and descent, inside the actual skin viewport. */
+    private static void assertTextRangeInsideViewport(TextArea feedback, int start, int end) {
         Text text = (Text) feedback.lookup(".text");
-        javafx.scene.shape.Path characterShape = new javafx.scene.shape.Path(text.rangeShape(character, character + 1));
-        Bounds rendered = text.localToScene(characterShape.getBoundsInLocal());
+        javafx.scene.shape.Path rangeShape = new javafx.scene.shape.Path(text.rangeShape(start, end));
+        Bounds rendered = text.localToScene(rangeShape.getBoundsInLocal());
         Node viewport = feedback.lookup(".viewport");
         Bounds visible = viewport.localToScene(viewport.getBoundsInLocal());
-        assertTrue(rendered.getMinY() >= visible.getMinY() - ROUNDING_TOLERANCE
+        assertTrue(rendered.getMinX() >= visible.getMinX() - ROUNDING_TOLERANCE
+                        && rendered.getMaxX() <= visible.getMaxX() + ROUNDING_TOLERANCE
+                        && rendered.getMinY() >= visible.getMinY() - ROUNDING_TOLERANCE
                         && rendered.getMaxY() <= visible.getMaxY() + ROUNDING_TOLERANCE,
-                "Complete character line " + rendered + " must fit inside " + visible);
+                "Complete text range " + rendered + " must fit inside " + visible);
+    }
+
+    private static ScrollBar getVerticalScrollBar(TextArea feedback) {
+        return feedback.lookupAll(".scroll-bar").stream()
+                .map(node -> (ScrollBar) node)
+                .filter(bar -> bar.getOrientation() == Orientation.VERTICAL)
+                .findFirst().orElseThrow();
     }
 
     private class Dashboard implements AutoCloseable {
@@ -160,10 +199,22 @@ public class ErrorFeedbackLayoutTest {
         private final Region root;
 
         Dashboard() {
+            this(null);
+        }
+
+        Dashboard(String errorMessage) {
             Path data = folder.resolve("clients.json");
             LogicManager logic = new LogicManager(new ModelManager(new AddressBook(), new UserPrefs()),
                     new StorageManager(new JsonAddressBookStorage(data),
-                            new JsonUserPrefsStorage(folder.resolve("preferences.json"))));
+                            new JsonUserPrefsStorage(folder.resolve("preferences.json")))) {
+                @Override
+                public CommandResult execute(String commandText) throws CommandException, ParseException {
+                    if (ERROR_COMMAND.equals(commandText) && errorMessage != null) {
+                        throw new ParseException(errorMessage);
+                    }
+                    return super.execute(commandText);
+                }
+            };
             window = new MainWindow(new Stage(), logic, data);
             window.fillInnerParts();
             root = (Region) window.getRoot().getScene().getRoot();
@@ -181,7 +232,11 @@ public class ErrorFeedbackLayoutTest {
             Button run = (Button) node("#runButton");
             run.fire();
             layout();
-            assertSame(input, window.getRoot().getScene().getFocusOwner());
+            assertCommandFocus();
+        }
+
+        void assertCommandFocus() {
+            assertSame(node("#commandTextField"), window.getRoot().getScene().getFocusOwner());
         }
 
         void layout() {
