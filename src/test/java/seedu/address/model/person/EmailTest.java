@@ -110,10 +110,23 @@ public class EmailTest {
             assertTrue(Email.isValidEmail(valid));
         }
         for (String invalid : List.of("john..doe@example.com", "john@a-b", "john@example-.com",
-                "john@@example.com", "john@ab--cd", "john@a.b", "é@example.com", "john@例子.com")) {
+                "john@@example.com", "john@a.b", "é@example.com", "john@例子.com")) {
             assertFalse(Email.isValidEmail(invalid));
         }
         assertEquals("Rachel.Lim+work@Example.COM", new Email("Rachel.Lim+work@Example.COM").value);
+    }
+
+    @Test
+    public void isValidEmail_repeatedAtomPunctuationAndPunycodeDomain_accepted() {
+        for (String valid : List.of("alice--smith@example.com", "alice__smith@example.com",
+                "alice@example--company.com", "alice@xn--bcher-kva.de")) {
+            assertTrue(Email.isValidEmail(valid));
+            assertEquals(valid, new Email(valid).value);
+        }
+        for (String invalid : List.of("alice..smith@example.com", "alice@example--.com",
+                "alice@--example.com", "alice@example.com--")) {
+            assertFalse(Email.isValidEmail(invalid));
+        }
     }
 
 }

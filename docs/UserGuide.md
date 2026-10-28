@@ -135,7 +135,7 @@ Supply each required prefix exactly once. The prefixes may appear in any order a
 | --- | --- |
 | Name | Non-blank English letters, digits and ordinary spaces. Case and internal spaces are preserved. |
 | Phone | At least three digits `0`–`9`. Leading zeroes are retained. |
-| Email | Alphanumeric groups separated by single `+`, `_`, `.` or `-` before one `@`; domain labels contain alphanumeric groups separated by single hyphens and labels separated by dots. The final label must contain two adjacent letters or digits. Stored case is preserved. |
+| Email | Before one `@`, ASCII letters and digits may be joined by `+`, `_`, `.` or `-`. Consecutive `+`, `_` and `-` are accepted, but periods must separate alphanumeric characters. Domain labels may contain consecutive hyphens (including `xn--` Punycode labels), but must start and end with a letter or digit. The final label must contain two adjacent letters or digits. Stored case is preserved. |
 | Address | Non-empty single-line text, including punctuation, non-English text and emoji. |
 | Tag | One or more English letters or digits. Tags are stored in lowercase; repeated case variants become one tag. |
 
