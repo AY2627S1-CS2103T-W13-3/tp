@@ -170,7 +170,7 @@ Usage: add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...
 
 If several fields are invalid, correct the reported error and submit the command again. Fields are checked in the order name, phone, email, address, then tags. An unrecognized prefix inside a field remains literal text: for example, `z/unit` inside an address is allowed, while the same text inside a phone makes the phone invalid.
 
-Changes are saved before they appear in the list. If saving fails, the previous data and list remain and the result says `Changes could not be saved. No changes were kept. Try the command again.` If saved data could not be loaded at startup, adding clients is blocked to protect that file.
+Changes are saved before they appear in the list. If saving fails, the previous data and list remain and the result says `Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.` If saved data could not be loaded at startup, adding clients is blocked to protect that file.
 
 ### Listing all clients: `list`
 
@@ -255,7 +255,7 @@ Deleted client: Rachel Lim; Phone: 001; Email: Rachel@example.com; Address: Blk 
 | One invalid index token, such as `0`, `-1`, `abc`, `1.5` or `2147483648` | `Index must be a positive integer from 1 to 2147483647.` |
 | Valid index beyond the displayed list | `The client index provided is invalid.` |
 
-Shape errors take priority over index syntax. A rejected delete leaves data, the current list and date unchanged. A save failure also keeps the previous state and reports `Changes could not be saved. No changes were kept. Try the command again.` Deletion is blocked if saved data could not be loaded at startup.
+Shape errors take priority over index syntax. A rejected delete leaves data, the current list and date unchanged. A save failure also keeps the previous state and reports `Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.` Deletion is blocked if saved data could not be loaded at startup.
 
 ### Keeping the same client profile open
 
@@ -330,6 +330,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 ## Troubleshooting and known limitations
 
 * **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar PolicyHarbor.jar`. A different active Java installation may cause JavaFX loading errors.
+* **Cannot save changes:** the error identifies the destination file. No changes from the failed command are kept. Check that its `data` folder is writable, that a file is not blocking the folder, and that the disk has free space. Restore access before retrying the retained command. If moving the app, close it first and copy both the JAR and its data to a writable folder; do not run with administrator privileges just to bypass permissions.
 * **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
 * **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.4.
 

@@ -27,7 +27,8 @@ import seedu.address.storage.Storage;
  */
 public class LogicManager implements Logic {
     public static final String MESSAGE_SAVE_FAILED =
-            "Changes could not be saved. No changes were kept. Try the command again.";
+            "Could not save to %s. No changes were kept. "
+            + "Check that the data folder is writable and has free space, then try again.";
 
     private final Logger logger = LogsCenter.getLogger(LogicManager.class);
 
@@ -73,7 +74,7 @@ public class LogicManager implements Logic {
             try {
                 storage.saveAddressBook(candidate.getAddressBook());
             } catch (IOException e) {
-                throw new CommandException(MESSAGE_SAVE_FAILED, e);
+                throw new CommandException(String.format(MESSAGE_SAVE_FAILED, storage.getAddressBookFilePath()), e);
             }
         }
 

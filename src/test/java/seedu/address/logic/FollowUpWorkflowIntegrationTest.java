@@ -101,7 +101,8 @@ public class FollowUpWorkflowIntegrationTest {
             if (unsupportedCommands.contains(command)) {
                 assertThrows(ParseException.class, "Unknown command.", () -> logic.execute(command));
             } else {
-                assertThrows(CommandException.class, LogicManager.MESSAGE_SAVE_FAILED, () -> logic.execute(command));
+                assertThrows(CommandException.class, String.format(LogicManager.MESSAGE_SAVE_FAILED, file), () ->
+                    logic.execute(command));
             }
             assertEquals(TODAY, model.getToday());
             assertTrue(model.showingFollowUpsProperty().get());

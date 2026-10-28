@@ -142,9 +142,9 @@ public class ClientRecordCommandsTest {
         model.showPendingFollowUps();
         storage.shouldFail = true;
         assertRejectedWithoutChanges(ADD_NEW, CommandException.class,
-                "Changes could not be saved. No changes were kept. Try the command again.");
+                String.format(LogicManager.MESSAGE_SAVE_FAILED, storage.getAddressBookFilePath()));
         assertRejectedWithoutChanges("delete 1", CommandException.class,
-                "Changes could not be saved. No changes were kept. Try the command again.");
+                String.format(LogicManager.MESSAGE_SAVE_FAILED, storage.getAddressBookFilePath()));
     }
 
     @Test

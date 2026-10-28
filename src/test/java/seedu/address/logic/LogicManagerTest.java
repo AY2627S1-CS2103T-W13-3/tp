@@ -90,12 +90,36 @@ public class LogicManagerTest {
 
     @Test
     public void execute_storageThrowsIoException_throwsCommandException() {
-        assertCommandFailureForExceptionFromStorage(DUMMY_IO_EXCEPTION, LogicManager.MESSAGE_SAVE_FAILED);
+        assertCommandFailureForExceptionFromStorage(DUMMY_IO_EXCEPTION,
+                String.format(LogicManager.MESSAGE_SAVE_FAILED, temporaryFolder.resolve("ExceptionUserPrefs.json")));
     }
 
     @Test
     public void execute_storageThrowsAdException_throwsCommandException() {
-        assertCommandFailureForExceptionFromStorage(DUMMY_AD_EXCEPTION, LogicManager.MESSAGE_SAVE_FAILED);
+        assertCommandFailureForExceptionFromStorage(DUMMY_AD_EXCEPTION,
+                String.format(LogicManager.MESSAGE_SAVE_FAILED, temporaryFolder.resolve("ExceptionUserPrefs.json")));
+    }
+
+    @Test
+    public void execute_saveFailure_identifiesDestinationAndRecoveryWithoutLeakingCause() {
+        Path destination = temporaryFolder.resolve("client data/addressbook.json");
+        IOException failure = new AccessDeniedException("private client text must not appear");
+        JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(destination) {
+            @Override
+            public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                throw failure;
+            }
+        };
+        Logic failingLogic = new LogicManager(model, new StorageManager(failingStorage,
+                new JsonUserPrefsStorage(temporaryFolder.resolve("preferences.json"))));
+        CommandException error = org.junit.jupiter.api.Assertions.assertThrows(CommandException.class, () ->
+                failingLogic.execute("add n/Alice Tan p/91110001 e/alice@example.com a/Blk 1"));
+        assertTrue(error.getMessage().contains(destination.toString()));
+        assertTrue(error.getMessage().contains("writable"));
+        assertFalse(error.getMessage().contains("private client text"));
+        assertSame(failure, error.getCause());
+        assertTrue(model.getAddressBook().getPersonList().isEmpty());
+        assertFalse(Files.exists(destination));
     }
 
     @Test
