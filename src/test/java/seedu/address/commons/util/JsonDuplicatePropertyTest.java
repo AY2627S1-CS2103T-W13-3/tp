@@ -23,21 +23,21 @@ public class JsonDuplicatePropertyTest {
                 "{\"followUp\":{\"description\":\"Call\",\"description\":\"Email\"}}",
                 "{\"name\":\"Ada\",\"na\\u006de\":\"Bob\"}",
                 "{\"name\":\"Ada\",\"name\":\"Ada\"}").map(json -> DynamicTest.dynamicTest(json, () ->
-                    assertThrows(IOException.class, () -> JsonUtil.fromJsonString(json, Map.class))));
+                    assertThrows(IOException.class, () -> JsonUtil.fromJsonString(json, Map.class, true))));
     }
 
     @Test
     public void fromJsonString_samePropertyInSeparateObjects_allowed() throws IOException {
         String json = "{\"first\":{\"name\":\"Ada\"},\"second\":{\"name\":\"Bob\"}}";
-        Map<?, ?> parsed = JsonUtil.fromJsonString(json, Map.class);
+        Map<?, ?> parsed = JsonUtil.fromJsonString(json, Map.class, true);
         assertEquals(Map.of("first", Map.of("name", "Ada"), "second", Map.of("name", "Bob")), parsed);
     }
 
     @Test
     public void fromJsonString_unknownProperties_remainAllowedButCannotRepeat() throws IOException {
         assertEquals(new UserPrefs(), JsonUtil.fromJsonString(
-                "{\"unknown\":{\"note\":\"ignored\"}}", UserPrefs.class));
+                "{\"unknown\":{\"note\":\"ignored\"}}", UserPrefs.class, true));
         assertThrows(IOException.class, () -> JsonUtil.fromJsonString(
-                "{\"unknown\":{\"note\":\"first\",\"note\":\"second\"}}", UserPrefs.class));
+                "{\"unknown\":{\"note\":\"first\",\"note\":\"second\"}}", UserPrefs.class, true));
     }
 }

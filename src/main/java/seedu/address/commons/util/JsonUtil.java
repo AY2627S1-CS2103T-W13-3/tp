@@ -27,7 +27,6 @@ public class JsonUtil {
     private static final Logger logger = LogsCenter.getLogger(JsonUtil.class);
 
     private static ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules()
-            .configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, true)
             .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             .setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE)
@@ -39,7 +38,12 @@ public class JsonUtil {
 
     static <T> T deserializeObjectFromJsonFile(Path jsonFile, Class<T> classOfObjectToDeserialize)
             throws IOException {
-        return fromJsonString(FileUtil.readFromFile(jsonFile), classOfObjectToDeserialize);
+        return deserializeObjectFromJsonFile(jsonFile, classOfObjectToDeserialize, false);
+    }
+
+    private static <T> T deserializeObjectFromJsonFile(Path jsonFile, Class<T> classOfObjectToDeserialize,
+            boolean rejectDuplicateProperties) throws IOException {
+        return fromJsonString(FileUtil.readFromFile(jsonFile), classOfObjectToDeserialize, rejectDuplicateProperties);
     }
 
     /**
@@ -52,6 +56,15 @@ public class JsonUtil {
      */
     public static <T> Optional<T> readJsonFile(
             Path filePath, Class<T> classOfObjectToDeserialize) throws DataLoadingException {
+        return readJsonFile(filePath, classOfObjectToDeserialize, false);
+    }
+
+    /**
+     * Reads a JSON file, optionally rejecting repeated property names within each object.
+     * Client data uses strict detection; ordinary preferences retain their legacy last-value behavior.
+     */
+    public static <T> Optional<T> readJsonFile(Path filePath, Class<T> classOfObjectToDeserialize,
+            boolean rejectDuplicateProperties) throws DataLoadingException {
         requireNonNull(filePath);
 
         if (!Files.exists(filePath)) {
@@ -62,7 +75,7 @@ public class JsonUtil {
         T jsonFile;
 
         try {
-            jsonFile = deserializeObjectFromJsonFile(filePath, classOfObjectToDeserialize);
+            jsonFile = deserializeObjectFromJsonFile(filePath, classOfObjectToDeserialize, rejectDuplicateProperties);
         } catch (IOException e) {
             // Jackson messages and causes can include client data, so keep them out of ordinary logs.
             logger.warning("Error reading JSON file " + filePath + " (invalid JSON/data format or I/O failure).");
@@ -97,7 +110,14 @@ public class JsonUtil {
      * @return The instance of T with the specified values in the JSON string
      */
     public static <T> T fromJsonString(String json, Class<T> instanceClass) throws IOException {
+        return fromJsonString(json, instanceClass, false);
+    }
+
+    /** Converts one JSON root, with optional duplicate-property rejection scoped to this parser. */
+    public static <T> T fromJsonString(String json, Class<T> instanceClass, boolean rejectDuplicateProperties)
+            throws IOException {
         try (JsonParser parser = objectMapper.getFactory().createParser(json)) {
+            parser.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, rejectDuplicateProperties);
             T value = objectMapper.readValue(parser, instanceClass);
             if (parser.nextToken() != null) {
                 throw new IOException("Unexpected content after the JSON root.");
