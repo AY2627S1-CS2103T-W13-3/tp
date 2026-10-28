@@ -89,3 +89,17 @@ shadowJar {
 }
 
 defaultTasks 'clean', 'test'
+
+// Generate fictional data for the packaged-JAR display matrix without configuring an IDE.
+tasks.register('displayMatrixFixture', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'seedu.address.ui.DisplayMatrixFixture'
+}
+
+// Load production classes from the JAR so backend timings cannot be mistaken for a desktop check.
+tasks.register('packagedBackendCheck', JavaExec) {
+    dependsOn shadowJar, testClasses
+    classpath = files(shadowJar.archiveFile) + sourceSets.test.output
+    mainClass = 'seedu.address.PackagedBackendCheck'
+}

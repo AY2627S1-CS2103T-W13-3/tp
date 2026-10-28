@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -119,6 +120,18 @@ public class JsonAddressBookStorageTest {
     }
 
     @Test
+    public void readAddressBook_invisibleOnlyAddress_rejectsWithoutChangingBytes() throws Exception {
+        Path file = testFolder.resolve("blank-address.json");
+        for (String blank : new String[] {"\u00a0", "\u3000", "\u200b", " \u00a0\u200b "}) {
+            String original = "{\"persons\":[{\"name\":\"Alice Tan\",\"phone\":\"91110001\","
+                    + "\"email\":\"alice@example.com\",\"address\":\"" + blank + "\"}]}";
+            Files.writeString(file, original);
+            assertThrows(DataLoadingException.class, new JsonAddressBookStorage(file)::readAddressBook);
+            assertEquals(original, Files.readString(file));
+        }
+    }
+
+    @Test
     public void followUp_roundTripAndLegacyData() throws Exception {
         Path file = testFolder.resolve("followups.json");
         AddressBook book = new AddressBook();
@@ -194,6 +207,29 @@ public class JsonAddressBookStorageTest {
     }
 
     @Test
+    public void readAddressBook_unknownFields_rejectsWholeFileWithoutChangingBytes() throws Exception {
+        Path file = testFolder.resolve("unknown-fields.json");
+        String person = "{\"name\":\"Alice Tan\",\"phone\":\"91110001\","
+                + "\"email\":\"alice@example.com\",\"address\":\"Blk 1\"%s}";
+        String[] unknownFields = {
+            ",\"tag\":[\"vip\"]",
+            ",\"followup\":{\"dueDate\":\"2099-01-01\",\"description\":\"Renewal call\"}",
+            ",\"followUp\":{\"dueDate\":\"2099-01-01\",\"description\":\"Call\",\"note\":\"Keep me\"}"
+        };
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(file);
+        for (String unknownField : unknownFields) {
+            String original = "{\"persons\":[" + String.format(person, unknownField) + "]}";
+            Files.writeString(file, original);
+            assertThrows(DataLoadingException.class, storage::readAddressBook);
+            assertEquals(original, Files.readString(file));
+        }
+        String original = "{\"persons\":[],\"clients\":[" + String.format(person, "") + "]}";
+        Files.writeString(file, original);
+        assertThrows(DataLoadingException.class, storage::readAddressBook);
+        assertEquals(original, Files.readString(file));
+    }
+
+    @Test
     public void readAddressBook_normalizedDuplicate_rejectsWholeFile() throws Exception {
         Path file = testFolder.resolve("duplicate-contacts.json");
         String original = "{\"persons\":[{\"name\":\"Ada  Lovelace\",\"phone\":\"12345\","
@@ -261,4 +297,52 @@ public class JsonAddressBookStorageTest {
             }
         }
     }
+
+    @Test
+    public void saveAddressBook_symbolicLink_preservesLinkAndTarget() throws Exception {
+        Path target = testFolder.resolve("original.json");
+        Path link = testFolder.resolve("addressbook.json");
+        AddressBook original = getTypicalAddressBook();
+        new JsonAddressBookStorage(target).saveAddressBook(original);
+        byte[] originalBytes = Files.readAllBytes(target);
+        try {
+            Files.createSymbolicLink(link, target.getFileName());
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            Assumptions.assumeTrue(false, "Symbolic links unavailable: " + e.getMessage());
+        }
+
+        AddressBook changed = new AddressBook(original);
+        changed.addPerson(HOON);
+        assertThrows(SymbolicLinkSaveException.class, () -> new JsonAddressBookStorage(link).saveAddressBook(changed));
+        assertTrue(Files.isSymbolicLink(link));
+        assertEquals(target.getFileName(), Files.readSymbolicLink(link));
+        assertTrue(java.util.Arrays.equals(originalBytes, Files.readAllBytes(target)));
+        assertEquals(original, new AddressBook(new JsonAddressBookStorage(link).readAddressBook().orElseThrow()));
+    }
+    @Test
+    public void saveAddressBook_linkSwappedAfterFinalCheck_doesNotWriteThroughToTarget() throws Exception {
+        Path target = testFolder.resolve("external.json");
+        Path destination = testFolder.resolve("book.json");
+        Files.writeString(target, "external data");
+        try {
+            Files.createSymbolicLink(destination, target.getFileName());
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            Assumptions.assumeTrue(false, "Symbolic links unavailable: " + e.getMessage());
+        }
+        Files.delete(destination);
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(destination) {
+            @Override
+            void replaceFile(Path temporaryFile, Path file) throws IOException {
+                // Simulate another process changing the path after the final best-effort check.
+                Files.createSymbolicLink(file, target.getFileName());
+                super.replaceFile(temporaryFile, file);
+            }
+        };
+        AddressBook book = getTypicalAddressBook();
+        storage.saveAddressBook(book);
+        assertEquals("external data", Files.readString(target));
+        assertFalse(Files.isSymbolicLink(destination));
+        assertEquals(book, new AddressBook(storage.readAddressBook().orElseThrow()));
+    }
+
 }

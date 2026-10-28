@@ -1,5 +1,6 @@
 package seedu.address.model.person;
 
+import java.text.Normalizer;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -18,8 +19,10 @@ public class NameContainsKeywordsPredicate implements Predicate<Person> {
 
     @Override
     public boolean test(Person person) {
+        String normalizedName = Normalizer.normalize(person.getName().fullName, Normalizer.Form.NFC);
         return keywords.stream()
-                .anyMatch(keyword -> StringUtil.containsWordIgnoreCase(person.getName().fullName, keyword));
+                .anyMatch(keyword -> StringUtil.containsWordIgnoreCase(normalizedName,
+                        Normalizer.normalize(keyword, Normalizer.Form.NFC)));
     }
 
     @Override

@@ -195,7 +195,8 @@ public class AllClientFeedTest {
                 "followup 1 d/2026-10-22 m/Unsaved action",
                 "add n/Amanda Lee p/333 e/amanda@example.com a/Street")) {
             CommandException error = assertThrows(CommandException.class, () -> failingLogic.execute(command));
-            assertEquals(LogicManager.MESSAGE_SAVE_FAILED, error.getMessage());
+            assertEquals(String.format(LogicManager.MESSAGE_SAVE_FAILED, testFolder.resolve("clients.json")),
+                    error.getMessage());
             assertUnpublished();
         }
         assertThrows(ParseException.class, () -> logic.execute("unknown"));
