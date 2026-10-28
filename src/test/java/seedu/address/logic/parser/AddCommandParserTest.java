@@ -209,7 +209,7 @@ public class AddCommandParserTest {
         assertParseFailure(parser, " a/ t/! e/bad p/12 n/Bad&",
                 "Names must contain only English letters, digits and spaces. Names must not be blank.");
         assertParseFailure(parser, " a/ t/! e/bad p/12 n/Rachel",
-                "Phone numbers must contain only digits 0-9 and have at least 3 digits.");
+                Phone.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, " a/ t/! e/bad p/001 n/Rachel",
                 "Email format is not supported. Example: rachel.lim+work@example.com.");
         assertParseFailure(parser, " a/ t/! e/a@bc p/001 n/Rachel", Address.MESSAGE_CONSTRAINTS);

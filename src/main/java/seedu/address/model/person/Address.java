@@ -2,6 +2,7 @@ package seedu.address.model.person;
 
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
+import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
 
 /**
  * Represents a Person's address in the address book.
@@ -24,7 +25,7 @@ public class Address {
      */
     public Address(String address) {
         requireNonNull(address);
-        String trimmedAddress = address.replaceAll("^ +| +$", "");
+        String trimmedAddress = trimOrdinarySpaces(address);
         checkArgument(isValidAddress(trimmedAddress), MESSAGE_CONSTRAINTS);
         value = trimmedAddress;
     }
@@ -33,7 +34,7 @@ public class Address {
      * Returns true if a given string is a valid address.
      */
     public static boolean isValidAddress(String test) {
-        String trimmedAddress = test.replaceAll("^ +| +$", "");
+        String trimmedAddress = trimOrdinarySpaces(test);
         return !trimmedAddress.isEmpty() && trimmedAddress.matches(VALIDATION_REGEX)
                 && hasValidSurrogatePairs(trimmedAddress);
     }

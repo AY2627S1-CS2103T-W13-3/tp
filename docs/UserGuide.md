@@ -123,6 +123,8 @@ Typed `edit`, standalone `clear`, `help` and `exit` are unsupported and return e
 
 Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected before command recognition or argument validation. Blank input returns `Enter a command.`. For example, `VIEW 1` returns `Unknown command.` because `view` must be lowercase.
 
+If pasted text contains a tab, control character or line separator, the whole paste is rejected immediately with an error in the feedback area. Your existing command text and selection stay unchanged, and no command runs. Pressing `Enter` or clicking `Run` still submits your unchanged draft. To use the copied text, remove its invalid characters and paste again before submitting.
+
 ### Adding a client: `add`
 
 Adds a client with their contact details and optional tags. A successful add returns to the full client list in insertion order; the new client has no follow-up yet.
@@ -134,12 +136,14 @@ Supply each required prefix exactly once. The prefixes may appear in any order a
 | Field | Accepted values |
 | --- | --- |
 | Name | Non-blank English letters, digits and ordinary spaces. Case and internal spaces are preserved. |
-| Phone | At least three digits `0`–`9`. Leading zeroes are retained. |
+| Phone | At least three digits `0`–`9`, with an optional leading `+` and single spaces or hyphens between digit groups, such as `+65 9123 4567`. The entered format and leading zeroes are retained. |
 | Email | Before one `@`, ASCII letters and digits may be joined by `+`, `_`, `.` or `-`. Consecutive `+`, `_` and `-` are accepted, but periods must separate alphanumeric characters. Domain labels may contain consecutive hyphens (including `xn--` Punycode labels), but must start and end with a letter or digit. The final label must contain two adjacent letters or digits. Stored case is preserved. |
 | Address | Non-empty single-line text, including punctuation, non-English text and emoji. |
 | Tag | One or more English letters or digits. Tags are stored in lowercase; repeated case variants become one tag. |
 
-Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected. There are no additional contact-length limits.
+Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected. There are no additional contact-length limits. Outer ordinary spaces (U+0020) are trimmed without changing the characters between them.
+For example, `n/  Alice  Tan  ` stores `Alice  Tan`, retaining the two spaces between the name words.
+Long internal space runs do not add a new name or address length restriction; the same field rules still apply.
 
 Address input and recovery:
 
@@ -147,7 +151,7 @@ Address input and recovery:
 * When editing the saved JSON directly, use complete characters. An incomplete Unicode escape pair, such as a lone `\uD800` in an address, causes the whole client file to be rejected at startup, even if the JSON syntax is otherwise correct.
 * In that case, the app shows the saved-data warning and blocks client changes to protect the file. Close the app, back up the file, correct the affected address or restore a valid backup, then restart. Editing the file while the app is open does not clear the warning.
 
-A client is a duplicate when **their name matches and either their phone or email matches** an existing client. Names are compared ignoring English case and repeated ordinary spaces; phones match exactly, and emails ignore case. Address, tags and follow-up do not affect this check. Two clients may share a name if both their phone and email differ. Different names may share contact details. Duplicate checks include clients hidden by the current filter.
+A client is a duplicate when **their name matches and either their phone or email matches** an existing client. Names are compared ignoring English case and repeated ordinary spaces; phones are compared by digits (so `+65 9123 4567` and `65-9123-4567` match), and emails ignore case. Address, tags and follow-up do not affect this check. Two clients may share a name if both their phone and email differ. Different names may share contact details. Duplicate checks include clients hidden by the current filter.
 
 Examples, entered into a list without these clients:
 
@@ -261,6 +265,10 @@ Shape errors take priority over index syntax. A rejected delete leaves data, the
 
 Use `view INDEX` to select a client in the currently displayed list. The right pane updates with that client's details.
 
+Opening a different client starts their profile at the top, so their name and contact details are visible first.
+This also applies to separate clients who share a name and to reopening a profile after it closes.
+Viewing the same client again, changing their follow-up or refreshing its status keeps your reading position, as far as the remaining content allows.
+
 The profile shows the selected client's name, phone, email, address and tags. Tags appear as chips in lowercase alphabetical order, or as `No tags` when there are no tags. A pending follow-up shows its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it shows `Follow-up: None`; with no selected client it shows `No client selected.`
 
 Your open profile will follow the client, even when their row number changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
@@ -285,6 +293,8 @@ Format: `followup INDEX d/DATE m/DESCRIPTION`
 
 Use a calendar date in `YYYY-MM-DD` format. A new or replacement date may be today or later; past dates are rejected with `Follow-up date cannot be in the past.` An already saved follow-up can become overdue as time passes. The description must contain 1–200 printable English ASCII characters after outer ordinary spaces are removed. Its internal spaces are retained.
 
+Within a description, `d/` and `m/` immediately preceded by an ordinary space are reserved command prefixes. They cause a duplicate-field error, even when the description is wrapped in quotation marks; quotes do not escape prefixes. For example, `followup 1 d/2099-12-15 m/Confirm d/m/y format` is rejected. Use `followup 1 d/2099-12-15 m/Confirm day/month/year format` instead, with a valid displayed index and date. Slash text without that preceding space, such as `ref:d/m/y`, is allowed.
+
 For example, `followup 2 d/2099-12-15 m/Discuss renewal options` records the action for the second displayed client, provided that date has not passed. Success reports `Follow-up for NAME recorded for DATE.` or `Follow-up for NAME updated to DATE.` The list and profile refresh immediately. In the pending list, changing the due date may move the client to another row; the open profile stays with that client.
 
 An invalid displayed index is reported before an invalid date or description. Invalid input and failed saves leave the previous follow-up and list unchanged.
@@ -303,6 +313,8 @@ PolicyHarbor automatically saves successful client and follow-up changes. `list`
 
 In v1.5, if a change cannot be saved because the data folder is unavailable, the change is not kept in the app or the saved file. Restore access to the folder, then submit the same command again. The app will report whether that retry succeeds.
 
+If `data/addressbook.json` is a symbolic link, PolicyHarbor refuses to save through it. When the link is present at either save check, the link and its target remain unchanged, and the app explains the problem. Do not change the data path externally while the app is running; concurrent path changes are not synchronized. Close the app, replace the link with a regular data file, then retry the command. Back up the target before replacing the link.
+
 Close the app before copying `data/addressbook.json` to a backup location. Restore a backup while the app is closed, then restart from the JAR folder.
 
 ### Editing the data file
@@ -315,6 +327,7 @@ If you see the saved-data warning after editing the file, close PolicyHarbor and
 
 <div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
 If the data file contains an invalid client or duplicate clients, PolicyHarbor starts with an empty displayed list and blocks client changes. It does not overwrite or partly load the invalid file. Correct the file or restore a backup, then restart the app. Back up the file before editing it.<br>
+Repeated JSON property names within the same object are also rejected, even if their values match. For example, keep only one `persons` property in the file's outer object and one `description` property in each follow-up object. Compare the repeated values with your backup before choosing which value to keep; then restart the app. Different client objects may each have their own `name`, `phone` and other properties.<br>
 Names, addresses, phone numbers, email addresses and tags follow the same validation rules used when adding a client. Outer ordinary spaces are removed; tags are stored in lowercase without duplicates. Missing tags mean no tags. Existing valid overdue follow-ups are preserved.
 </div>
 
@@ -329,8 +342,12 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 ## Troubleshooting and known limitations
 
+* **If another PolicyHarbor window is already running in this folder:** use that window, or close it before launching again. Only one instance can use a folder at a time; a second launch stops before loading or changing client data and preferences. Separate folders can hold independent datasets.
+* **If PolicyHarbor cannot lock the folder:** run it from a writable folder and check that `.policyharbor.lock` is a regular file. This marker normally remains after the app closes; its presence alone does not prevent startup. Do not delete or replace it while the app is running. Closing the app or terminating its process releases the operating-system lock.
 * **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar PolicyHarbor.jar`. A different active Java installation may cause JavaFX loading errors.
-* **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
+* **Saved-data warning:** close the app and back up `data/addressbook.json` before repairing invalid data or restoring a valid backup. If startup could not access the data folder, restore its access permissions instead of replacing valid client data, then restart to reload.
+  The app stays protected for the current session even after access returns; query commands cannot remove the warning.
+  Only a confirmed missing data file starts an empty, writable client list.
 * **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.4.
 
 

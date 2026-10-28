@@ -1,5 +1,6 @@
 package seedu.address.logic.parser;
 
+import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
 import static seedu.address.logic.Messages.MESSAGE_CHANGES_BLOCKED;
 import static seedu.address.logic.Messages.MESSAGE_EMPTY_COMMAND;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_CHARACTERS;
@@ -84,18 +85,6 @@ public class AddressBookParser {
         return input.codePoints().anyMatch(character -> character <= 0x001f
                 || (character >= 0x007f && character <= 0x009f)
                 || character == 0x2028 || character == 0x2029);
-    }
-
-    private static String trimOrdinarySpaces(String input) {
-        int first = 0;
-        int last = input.length();
-        while (first < last && input.charAt(first) == ' ') {
-            first++;
-        }
-        while (last > first && input.charAt(last - 1) == ' ') {
-            last--;
-        }
-        return input.substring(first, last);
     }
 
     private static boolean isMutationCommand(String commandWord) {
