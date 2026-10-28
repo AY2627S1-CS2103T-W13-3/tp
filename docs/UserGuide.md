@@ -78,6 +78,12 @@ The light dashboard keeps the command field, **Run** button and feedback strip a
 
 Drag the main divider to change the table/sidebar widths. Drag the divider between the profile and pending summary to change their heights. Each right-hand panel scrolls independently.
 
+On a small or highly scaled screen, such as 1280x720 at 150% scaling, a right-hand panel can be shorter than one follow-up card. Scroll within it or drag the divider between the panels to give it more room; every card and the whole profile remain reachable.
+
+Long values without spaces, such as a long email address, wrap onto extra lines in the table, profile and pending summary instead of being cut off.
+
+The `#` column has room for row numbers of up to five digits, so indices stay fully readable in lists of up to 99,999 clients.
+
 The table shows row number, name, phone and email. In `followups` mode it also shows due date and status; read the full action in the sidebar or selected profile.
 
 | Badge | Meaning |
@@ -329,6 +335,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 
 * **Window restoration:** PolicyHarbor restores the window on its saved screen when that screen is available. If the saved screen is unavailable, startup fits the window inside the primary screen's usable area. You do not need to delete `preferences.json` when disconnecting a secondary screen.
+* **If the workspace feels cramped on a small or highly scaled display:** maximize the window, then drag the main divider and the sidebar divider towards the area you are reading. The command box and feedback stay at the top of the window; the table and both right-hand panels scroll to show the rest.
 * **If you minimize the Help Window** and then use the `Help` menu or the keyboard shortcut `F1` again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
 
 --------------------------------------------------------------------------------------------------------------------

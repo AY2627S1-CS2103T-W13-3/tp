@@ -294,11 +294,25 @@ These tests establish the model boundary. `ClientProfileWorkflowIntegrationTest`
 
 The left `PersonListPanel` receives only `logic.getFilteredPersonList()`. Its unsortable `TableView` uses continuous one-based command indices and variable-height cells that wrap names/contact values. Due/status columns are visible in pending mode. `createRowDisplay` derives text from immutable values and the published date. Recycled rows clear old graphics and status badges; `isViewed` uses reference identity. Table selection never writes model selection. At widths below the visible columns' minimum total, the resize policy permits horizontal scrolling instead of hiding the last columns.
 
+The `#` column has a fixed 56-pixel width (equal minimum, preferred and maximum widths; not resizable). Index cells render plain `Labeled` text, which JavaFX clips with an ellipsis rather than wrapping. With the earlier 36–40 pixel width, row 1000 rendered as `1...` at the 1280x720/150% logical size, so the index a command needs was unreadable. The fixed width fits five-digit indices in the table font; widen it if supported lists can exceed 99,999 clients.
+
 `Logic.getAllPersonList()` exposes the stable, unmodifiable complete committed feed independently of search/pending filters. `MainWindow` constructs one `PendingFollowUpProjection` from it. The projection keeps clients with a follow-up, sorts them stably by due date and retains the canonical `Person` references. It never reads the filtered command list or samples a clock. Candidate execution and failed saves cannot publish tentative records into this feed.
 
 `PendingFollowUpPanel` observes the projection, `todayProperty()` and `selectedPersonProperty()`. It groups actions by status using the published date, retaining due-date order within groups. It displays full names, dates and action text without command indices. Its selection listener observes invalidation so an equal-valued replacement still updates the identity-based marker. Empty groups are unmanaged and the empty summary is explicit.
 
 On window close or programmatic hiding, `MainWindow` disposes the panel and closes the projection. Both operations are idempotent and their callbacks guard against already-queued notifications after disposal. No independent timer or second client store is introduced.
+
+#### Layout boundaries and acceptance tools
+
+`DashboardLayoutBoundaryTest` composes a real `MainWindow` over temporary storage and lays it out at 853x480, 1536x864 and 1920x1080, the logical sizes of 1280x720 at 150%, 1920x1080 at 125% and 1920x1080 at 100%. It covers partitions that `DashboardIntegrationTest` does not: a 1,000-client table, long unbroken email and address values in the profile, 80 pending cards, and a 200-character action with a long name.
+
+Its text assertions read each control's rendered `.text` node as well as `getText()`. JavaFX keeps the full value in the control while drawing an ellipsis-clipped string, so `getText()` alone cannot detect truncation. Width assertions compare a scroll pane's content with its viewport, because the profile and pending summary disable horizontal scrolling.
+
+For many cards, the test asserts that scrolling reaches the end of the last card rather than that the card fits: at 853x480 the summary viewport (about 99 pixels) is shorter than one card. The sidebar divider is the user's remedy, so this is a documented limit rather than a defect.
+
+`DisplayMatrixFixture` (in test sources) writes a 1,000-client data file into a fresh folder for packaged-JAR checks and refuses to overwrite an existing file. Client 1 carries long unbroken values, and every tenth client has a follow-up spread across all three statuses relative to a printed reference date (today by default, or an optional `yyyy-MM-dd` argument). The 1,000-client test reuses the same generator, so every test run validates the fixture data.
+
+Logical scene sizes are not evidence of physical scaling, font substitution or OS window behaviour. Record packaged results per OS, JDK, physical resolution and scaling in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md), keeping combinations nobody has run explicitly pending.
 
 ### Command submission and feedback
 
@@ -558,6 +572,15 @@ Use a disposable folder and fictional clients. Add at least three clients and as
 3. Submit an invalid command using Enter and then Run. Each activation produces one result, keeps the exact input and restores typing focus. Correct it to `list`; the Error label and input clear. Select/copy a long multiline error and scroll to its final line.
 4. Narrow the main divider and resize the window. Verify horizontal table scrolling, independently scrollable profile/summary and the vertical sidebar divider. At logical sizes corresponding to 1920x1080 at 100%/125% and 1280x720 at 150%, keep command submission, feedback and both views accessible. Record which real OS/scaling combinations were exercised in the [release GUI verification record](Testing.md#v14-release-gui-verification-record); untested combinations remain pending.
 5. Close and restart the packaged JAR in the same folder. Clients/actions persist; session selection resets. Repeat with `java -ea -jar PolicyHarbor.jar` and confirm ordinary validation still works.
+
+### v1.5 display matrix checks
+
+Run these on each real OS and resolution/scaling combination available, and record the results in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md).
+
+1. Run `DisplayMatrixFixture` from the IDE with a fresh folder as its program argument. Copy the JAR there and launch it from a terminal in that folder.
+2. Enter `list` and scroll to the end of the table. Row `1000` must be fully readable, without an ellipsis. Enter `view 1000`; expect `Showing client: Client 1000`.
+3. Enter `view 1`. The long name, email and address must wrap inside the profile without an ellipsis, and the profile must scroll to the follow-up section.
+4. Scroll the pending summary to its last upcoming card, then drag the sidebar divider both ways. Both panels must stay usable, and the command box and feedback must stay visible.
 
 ### Save failures and automated boundaries
 
