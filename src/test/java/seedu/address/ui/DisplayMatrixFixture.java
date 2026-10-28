@@ -14,7 +14,8 @@ import seedu.address.testutil.PersonBuilder;
 /**
  * Manual fixture: writes a data file of 1,000 fictional clients for the packaged-JAR display matrix.
  * Client 1 has long unbroken values; every tenth client has a follow-up, spread across all three statuses.
- * Run {@code main} with a fresh folder as its argument, then launch the JAR from that folder.
+ * Run {@code main} with a fresh folder and, optionally, a reference date ({@code yyyy-MM-dd}, default today),
+ * then launch the JAR from that folder.
  */
 public class DisplayMatrixFixture {
     static final int CLIENT_COUNT = 1000;
@@ -24,8 +25,11 @@ public class DisplayMatrixFixture {
         if (Files.exists(data)) {
             throw new IOException(data.toAbsolutePath() + " already exists; use a fresh folder.");
         }
-        new JsonAddressBookStorage(data).saveAddressBook(clients(LocalDate.now()));
+        LocalDate today = args.length > 1 ? LocalDate.parse(args[1]) : LocalDate.now();
+        new JsonAddressBookStorage(data).saveAddressBook(clients(today));
         System.out.println("Wrote " + CLIENT_COUNT + " fictional clients to " + data.toAbsolutePath());
+        System.out.println("Reference date " + today + ": on that date 29 follow-ups are overdue, 2 are due today"
+                + " and 70 are upcoming.");
     }
 
     /** Returns the fixture clients, with follow-up dates relative to {@code today}. */

@@ -280,7 +280,7 @@ Its text assertions read each control's rendered `.text` node as well as `getTex
 
 For many cards, the test asserts that scrolling reaches the end of the last card rather than that the card fits: at 853x480 the summary viewport (about 99 pixels) is shorter than one card. The sidebar divider is the user's remedy, so this is a documented limit rather than a defect.
 
-`DisplayMatrixFixture` (in test sources) writes a 1,000-client data file into a fresh folder for packaged-JAR checks and refuses to overwrite an existing file. Client 1 carries long unbroken values, and every tenth client has a follow-up spread across all three statuses. The 1,000-client test reuses the same generator, so every test run validates the fixture data.
+`DisplayMatrixFixture` (in test sources) writes a 1,000-client data file into a fresh folder for packaged-JAR checks and refuses to overwrite an existing file. Client 1 carries long unbroken values, and every tenth client has a follow-up spread across all three statuses relative to a printed reference date (today by default, or an optional `yyyy-MM-dd` argument). The 1,000-client test reuses the same generator, so every test run validates the fixture data.
 
 Logical scene sizes are not evidence of physical scaling, font substitution or OS window behaviour. Record packaged results per OS, JDK, physical resolution and scaling in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md), keeping combinations nobody has run explicitly pending.
 

@@ -29,7 +29,7 @@ The wrapping tests were checked against a regression: turning off wrapping on th
 ### Setup
 
 1. Build the candidate with `./gradlew shadowJar` and record its SHA-256 (`shasum -a 256 build/libs/PolicyHarbor.jar`, or `certutil -hashfile build\libs\PolicyHarbor.jar SHA256` on Windows) and the source commit.
-2. Run `DisplayMatrixFixture` (in `src/test/java/seedu/address/ui`) from the IDE with a fresh folder as its program argument. It writes `data/addressbook.json` with 1,000 fictional clients and refuses to overwrite an existing file.
+2. Run `DisplayMatrixFixture` (in `src/test/java/seedu/address/ui`) from the IDE with a fresh folder as its program argument. It writes `data/addressbook.json` with 1,000 fictional clients and refuses to overwrite an existing file. Follow-up dates are relative to a reference date, which defaults to today and is printed. The app classifies follow-ups against the date it runs on, so generate the folder on the day of the check and record the printed date in the row. A second argument (`yyyy-MM-dd`) recreates the exact file another checker used.
 3. Copy the JAR into that folder and launch it from a terminal there with `java -jar PolicyHarbor.jar`. Run `java -version` first and record the JDK.
 4. Set the physical resolution and OS scaling for the row being checked.
 
