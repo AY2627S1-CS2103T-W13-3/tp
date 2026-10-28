@@ -303,7 +303,7 @@ PolicyHarbor automatically saves successful client and follow-up changes. `list`
 
 In v1.5, if a change cannot be saved because the data folder is unavailable, the change is not kept in the app or the saved file. Restore access to the folder, then submit the same command again. The app will report whether that retry succeeds.
 
-If `data/addressbook.json` is a symbolic link, PolicyHarbor refuses to save through it. The link and its target remain unchanged, and the app explains the problem. Close the app, replace the link with a regular data file, then retry the command. Back up the target before replacing the link.
+If `data/addressbook.json` is a symbolic link, PolicyHarbor refuses to save through it. When the link is present at either save check, the link and its target remain unchanged, and the app explains the problem. Do not change the data path externally while the app is running; concurrent path changes are not synchronized. Close the app, replace the link with a regular data file, then retry the command. Back up the target before replacing the link.
 
 Close the app before copying `data/addressbook.json` to a backup location. Restore a backup while the app is closed, then restart from the JAR folder.
 
