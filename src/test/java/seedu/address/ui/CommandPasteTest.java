@@ -41,6 +41,8 @@ import javafx.stage.Stage;
 import seedu.address.logic.LogicManager;
 import seedu.address.logic.Messages;
 import seedu.address.logic.commands.CommandResult;
+import seedu.address.logic.commands.exceptions.CommandException;
+import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.ModelManager;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
@@ -189,6 +191,16 @@ public class CommandPasteTest {
     }
 
     @Test
+    public void paste_invalidIntoValidDraftThenEnter_submitsOriginalDraftOnce() throws Exception {
+        assertInvalidPasteThenSubmitOriginalDraft(false);
+    }
+
+    @Test
+    public void paste_invalidIntoValidDraftThenRun_submitsOriginalDraftOnce() throws Exception {
+        assertInvalidPasteThenSubmitOriginalDraft(true);
+    }
+
+    @Test
     public void paste_validUnicodeAndSpaces_replacesSelectionAndRemainsUndoable() throws Exception {
         runOnFxThread(() -> {
             AtomicInteger executionCount = new AtomicInteger();
@@ -238,6 +250,69 @@ public class CommandPasteTest {
                 assertEquals("find Bob", input.getText());
                 assertFalse(input.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS));
             });
+            return null;
+        });
+    }
+
+    private void assertInvalidPasteThenSubmitOriginalDraft(boolean useRunButton) throws Exception {
+        runOnFxThread(() -> {
+            Path dataFile = temporaryFolder.resolve("clients.json");
+            ModelManager model = new ModelManager();
+            JsonAddressBookStorage addressBookStorage = new JsonAddressBookStorage(dataFile);
+            List<String> executedCommands = new ArrayList<>();
+            LogicManager logic = new LogicManager(model, new StorageManager(addressBookStorage,
+                    new JsonUserPrefsStorage(temporaryFolder.resolve("preferences.json")))) {
+                @Override
+                public CommandResult execute(String commandText) throws CommandException, ParseException {
+                    executedCommands.add(commandText);
+                    return super.execute(commandText);
+                }
+            };
+            MainWindow window = new MainWindow(new Stage(), logic, dataFile);
+            try {
+                window.fillInnerParts();
+                Scene scene = window.getPrimaryStage().getScene();
+                TextField input = (TextField) scene.lookup("#commandTextField");
+                TextArea feedback = (TextArea) scene.lookup("#resultDisplay");
+                Label feedbackStatus = (Label) scene.lookup("#feedbackStatus");
+                Button run = (Button) scene.lookup("#runButton");
+                String originalAddress = "Original draft address";
+                String originalCommand = "add n/Alice p/111 e/alice@example.com a/" + originalAddress;
+                input.setText(originalCommand);
+                input.selectRange(originalCommand.length(), originalCommand.indexOf(originalAddress));
+                withRestoredClipboard(() -> {
+                    setClipboard("add n/Bob p/222 e/bob@example.com a/Rejected\nClipboard");
+
+                    input.paste();
+
+                    assertEquals(originalCommand, input.getText());
+                    assertEquals(originalCommand.length(), input.getAnchor());
+                    assertEquals(originalCommand.indexOf(originalAddress), input.getCaretPosition());
+                    assertEquals(originalAddress, input.getSelectedText());
+                    assertTrue(input.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS));
+                    assertEquals(Messages.MESSAGE_INVALID_CHARACTERS, feedback.getText());
+                    assertTrue(feedbackStatus.isVisible());
+                    assertTrue(executedCommands.isEmpty(), "Rejecting a paste must not execute the existing draft");
+                    assertTrue(model.getAddressBook().getPersonList().isEmpty());
+                    assertFalse(Files.exists(dataFile), "Rejecting a paste must not save any client data");
+
+                    if (useRunButton) {
+                        run.fire();
+                    } else {
+                        input.fireEvent(new ActionEvent());
+                    }
+
+                    assertEquals(List.of(originalCommand), executedCommands);
+                    assertEquals(1, model.getAddressBook().getPersonList().size());
+                    assertEquals(originalAddress, model.getAddressBook().getPersonList().getFirst().getAddress().value);
+                    assertEquals("", input.getText());
+                    assertFalse(input.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS));
+                    assertFalse(feedbackStatus.isVisible());
+                });
+                assertEquals(model.getAddressBook(), addressBookStorage.readAddressBook().orElseThrow());
+            } finally {
+                window.getPrimaryStage().close();
+            }
             return null;
         });
     }

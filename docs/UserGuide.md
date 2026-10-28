@@ -123,7 +123,7 @@ Typed `edit`, standalone `clear`, `help` and `exit` are unsupported and return e
 
 Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected before command recognition or argument validation. Blank input returns `Enter a command.`. For example, `VIEW 1` returns `Unknown command.` because `view` must be lowercase.
 
-If pasted text contains a tab, control character or line separator, the whole paste is rejected immediately with an error in the feedback area. Your existing command text and selection stay unchanged, and no command runs. Remove the invalid characters from the copied text and paste again, then press `Enter` or click `Run` to submit.
+If pasted text contains a tab, control character or line separator, the whole paste is rejected immediately with an error in the feedback area. Your existing command text and selection stay unchanged, and no command runs. Pressing `Enter` or clicking `Run` still submits your unchanged draft. To use the copied text, remove its invalid characters and paste again before submitting.
 
 ### Adding a client: `add`
 
