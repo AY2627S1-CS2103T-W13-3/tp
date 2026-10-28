@@ -139,7 +139,9 @@ Supply each required prefix exactly once. The prefixes may appear in any order a
 | Address | Non-empty single-line text, including punctuation, non-English text and emoji. |
 | Tag | One or more English letters or digits. Tags are stored in lowercase; repeated case variants become one tag. |
 
-Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected. There are no additional contact-length limits.
+Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected. There are no additional contact-length limits. Outer ordinary spaces (U+0020) are trimmed without changing the characters between them.
+For example, `n/  Alice  Tan  ` stores `Alice  Tan`, retaining the two spaces between the name words.
+Long internal space runs do not add a new name or address length restriction; the same field rules still apply.
 
 Address input and recovery:
 

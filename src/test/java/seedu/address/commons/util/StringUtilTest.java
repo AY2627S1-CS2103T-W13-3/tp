@@ -1,5 +1,6 @@
 package seedu.address.commons.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -121,6 +122,23 @@ public class StringUtilTest {
 
         // Matches multiple words in sentence
         assertTrue(StringUtil.containsWordIgnoreCase("AAA bBb ccc  bbb", "bbB"));
+    }
+
+    @Test
+    public void trimOrdinarySpaces_preservesInternalSpacesAndOtherWhitespace() {
+        assertEquals("Alice  Tan", StringUtil.trimOrdinarySpaces("   Alice  Tan  "));
+        assertEquals("Alice", StringUtil.trimOrdinarySpaces("Alice"));
+        assertEquals("", StringUtil.trimOrdinarySpaces(""));
+        assertEquals("", StringUtil.trimOrdinarySpaces("    "));
+        assertEquals("\tAlice\t", StringUtil.trimOrdinarySpaces("  \tAlice\t  "));
+        assertEquals("\u00a0Alice\u00a0", StringUtil.trimOrdinarySpaces(" \u00a0Alice\u00a0 "));
+        assertEquals("\u2002Alice\u2002", StringUtil.trimOrdinarySpaces(" \u2002Alice\u2002 "));
+        assertEquals("新加坡 🏠", StringUtil.trimOrdinarySpaces("  新加坡 🏠  "));
+    }
+
+    @Test
+    public void trimOrdinarySpaces_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> StringUtil.trimOrdinarySpaces(null));
     }
 
     //---------------- Tests for getDetails --------------------------------------
