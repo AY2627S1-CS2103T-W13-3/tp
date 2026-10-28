@@ -153,6 +153,13 @@ This section describes some noteworthy details on how certain features are imple
 
 Contact values remain immutable `Name`, `Phone`, `Email` and `Address` objects inside `Person`. Name and address constructors trim outer U+0020 spaces, retaining internal spaces and case. Shared parsers trim only U+0020 for all contact fields. Names, phones and tags use ASCII validation; addresses accept Unicode single-line text but reject C0/C1 controls and U+2028/U+2029. Email keeps the existing grammar, including the adjacent alphanumeric pair in the final domain label, and preserves stored case.
 
+**Persistable Unicode addresses.** `Address.isValidAddress` also rejects unpaired UTF-16 surrogates so accepted addresses can be encoded when saved as UTF-8.
+Each high surrogate must be followed by a low surrogate; a low surrogate cannot appear on its own. The pairing scan takes O(n) time and O(1) extra space, preserving existing ordinary-space trimming and single-line restrictions.
+Valid supplementary characters, including emoji, remain unchanged. A literal U+FFFD replacement character is valid text and is not rejected merely because the same character can result from a decoding error.
+Both `ParserUtil.parseAddress` and `JsonAdaptedPerson.toModelType` use the domain validator, so command entry and saved-value loading enforce the same rule without changing the saved schema.
+A JSON escape such as `\uD800` can be syntactically valid JSON but decode to an invalid address. The adapter rejects it through `IllegalValueException`; storage translates this to `DataLoadingException`, activating the existing empty, mutation-blocked startup path without overwriting the file or publishing earlier valid records.
+`AddressTest` covers malformed pairs and valid boundary pairs. `SavedAddressRecoveryTest` checks whole-file rejection, blocked mutations and unchanged bytes, valid Unicode add/save/restart, and successful saving after an address is repaired and the app restarted.
+
 **Email validation implementation.** `Email.isValidEmail` iteratively scans the local and domain parts, preserving the accepted ASCII grammar, stored case and existing length policy. Each character is examined a constant number of times, so validation takes O(n) time and O(1) auxiliary space for an address of length n. This avoids recursive regular-expression matching and its potential stack overflow on unusually long input. `EmailTest` covers valid, invalid and exceptionally long addresses; `MainAppTest.longEmail_addAndRestart_preservesSavedClient` checks a long address through command entry and save/load.
 
 `Person.isDuplicateOf` implements normalized-name equality **AND** (exact-phone equality **OR** case-insensitive-email equality). Names are normalized only for this comparison: lowercase with `Locale.ROOT` and collapse ordinary-space runs. Stored names remain unchanged. Address, tags and follow-up do not participate.
@@ -189,13 +196,23 @@ Tests cover domain partitions, exact messages, validation precedence, normalized
 **Strict JSON parsing.** `JsonUtil.fromJsonString` reads one root value and checks that no additional tokens remain. Trailing non-whitespace content, including a second JSON value, causes loading to fail; trailing JSON whitespace remains valid. `JsonUtil.readJsonFile` also rejects a null root. These checks apply before saved client records are converted. A client-data loading failure follows the protected startup path above: the empty model blocks mutations and preserves the original file. Repair the file or restore a valid backup, then restart the application before resuming client modifications.
 
 **Private loading diagnostics.** Jackson parsing and mapping exceptions can contain source JSON, rejected field values and nested client details.
-`JsonUtil.readJsonFile` therefore logs a fixed JSON/I/O failure category and the file path, without appending exception text or attaching a throwable to the log record.
+`JsonUtil.readJsonFile` therefore logs a fixed warning with the file path and the category `invalid JSON/data format or I/O failure`, without appending exception text or attaching a throwable to the log record.
 The original `IOException` remains the cause of `DataLoadingException` for callers; retaining that chain does not make its messages or stack trace safe for ordinary logs.
 
 `JsonDiagnosticPrivacyTest` captures real log records and checks their messages, attached throwables and formatted output against synthetic client canaries.
 Its fixtures cover malformed client JSON, wrong client/preference types, a nested constructor failure and a directory-read failure, while checking exception types and preservation of input bytes.
 `LoadingDiagnosticPrivacyTest` captures the shared logger across `MainApp`, storage and commands to verify protected startup without partial client publication, allowed queries, blocked mutations and safe diagnostics.
 For a preference type-mapping failure, it checks default recovery and repair while valid client data stays byte-identical; invalid preference bytes may be replaced.
+**Strict text decoding.** Saved-client loading follows these boundaries:
+
+* `FileUtil.readFromFile` reads UTF-8 with malformed-input reporting. A stray continuation byte, truncated sequence or invalid leading byte raises an `IOException` before Jackson receives a changed string.
+* `JsonUtil.readJsonFile` translates that I/O failure to `DataLoadingException`.
+* `MainApp` enters the same protected startup path as invalid JSON. No client is partly loaded and the original bytes remain untouched.
+* Valid UTF-8 Unicode, an intentionally encoded replacement character, JSON Unicode escapes and trailing JSON whitespace remain readable. Escaped invalid UTF-16 values are a separate domain-validation concern.
+
+`FileUtilUtf8Test` checks the decoder partitions. `SavedDataEncodingRecoveryTest` checks protected commands, byte preservation and repair followed by a writable restart.
+
+**Filesystem retry.** `LogicManager` saves a candidate model before publishing it. If the data directory has become a regular file, `JsonAddressBookStorage` fails before replacing the destination and `LogicManager` leaves the live model unchanged. `StorageDirectoryRecoveryTest` moves a disposable directory aside, observes the real save failure, restores the directory and retries successfully. This verifies the existing atomic-save boundary without adding another fallback writer.
 
 A saved record uses the following JSON shape. Tags are strings, not objects; omit `followUp` (or use `null`) when no action is pending. Do not add session selection or a computed status to the file.
 

@@ -135,6 +135,12 @@ Supply each required prefix exactly once. The prefixes may appear in any order a
 
 Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected. There are no additional contact-length limits.
 
+Address input and recovery:
+
+* Non-English text and emoji are supported. An address containing an invalid Unicode character sequence is rejected; correct the address and submit it again.
+* When editing the saved JSON directly, use complete characters. An incomplete Unicode escape pair, such as a lone `\uD800` in an address, causes the whole client file to be rejected at startup, even if the JSON syntax is otherwise correct.
+* In that case, the app shows the saved-data warning and blocks client changes to protect the file. Close the app, back up the file, correct the affected address or restore a valid backup, then restart. Editing the file while the app is open does not clear the warning.
+
 A client is a duplicate when **their name matches and either their phone or email matches** an existing client. Names are compared ignoring English case and repeated ordinary spaces; phones match exactly, and emails ignore case. Address, tags and follow-up do not affect this check. Two clients may share a name if both their phone and email differ. Different names may share contact details. Duplicate checks include clients hidden by the current filter.
 
 Examples, entered into a list without these clients:
@@ -289,11 +295,17 @@ Shows only clients with pending actions, ordered by ascending due date. Clients 
 
 PolicyHarbor automatically saves successful client and follow-up changes. `list`, `find`, `view` and `followups` do not rewrite the data file. You do not need a save command. The selected profile is session-only.
 
+In v1.5, if a change cannot be saved because the data folder is unavailable, the change is not kept in the app or the saved file. Restore access to the folder, then submit the same command again. The app will report whether that retry succeeds.
+
 Close the app before copying `data/addressbook.json` to a backup location. Restore a backup while the app is closed, then restart from the JAR folder.
 
 ### Editing the data file
 
 Client data is saved automatically as `data/addressbook.json` relative to the folder from which you run `java -jar PolicyHarbor.jar`. Advanced users can update it directly by editing that file.
+
+Save this file as UTF-8 when editing it in another program. In v1.5, an invalid byte sequence cannot be safely interpreted as a client's name, address or follow-up, so PolicyHarbor refuses to load the file and protects it from changes.
+
+If you see the saved-data warning after editing the file, close PolicyHarbor and back up the file before repairing its encoding or restoring a known-good copy. Restart the app to load the repaired file; a command in the protected session cannot repair it.
 
 <div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
 If the data file contains an invalid client or duplicate clients, PolicyHarbor starts with an empty displayed list and blocks client changes. It does not overwrite or partly load the invalid file. Correct the file or restore a backup, then restart the app. Back up the file before editing it.<br>
