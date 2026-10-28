@@ -65,4 +65,21 @@ public class AddressTest {
         }
     }
 
+    @Test
+    public void isValidAddress_unpairedSurrogates_rejectsMalformedText() {
+        for (String invalid : new String[] {"\uD800", "\uDC00", "\uDC00\uD800", "\uD800A",
+            "\uD800\uD800", "A\uDC00B", "\uD83C\uDFE0\uD800"}) {
+            assertFalse(Address.isValidAddress(invalid));
+            assertThrows(IllegalArgumentException.class, () -> new Address(invalid));
+        }
+    }
+
+    @Test
+    public void constructor_validUnicode_preservesSupplementaryAndReplacementCharacters() {
+        for (String valid : new String[] {"\uD800\uDC00", "\uDBFF\uDFFF", "新加坡 🏠 #02-01", "Blk \uFFFD"}) {
+            assertTrue(Address.isValidAddress(valid));
+            assertEquals(valid, new Address("  " + valid + "  ").value);
+        }
+    }
+
 }
