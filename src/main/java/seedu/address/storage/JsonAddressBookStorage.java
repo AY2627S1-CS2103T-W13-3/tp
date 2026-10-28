@@ -86,11 +86,13 @@ public class JsonAddressBookStorage {
 
         String json = JsonUtil.toJsonString(new JsonSerializableAddressBook(addressBook));
         Path destination = filePath.toAbsolutePath();
+        rejectSymbolicLink(destination);
         Path parent = destination.getParent();
         Files.createDirectories(parent);
         Path temporaryFile = Files.createTempFile(parent, ".addressbook-", ".tmp");
         try {
             writeTemporaryFile(temporaryFile, json);
+            rejectSymbolicLink(destination);
             replaceFile(temporaryFile, destination);
         } finally {
             try {
@@ -98,6 +100,12 @@ public class JsonAddressBookStorage {
             } catch (IOException cleanupError) {
                 logger.warning("Could not remove temporary address book file: " + cleanupError.getMessage());
             }
+        }
+    }
+
+    private void rejectSymbolicLink(Path destination) throws SymbolicLinkSaveException {
+        if (Files.isSymbolicLink(destination)) {
+            throw new SymbolicLinkSaveException(destination);
         }
     }
 
