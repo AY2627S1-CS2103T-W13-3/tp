@@ -52,6 +52,14 @@ public class JsonUtilTest {
         assertEquals("value", JsonUtil.fromJsonString("\"value\" \n\t\r", String.class));
     }
 
+    @Test
+    public void fromJsonString_leadingBom_acceptsOneSignatureAndPreservesValue() throws IOException {
+        assertEquals("value\ufeff", JsonUtil.fromJsonString("\ufeff\"value\ufeff\" \n", String.class));
+        for (String invalid : new String[] {"\ufeff\ufeff{}", " \ufeff{}", "{}\ufeff", "\ufeff{}{}"}) {
+            assertThrows(IOException.class, () -> JsonUtil.fromJsonString(invalid, Object.class));
+        }
+    }
+
     //TODO: @Test jsonUtil_readJsonStringToObjectInstance_correctObject()
 
     //TODO: @Test jsonUtil_writeThenReadObjectToJson_correctObject()

@@ -309,7 +309,7 @@ Close the app before copying `data/addressbook.json` to a backup location. Resto
 
 Client data is saved automatically as `data/addressbook.json` relative to the folder from which you run `java -jar PolicyHarbor.jar`. Advanced users can update it directly by editing that file.
 
-Save this file as UTF-8 when editing it in another program. In v1.5, an invalid byte sequence cannot be safely interpreted as a client's name, address or follow-up, so PolicyHarbor refuses to load the file and protects it from changes.
+Save this file as UTF-8 when editing it in another program. UTF-8 with a leading byte-order mark (BOM), as offered by some editors, is also accepted. In v1.5, an invalid byte sequence cannot be safely interpreted as a client's name, address or follow-up, so PolicyHarbor refuses to load the file and protects it from changes.
 
 If you see the saved-data warning after editing the file, close PolicyHarbor and back up the file before repairing its encoding or restoring a known-good copy. Restart the app to load the repaired file; a command in the protected session cannot repair it.
 
