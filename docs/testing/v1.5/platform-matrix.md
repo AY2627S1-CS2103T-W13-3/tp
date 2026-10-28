@@ -24,12 +24,14 @@ The wrapping tests were checked against a regression: turning off wrapping on th
 
 **Observation:** at 853x480 the pending summary's viewport is about 99 px tall, shorter than one 114 px card. Scrolling still reaches every card, and the sidebar divider gives the summary more room. This is not treated as a defect, but screenshots and manual checks at 1280x720/150% should expect it.
 
+**Fixture safety and repeatability.** `DisplayMatrixFixtureTest` invokes the actual generator with an explicit date, reloads all 1,000 records through storage, checks the 29 overdue / 2 due-today / 70 upcoming distribution and long values, and verifies that regeneration refuses to overwrite existing data.
+
 ## Packaged-JAR display matrix
 
 ### Setup
 
 1. Build the candidate with `./gradlew shadowJar` and record its SHA-256 (`shasum -a 256 build/libs/PolicyHarbor.jar`, or `certutil -hashfile build\libs\PolicyHarbor.jar SHA256` on Windows) and the source commit.
-2. Run `DisplayMatrixFixture` (in `src/test/java/seedu/address/ui`) from the IDE with a fresh folder as its program argument. It writes `data/addressbook.json` with 1,000 fictional clients and refuses to overwrite an existing file. Follow-up dates are relative to a reference date, which defaults to today and is printed. The app classifies follow-ups against the date it runs on, so generate the folder on the day of the check and record the printed date in the row. A second argument (`yyyy-MM-dd`) recreates the exact file another checker used.
+2. Generate fictional data with `./gradlew displayMatrixFixture --args="/absolute/path/to/fresh-folder 2026-10-28"` (Windows: `gradlew.bat`). Replace the path and date with the folder and reference date for your check. Alternatively, run `DisplayMatrixFixture` (in `src/test/java/seedu/address/ui`) from the IDE with those arguments. It writes `data/addressbook.json` with 1,000 fictional clients and refuses to overwrite an existing file. Follow-up dates are relative to a reference date, which defaults to today and is printed. The app classifies follow-ups against the date it runs on, so generate the folder on the day of the check and record the printed date in the row. A second argument (`yyyy-MM-dd`) recreates the exact file another checker used.
 3. Copy the JAR into that folder and launch it from a terminal there with `java -jar PolicyHarbor.jar`. Run `java -version` first and record the JDK.
 4. Set the physical resolution and OS scaling for the row being checked.
 

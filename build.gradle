@@ -89,3 +89,10 @@ shadowJar {
 }
 
 defaultTasks 'clean', 'test'
+
+// Generate fictional data for the packaged-JAR display matrix without configuring an IDE.
+tasks.register('displayMatrixFixture', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'seedu.address.ui.DisplayMatrixFixture'
+}
