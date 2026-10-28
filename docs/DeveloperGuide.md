@@ -540,7 +540,7 @@ After each rejected command, verify that the input stays editable/focused and th
 
 ### Reserved prefixes in follow-up descriptions
 
-Start in a fresh folder and add Rachel and Amanda using only the two `add` commands from the basic workflow. If either sample date below has passed, replace both sample dates throughout this scenario with dates today or later. Enter `list`, `view 1`, then `followup 1 d/2099-12-14 m/Call about renewal`. Expect Rachel's action to be recorded.
+Start in a fresh folder and add Rachel and Amanda using only the two `add` commands from the basic workflow. Use the two sample dates consistently throughout this scenario. If needed, substitute today's date for the first and tomorrow's date for the second; this keeps the prefix checks independent of date-policy changes. Enter `list`, `view 1`, then `followup 1 d/2099-12-14 m/Call about renewal`. Expect Rachel's action to be recorded.
 
 | Input | Expected result |
 | --- | --- |
