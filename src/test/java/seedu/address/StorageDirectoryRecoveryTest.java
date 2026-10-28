@@ -56,7 +56,7 @@ public class StorageDirectoryRecoveryTest {
         Files.move(dataDirectory, backupDirectory);
         Files.writeString(dataDirectory, "A file is blocking the data directory.");
         try {
-            assertEquals(LogicManager.MESSAGE_SAVE_FAILED,
+            assertEquals(String.format(LogicManager.MESSAGE_SAVE_FAILED, file),
                     assertThrows(CommandException.class, () -> logic.execute(ADD_BOB)).getMessage());
             assertEquals(before, model.getAddressBook());
             assertEquals(displayedBefore, model.getFilteredPersonList());

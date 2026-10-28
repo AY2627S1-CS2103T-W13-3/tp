@@ -174,7 +174,7 @@ Usage: add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...
 
 If several fields are invalid, correct the reported error and submit the command again. Fields are checked in the order name, phone, email, address, then tags. An unrecognized prefix inside a field remains literal text: for example, `z/unit` inside an address is allowed, while the same text inside a phone makes the phone invalid.
 
-Changes are saved before they appear in the list. If saving fails, the previous data and list remain and the result says `Changes could not be saved. No changes were kept. Try the command again.` If saved data could not be loaded at startup, adding clients is blocked to protect that file.
+Changes are saved before they appear in the list. If saving fails, the previous data and list remain and the result says `Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.` If saved data could not be loaded at startup, adding clients is blocked to protect that file.
 
 ### Listing all clients: `list`
 
@@ -260,7 +260,7 @@ Deleted client: Rachel Lim; Phone: 001; Email: Rachel@example.com; Address: Blk 
 | One invalid index token, such as `0`, `-1`, `abc`, `1.5` or `2147483648` | `Index must be a positive integer from 1 to 2147483647.` |
 | Valid index beyond the displayed list | `The client index provided is invalid.` |
 
-Shape errors take priority over index syntax. A rejected delete leaves data, the current list and date unchanged. A save failure also keeps the previous state and reports `Changes could not be saved. No changes were kept. Try the command again.` Deletion is blocked if saved data could not be loaded at startup.
+Shape errors take priority over index syntax. A rejected delete leaves data, the current list and date unchanged. A save failure also keeps the previous state and reports `Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.` Deletion is blocked if saved data could not be loaded at startup.
 
 ### Keeping the same client profile open
 
@@ -342,6 +342,8 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 --------------------------------------------------------------------------------------------------------------------
 
 ## Troubleshooting and known limitations
+
+* **Cannot save changes:** the error identifies the destination file. No changes from the failed command are kept. Check that its `data` folder is writable, that a file is not blocking the folder, and that the disk has free space. Restore access before retrying the retained command. If moving the app, close it first and copy both the JAR and its data to a writable folder; do not run with administrator privileges just to bypass permissions.
 
 * **If another PolicyHarbor window is already running in this folder:** use that window, or close it before launching again. Only one instance can use a folder at a time; a second launch stops before loading or changing client data and preferences. Separate folders can hold independent datasets.
 * **If PolicyHarbor cannot lock the folder:** run it from a writable folder and check that `.policyharbor.lock` is a regular file. This marker normally remains after the app closes; its presence alone does not prevent startup. Do not delete or replace it while the app is running. Closing the app or terminating its process releases the operating-system lock.

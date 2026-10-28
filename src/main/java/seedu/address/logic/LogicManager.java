@@ -28,7 +28,8 @@ import seedu.address.storage.SymbolicLinkSaveException;
  */
 public class LogicManager implements Logic {
     public static final String MESSAGE_SAVE_FAILED =
-            "Changes could not be saved. No changes were kept. Try the command again.";
+            "Could not save to %s. No changes were kept. "
+            + "Check that the data folder is writable and has free space, then try again.";
     public static final String MESSAGE_SYMLINK_SAVE_FAILED =
             "Changes could not be saved because data/addressbook.json is a symbolic link."
                     + " No changes were kept. Close the app, replace the link with a regular file, then try again.";
@@ -79,7 +80,7 @@ public class LogicManager implements Logic {
             } catch (SymbolicLinkSaveException e) {
                 throw new CommandException(MESSAGE_SYMLINK_SAVE_FAILED, e);
             } catch (IOException e) {
-                throw new CommandException(MESSAGE_SAVE_FAILED, e);
+                throw new CommandException(String.format(MESSAGE_SAVE_FAILED, storage.getAddressBookFilePath()), e);
             }
         }
 

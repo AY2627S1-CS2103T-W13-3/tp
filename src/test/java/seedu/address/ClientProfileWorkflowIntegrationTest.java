@@ -151,7 +151,8 @@ public class ClientProfileWorkflowIntegrationTest {
 
         for (String command : List.of("add n/Bob Lee p/444 e/bob@example.com a/Street",
                 "delete 1", "followup 1 d/2026-10-16 m/Replace action", "followup 1 clear")) {
-            assertThrows(CommandException.class, LogicManager.MESSAGE_SAVE_FAILED, () -> logic.execute(command));
+            assertThrows(CommandException.class, String.format(LogicManager.MESSAGE_SAVE_FAILED, file), () ->
+                    logic.execute(command));
             assertEquals(stored, model.getAddressBook().getPersonList());
             assertEquals(displayed, model.getFilteredPersonList());
             assertTrue(model.showingFollowUpsProperty().get());
