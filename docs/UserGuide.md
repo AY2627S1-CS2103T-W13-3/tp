@@ -31,7 +31,7 @@ PolicyHarbor v1.4 is a desktop application for individual insurance agents to ma
    followups
    ```
 
-   Rachel's contact details appear in the profile pane. Her action appears in the pending summary with an `UPCOMING` badge. The example uses a future date; for your own actions use today or a later date in `YYYY-MM-DD` format.
+   Rachel's contact details appear in the profile pane. Her action appears in the pending summary with an `UPCOMING` badge. The example uses a future date; for your own actions use their due date in `YYYY-MM-DD` format, including a past date for overdue work.
 
 1. Close the window and run the JAR again from the same folder. Rachel and her follow-up are restored; enter `view 1` to reopen her profile.
 
@@ -108,7 +108,7 @@ Suppose Alice Morgan and Bob Chen are already in your client list. To review Ali
 
 1. `find Alice` narrows the numbered table. If several clients match, identify Alice by her contact details and use her displayed index in the next commands.
 2. `view 1` opens the first match's profile so you can check the intended client before changing a follow-up.
-3. `followup 1 d/2099-12-15 m/Call about renewal` sets Alice's action. Replace the example date with today or a later date in `YYYY-MM-DD` format.
+3. `followup 1 d/2099-12-15 m/Call about renewal` sets Alice's action. Replace the example date with the action's due date in `YYYY-MM-DD` format; past dates are allowed for overdue work.
 4. `find Bob` switches the table to Bob and clears Alice's profile. Alice's action remains in the global pending summary.
 5. `followups` returns to the numbered pending list. Read its indices again before your next command because this list is ordered by due date.
 
@@ -283,9 +283,9 @@ Records one pending action for the client at an index in the **currently display
 
 Format: `followup INDEX d/DATE m/DESCRIPTION`
 
-Use a calendar date in `YYYY-MM-DD` format. A new or replacement date may be today or later; past dates are rejected with `Follow-up date cannot be in the past.` An already saved follow-up can become overdue as time passes. The description must contain 1–200 printable English ASCII characters after outer ordinary spaces are removed. Its internal spaces are retained.
+Use an existing calendar date in `YYYY-MM-DD` format, with a year from `0001` to `9999`. A new or replacement follow-up may be due in the past, today or in the future. Use the original due date to record overdue carry-over work; a date before today displays as `OVERDUE`. An already saved follow-up can also become overdue as time passes. The description must contain 1–200 printable English ASCII characters after outer ordinary spaces are removed. Its internal spaces are retained.
 
-For example, `followup 2 d/2099-12-15 m/Discuss renewal options` records the action for the second displayed client, provided that date has not passed. Success reports `Follow-up for NAME recorded for DATE.` or `Follow-up for NAME updated to DATE.` The list and profile refresh immediately. In the pending list, changing the due date may move the client to another row; the open profile stays with that client.
+For example, `followup 2 d/2099-12-15 m/Discuss renewal options` records the action for the second displayed client. To record an overdue task, use a past date, such as `followup 2 d/2026-10-26 m/Carry-over renewal call` when today is `2026-10-28`. Success reports `Follow-up for NAME recorded for DATE.` or `Follow-up for NAME updated to DATE.` The list and profile refresh immediately. In the pending list, changing the due date may move the client to another row; the open profile stays with that client.
 
 An invalid displayed index is reported before an invalid date or description. Invalid input and failed saves leave the previous follow-up and list unchanged.
 

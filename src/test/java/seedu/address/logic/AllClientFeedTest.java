@@ -200,7 +200,9 @@ public class AllClientFeedTest {
         }
         assertThrows(ParseException.class, () -> logic.execute("unknown"));
         assertThrows(CommandException.class, () -> logic.execute("delete 3"));
-        assertThrows(CommandException.class, () -> logic.execute("followup 1 d/2026-10-18 m/Past"));
+        CommandException invalidDescription = assertThrows(CommandException.class, () ->
+                logic.execute("followup 1 d/2026-10-18 m/"));
+        assertEquals(FollowUp.MESSAGE_INVALID_DESCRIPTION, invalidDescription.getMessage());
         assertThrows(CommandException.class, () ->
                 logic.execute("add n/Rachel Lim p/222 e/other@example.com a/Street"));
         assertUnpublished();
