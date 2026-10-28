@@ -214,6 +214,24 @@ public class PersonTest {
     }
 
     @Test
+    public void isDuplicateOf_unicodeNormalizationMatchesEquivalentNames() {
+        Person composed = new PersonBuilder().withName("José Tan").withPhone("91234567")
+                .withEmail("one@example.com").build();
+        Person decomposed = new PersonBuilder(composed).withName("Jose\u0301 Tan")
+                .withEmail("two@example.com").build();
+        assertTrue(composed.isDuplicateOf(decomposed));
+        assertTrue(decomposed.isDuplicateOf(composed));
+    }
+
+    @Test
+    public void isDuplicateOf_unicodeCaseVariants_matchSymmetrically() {
+        Person upper = new PersonBuilder().withName("ΟΣ").build();
+        Person lower = new PersonBuilder(upper).withName("οσ").build();
+        assertTrue(upper.isDuplicateOf(lower));
+        assertTrue(lower.isDuplicateOf(upper));
+    }
+
+    @Test
     public void isDuplicateOf_samePhoneDigitsWithDifferentFormatting() {
         Person first = new PersonBuilder().withName("Rachel Lim").withPhone("+65 9123 4567")
                 .withEmail("first@example.com").build();
@@ -222,6 +240,17 @@ public class PersonTest {
         assertTrue(first.isDuplicateOf(reformatted));
         assertTrue(reformatted.isDuplicateOf(first));
         assertFalse(first.equals(reformatted));
+    }
+
+    @Test
+    public void isDuplicateOf_unicodeNameAndFormattedPhone_matchTogether() {
+        Person first = new PersonBuilder().withName("José Tan").withPhone("+65 9123 4567")
+                .withEmail("first@example.com").build();
+        Person second = new PersonBuilder(first).withName("JOSE\u0301  TAN").withPhone("65-9123-4567")
+                .withEmail("second@example.com").build();
+        assertTrue(first.isDuplicateOf(second));
+        assertTrue(second.isDuplicateOf(first));
+        assertFalse(first.equals(second));
     }
 
     @Test
