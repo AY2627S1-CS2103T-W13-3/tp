@@ -56,6 +56,15 @@ public class ClientIdLoadingProtectionTest {
     }
 
     @Test
+    public void partiallyNullifiedHistory_neverDowngradesAndPreservesOriginalBytes() throws Exception {
+        assertProtected("{\"nextClientId\":null,\"persons\":[" + CLIENT + "]}");
+        assertProtected("{\"nextClientId\":18,\"persons\":["
+                + CLIENT.replace("\"clientId\":17", "\"clientId\":null") + "]}");
+        String other = CLIENT.replace("17", "null").replace("Rachel", "Bob").replace("rachel@", "bob@");
+        assertProtected("{\"nextClientId\":null,\"persons\":[" + CLIENT + "," + other + "]}");
+    }
+
+    @Test
     public void invalidIdentity_diagnosticsExcludeRawMetadataAndContactValues() throws Exception {
         List<String> records = new ArrayList<>();
         Handler capture = new Handler() {

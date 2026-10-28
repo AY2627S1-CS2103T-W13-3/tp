@@ -73,6 +73,9 @@ class JsonSerializableAddressBook {
             }
             modelPersons.add(jsonAdaptedPerson.toModelType());
         }
+        // The shared migration contract treats all-absent/all-null metadata as legacy.
+        // Once all identity history is removed externally, this file cannot reveal its former IDs.
+        // Any remaining non-null metadata selects strict validation; never downgrade a partial file.
         boolean hasMetadata = nextClientId != null && !nextClientId.isNull()
                 || persons.stream().anyMatch(JsonAdaptedPerson::hasClientId);
         List<ClientId> ids = new ArrayList<>();
