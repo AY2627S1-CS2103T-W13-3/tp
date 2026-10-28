@@ -119,6 +119,18 @@ public class JsonAddressBookStorageTest {
     }
 
     @Test
+    public void readAddressBook_invisibleOnlyAddress_rejectsWithoutChangingBytes() throws Exception {
+        Path file = testFolder.resolve("blank-address.json");
+        for (String blank : new String[] {"\u00a0", "\u3000", "\u200b", " \u00a0\u200b "}) {
+            String original = "{\"persons\":[{\"name\":\"Alice Tan\",\"phone\":\"91110001\","
+                    + "\"email\":\"alice@example.com\",\"address\":\"" + blank + "\"}]}";
+            Files.writeString(file, original);
+            assertThrows(DataLoadingException.class, new JsonAddressBookStorage(file)::readAddressBook);
+            assertEquals(original, Files.readString(file));
+        }
+    }
+
+    @Test
     public void followUp_roundTripAndLegacyData() throws Exception {
         Path file = testFolder.resolve("followups.json");
         AddressBook book = new AddressBook();
@@ -190,18 +202,6 @@ public class JsonAddressBookStorageTest {
             Files.writeString(file, invalidFile);
             assertThrows(DataLoadingException.class, storage::readAddressBook);
             assertEquals(invalidFile, Files.readString(file));
-        }
-    }
-
-    @Test
-    public void readAddressBook_invisibleOnlyAddress_rejectsWithoutChangingBytes() throws Exception {
-        Path file = testFolder.resolve("blank-address.json");
-        for (String blank : new String[] {"\u00a0", "\u3000", "\u200b", " \u00a0\u200b "}) {
-            String original = "{\"persons\":[{\"name\":\"Alice Tan\",\"phone\":\"91110001\","
-                    + "\"email\":\"alice@example.com\",\"address\":\"" + blank + "\"}]}";
-            Files.writeString(file, original);
-            assertThrows(DataLoadingException.class, new JsonAddressBookStorage(file)::readAddressBook);
-            assertEquals(original, Files.readString(file));
         }
     }
 
