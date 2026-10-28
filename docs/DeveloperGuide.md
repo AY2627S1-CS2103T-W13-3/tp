@@ -553,7 +553,7 @@ Close the app before editing its JSON; back up the file first.
 
 ### Window, help and long content
 
-For Unicode follow-up acceptance, use a disposable writable folder and a fictional client. Record `followup 1 d/2099-12-15 m/续保电话`, then replace it with Tamil, Arabic, accented text and a joined emoji such as `👩‍💻`. Verify the full note in the table, selected profile and pending summary, then restart and check that spelling and joining sequences are retained. Check glyph readability on each supported platform; automated tests establish text preservation, not installed-font coverage. Try a 201-code-point note or a note made only of spaces/zero-width characters; expect rejection with the previous action intact.
+For Unicode follow-up acceptance, use a disposable writable folder and a fictional client. Record `followup 1 d/2099-12-15 m/续保电话`, then replace it with Tamil, Arabic, accented text and a joined emoji such as `👩‍💻`. Verify the full note in the selected profile and pending summary, then restart and check that spelling and joining sequences are retained. Check glyph readability on each supported platform; automated tests establish text preservation, not installed-font coverage. Try a 201-code-point note or a note made only of spaces/zero-width characters; expect rejection with the previous action intact.
 
 - Test full/search/pending modes, scrolling and empty lists. Ordinary rows show no action fields; reused/empty rows show no stale badge or `VIEWING` marker.
 - Click/highlight another row while a profile is open. The viewed client must remain unchanged until a successful `view` command.
