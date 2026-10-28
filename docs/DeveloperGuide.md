@@ -223,6 +223,8 @@ For a preference type-mapping failure, it checks default recovery and repair whi
 
 **Filesystem retry.** `LogicManager` saves a candidate model before publishing it. If the data directory has become a regular file, `JsonAddressBookStorage` fails before replacing the destination and `LogicManager` leaves the live model unchanged. `StorageDirectoryRecoveryTest` moves a disposable directory aside, observes the real save failure, restores the directory and retries successfully. This verifies the existing atomic-save boundary without adding another fallback writer.
 
+**UTF-8 BOM compatibility.** `FileUtil.readFromFile` skips one U+FEFF only at the start of the decoded JSON text. Client data and preferences saved by BOM-producing editors load normally. Embedded U+FEFF values are retained, additional or misplaced BOMs remain invalid, and strict byte decoding and trailing-content checks still apply. Loading alone does not rewrite the file.
+
 A saved record uses the following JSON shape. Tags are strings, not objects; omit `followUp` (or use `null`) when no action is pending. Do not add session selection or a computed status to the file.
 
 ```json
