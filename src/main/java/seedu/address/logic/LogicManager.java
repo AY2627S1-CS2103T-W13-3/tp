@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
@@ -19,6 +20,7 @@ import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.AddressBookParser;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.Model;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.Person;
 import seedu.address.storage.Storage;
 import seedu.address.storage.SymbolicLinkSaveException;
@@ -96,6 +98,11 @@ public class LogicManager implements Logic {
     @Override
     public ObservableList<Person> getAllPersonList() {
         return model.getAddressBook().getPersonList();
+    }
+
+    @Override
+    public Optional<ClientId> getClientId(Person canonicalPerson) {
+        return model.getAddressBook().getClientId(canonicalPerson);
     }
 
     @Override

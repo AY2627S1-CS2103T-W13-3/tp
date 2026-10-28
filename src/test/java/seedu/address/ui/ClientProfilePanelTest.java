@@ -23,6 +23,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
+import seedu.address.model.AddressBook;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.PersonBuilder;
@@ -129,7 +130,7 @@ public class ClientProfilePanelTest {
                     .withFollowUp(new FollowUp(TODAY, "First action")).build();
             SimpleObjectProperty<Person> selected = new SimpleObjectProperty<>(first);
             SimpleObjectProperty<LocalDate> today = new SimpleObjectProperty<>(TODAY);
-            ClientProfilePanel panel = new ClientProfilePanel(selected, today);
+            ClientProfilePanel panel = new ClientProfilePanel(selected, today, new AddressBook()::getClientId);
             FlowPane chips = (FlowPane) findById(panel.getRoot(), "tagChips");
             Label status = (Label) findById(panel.getRoot(), "followUpStatus");
             Label action = (Label) findById(panel.getRoot(), "followUpAction");
@@ -170,7 +171,7 @@ public class ClientProfilePanelTest {
             String longTag = "a".repeat(80);
             Person person = new PersonBuilder().withTags(longTag, "short").build();
             ClientProfilePanel panel = new ClientProfilePanel(new SimpleObjectProperty<>(person),
-                    new SimpleObjectProperty<>(TODAY));
+                    new SimpleObjectProperty<>(TODAY), new AddressBook()::getClientId);
             ScrollPane scroll = (ScrollPane) panel.getRoot();
             new Scene(scroll, 240, 360);
             scroll.resize(240, 360);

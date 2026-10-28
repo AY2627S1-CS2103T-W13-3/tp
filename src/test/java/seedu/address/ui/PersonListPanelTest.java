@@ -22,6 +22,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Orientation;
@@ -34,6 +35,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.text.Text;
+import seedu.address.model.AddressBook;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.PersonBuilder;
@@ -51,6 +53,8 @@ public class PersonListPanelTest {
     private final SimpleBooleanProperty showingFollowUps = new SimpleBooleanProperty(false);
     private final SimpleObjectProperty<Person> selectedPerson = new SimpleObjectProperty<>();
 
+    private final AddressBook identities = new AddressBook();
+
     private Scene scene;
     private TableView<Person> table;
 
@@ -65,7 +69,7 @@ public class PersonListPanelTest {
     }
 
     @Test
-    public void indices_afterDeleteFindAndReorder_matchCommandList() throws Exception {
+    public void clientIds_afterDeleteFindAndReorder_remainStable() throws Exception {
         source.setAll(clients(8));
         runOnFx(() -> {
             show(700);
@@ -78,7 +82,7 @@ public class PersonListPanelTest {
             displayed.setPredicate(person -> person.getName().fullName.endsWith("5")
                     || person.getName().fullName.endsWith("7"));
             layout();
-            assertEquals(List.of("1", "2"), visibleIndices());
+            assertEquals(List.of("5", "7"), visibleIndices());
             assertRowsMatchList();
 
             displayed.setPredicate(null);
@@ -200,7 +204,10 @@ public class PersonListPanelTest {
 
     @SuppressWarnings("unchecked")
     private void show(double width) {
-        PersonListPanel panel = new PersonListPanel(displayed, today, showingFollowUps, selectedPerson);
+        identities.setPersons(new ArrayList<>(source));
+        source.addListener((ListChangeListener<Person>) change -> identities.setPersons(new ArrayList<>(source)));
+        PersonListPanel panel = new PersonListPanel(displayed, today, showingFollowUps, selectedPerson,
+                identities::getClientId);
         scene = new Scene(panel.getRoot(), width, 400);
         table = (TableView<Person>) panel.getRoot().lookup("#personTable");
         layout();
@@ -211,20 +218,21 @@ public class PersonListPanelTest {
         scene.getRoot().layout();
     }
 
-    /** Asserts every rendered row shows its 1-based index and the list's client at that index. */
+    /** Asserts every rendered row shows its aggregate ID and the current list's canonical client. */
     private void assertRowsMatchList() {
         List<TableRow<Person>> rows = filledRows();
         assertFalse(rows.isEmpty());
         for (TableRow<Person> row : rows) {
             int index = row.getIndex();
             assertSame(table.getItems().get(index), row.getItem());
-            assertEquals(String.valueOf(index + 1), cell(row, "#").getText());
+            assertEquals(identities.getClientId(row.getItem()).orElseThrow().toString(),
+                    cell(row, "Client ID").getText());
             assertEquals(row.getItem().getName().fullName, nameText(row));
         }
     }
 
     private List<String> visibleIndices() {
-        return filledRows().stream().map(row -> cell(row, "#").getText()).toList();
+        return filledRows().stream().map(row -> cell(row, "Client ID").getText()).toList();
     }
 
     private List<Person> markedClients() {

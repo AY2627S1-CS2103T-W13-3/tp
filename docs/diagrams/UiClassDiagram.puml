@@ -1,4 +1,5 @@
 @startuml
+!pragma layout smetana
 !include style.puml
 skinparam arrowThickness 1.1
 skinparam arrowColor UI_COLOR_T4
@@ -13,29 +14,40 @@ Class UiManager
 Class MainWindow
 Class HelpWindow
 Class ResultDisplay
-Class ClientProfilePanel
+Class ClientProfilePanel {
+  -clientIdLookup : Function
+  -renderedClientId : Optional<ClientId>
+}
 Class PersonListPanel {
   -personTable : TableView<Person>
+  -clientIdLookup : Function
   -today : ReadOnlyObjectProperty<LocalDate>
   -showingFollowUps : ReadOnlyBooleanProperty
   -selectedPerson : ReadOnlyObjectProperty<Person>
 }
-Class PendingFollowUpPanel
+Class PendingFollowUpPanel {
+  -clientIdLookup : Function
+}
 Class PendingFollowUpProjection
 Class StatusBarFooter
 Class CommandBox
 }
 
-' style.puml hides all members; show only the fields of the indexed client table.
+' Show the ID presentation state without exposing unrelated UI implementation details.
 ' Must follow the class declaration, or PlantUML reports a syntax error.
 show PersonListPanel fields
+show ClientProfilePanel fields
+show PendingFollowUpPanel fields
 
 package Model <<Rectangle>> {
 Class HiddenModel #FFFFFF
 }
 
 package Logic <<Rectangle>> {
-Class HiddenLogic #FFFFFF
+interface "Logic" as LogicApi {
+  +getClientId(Person) : Optional<ClientId>
+}
+show LogicApi methods
 }
 
 Class HiddenOutside #FFFFFF
@@ -68,7 +80,7 @@ PendingFollowUpProjection ..> Model
 PendingFollowUpPanel ..> Model
 ClientProfilePanel ..> Model
 UiManager -right-> Logic
-MainWindow -left-> Logic
+MainWindow -left-> LogicApi : ID lookup
 
 PersonListPanel -[hidden]left- HelpWindow
 HelpWindow -[hidden]left- CommandBox

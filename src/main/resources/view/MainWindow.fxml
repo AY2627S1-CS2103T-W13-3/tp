@@ -82,7 +82,7 @@
                 <Region HBox.hgrow="ALWAYS" />
                 <Label fx:id="clientCount" styleClass="dashboard-caption" />
               </HBox>
-              <Label text="Use these row numbers with view, delete and followup."
+              <Label text="Use Client IDs with view, edit, delete and followup."
                      styleClass="dashboard-caption" wrapText="true" maxWidth="Infinity" />
               <StackPane fx:id="personListPanelPlaceholder" minHeight="0" VBox.vgrow="ALWAYS" />
             </VBox>

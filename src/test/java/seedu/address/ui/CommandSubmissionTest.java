@@ -361,8 +361,8 @@ public class CommandSubmissionTest {
                 });
                 List<String> inputs = List.of("", "   ", "invalid command", "delete 9", "followup 999 d/bad m/");
                 List<String> expectedMessages = List.of("Enter a command.", "Enter a command.",
-                        Messages.MESSAGE_UNKNOWN_COMMAND, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX,
-                        Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                        Messages.MESSAGE_UNKNOWN_COMMAND, "No client with ID 9.",
+                        "No client with ID 999.");
 
                 for (int i = 0; i < inputs.size(); i++) {
                     fixture.commandTextField.setText(inputs.get(i));

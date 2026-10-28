@@ -64,6 +64,7 @@
     -fx-text-fill: #173b2a;
 }
 
+.pending-follow-up-panel .pending-card-id,
 .pending-follow-up-panel .pending-card-date,
 .pending-follow-up-panel .pending-card-action {
     -fx-font-family: "System";

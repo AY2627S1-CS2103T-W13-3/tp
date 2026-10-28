@@ -1,6 +1,7 @@
 package seedu.address.logic;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
@@ -9,6 +10,7 @@ import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.commands.CommandResult;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.exceptions.ParseException;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.Person;
 
 /**
@@ -34,6 +36,9 @@ public interface Logic {
      * Elements are the canonical immutable records, including distinct clients with the same name.
      */
     ObservableList<Person> getAllPersonList();
+
+    /** Returns the permanent ID of a canonical committed client, or empty for a removed/copy record. */
+    Optional<ClientId> getClientId(Person canonicalPerson);
 
     /** Returns the date snapshot used for displayed follow-up statuses. */
     ReadOnlyObjectProperty<LocalDate> todayProperty();

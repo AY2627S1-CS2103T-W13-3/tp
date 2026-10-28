@@ -5,7 +5,10 @@ import static java.util.Objects.requireNonNull;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
@@ -13,6 +16,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
@@ -26,10 +30,16 @@ public class ClientProfilePanel extends UiPart<Region> {
     private static final List<String> STATUS_STYLE_CLASSES = List.of(
             "profile-status-overdue", "profile-status-due-today", "profile-status-upcoming");
 
+    private final Function<Person, Optional<ClientId>> clientIdLookup;
+    private Optional<ClientId> renderedClientId;
+
     @FXML
     private Label noSelectionMessage;
     @FXML
     private VBox profileDetails;
+
+    @FXML
+    private Label clientId;
     @FXML
     private Label name;
     @FXML
@@ -55,13 +65,20 @@ public class ClientProfilePanel extends UiPart<Region> {
 
     /** Creates a panel that follows the live selection and published status date. */
     public ClientProfilePanel(ReadOnlyObjectProperty<Person> selectedPerson,
-            ReadOnlyObjectProperty<LocalDate> today) {
+            ReadOnlyObjectProperty<LocalDate> today, Function<Person, Optional<ClientId>> clientIdLookup) {
         super(FXML);
         requireNonNull(selectedPerson);
         requireNonNull(today);
-        selectedPerson.addListener((observable, oldPerson, newPerson) -> {
+        this.clientIdLookup = requireNonNull(clientIdLookup);
+        renderedClientId = lookupId(selectedPerson.get());
+        // Cache the ID: the previous immutable record may already have left the aggregate.
+        selectedPerson.addListener((InvalidationListener) observable -> {
+            Person newPerson = selectedPerson.get();
+            Optional<ClientId> nextId = lookupId(newPerson);
+            boolean sameClient = renderedClientId.isPresent() && renderedClientId.equals(nextId);
+            renderedClientId = nextId;
             render(newPerson, today.get());
-            if (!hasSameContactDetails(oldPerson, newPerson)) {
+            if (!sameClient) {
                 ScrollPane scroll = (ScrollPane) getRoot();
                 scroll.setVvalue(scroll.getVmin());
             }
@@ -70,14 +87,8 @@ public class ClientProfilePanel extends UiPart<Region> {
         render(selectedPerson.get(), today.get());
     }
 
-    /** Follow-up replacements preserve these fields; this check controls scrolling, not model identity. */
-    private static boolean hasSameContactDetails(Person previous, Person current) {
-        return previous != null && current != null
-                && previous.getName().equals(current.getName())
-                && previous.getPhone().equals(current.getPhone())
-                && previous.getEmail().equals(current.getEmail())
-                && previous.getAddress().equals(current.getAddress())
-                && previous.getTags().equals(current.getTags());
+    private Optional<ClientId> lookupId(Person person) {
+        return person == null ? Optional.empty() : clientIdLookup.apply(person);
     }
 
     private void render(Person selectedPerson, LocalDate today) {
@@ -88,6 +99,7 @@ public class ClientProfilePanel extends UiPart<Region> {
         profileDetails.setVisible(display.hasSelection());
         profileDetails.setManaged(display.hasSelection());
 
+        clientId.setText(lookupId(selectedPerson).map(id -> "Client ID " + id).orElse(""));
         name.setText(display.name());
         phone.setText(display.phone());
         email.setText(display.email());

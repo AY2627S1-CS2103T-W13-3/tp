@@ -86,15 +86,15 @@ public class DashboardIntegrationTest {
                         .lookupAll(".pending-card-viewing").size());
                 fixture.submit("followups");
                 assertEquals(List.of("Bob Tan", "Charlie Tan", "Alice Tan"), fixture.tableNames());
-                fixture.submit("followup 3 d/2026-10-21 m/Call Alice today");
+                fixture.submit("followup 1 d/2026-10-21 m/Call Alice today");
                 assertEquals(List.of("Bob Tan", "Alice Tan", "Charlie Tan"), fixture.tableNames());
                 assertEquals("Alice Tan", fixture.profileName());
                 assertSame(fixture.table().getItems().get(1), fixture.model.selectedPersonProperty().get());
-                fixture.submit("followup 2 clear");
+                fixture.submit("followup 1 clear");
                 assertEquals(2, fixture.pendingCards());
                 assertNull(fixture.model.selectedPersonProperty().get());
                 fixture.submit("find Charlie");
-                fixture.submit("delete 1");
+                fixture.submit("delete 3");
                 assertEquals(1, fixture.pendingCards());
                 assertEquals(List.of("Alice Tan", "Bob Tan"), fixture.logic.getAllPersonList().stream()
                         .map(person -> person.getName().fullName).toList());

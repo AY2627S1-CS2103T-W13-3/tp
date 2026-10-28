@@ -155,16 +155,16 @@ public class MainWindow extends UiPart<Stage> {
         bindClientListLabels(logic, clientListTitle.textProperty(), clientCount.textProperty());
 
         personListPanel = new PersonListPanel(logic.getFilteredPersonList(), logic.todayProperty(),
-                logic.showingFollowUpsProperty(), logic.selectedPersonProperty());
+                logic.showingFollowUpsProperty(), logic.selectedPersonProperty(), logic::getClientId);
         personListPanelPlaceholder.getChildren().add(personListPanel.getRoot());
 
         ClientProfilePanel clientProfilePanel = new ClientProfilePanel(logic.selectedPersonProperty(),
-                logic.todayProperty());
+                logic.todayProperty(), logic::getClientId);
         clientProfilePlaceholder.getChildren().add(clientProfilePanel.getRoot());
 
         pendingProjection = new PendingFollowUpProjection(logic.getAllPersonList());
         pendingPanel = new PendingFollowUpPanel(pendingProjection.getPendingPersons(),
-                logic.todayProperty(), logic.selectedPersonProperty());
+                logic.todayProperty(), logic.selectedPersonProperty(), logic::getClientId);
         pendingFollowUpPlaceholder.getChildren().setAll(pendingPanel.getRoot());
         pendingFollowUpPlaceholder.setVisible(true);
         pendingFollowUpPlaceholder.setManaged(true);
