@@ -261,6 +261,10 @@ Shape errors take priority over index syntax. A rejected delete leaves data, the
 
 Use `view INDEX` to select a client in the currently displayed list. The right pane updates with that client's details.
 
+Opening a different client starts their profile at the top, so their name and contact details are visible first.
+This also applies to separate clients who share a name and to reopening a profile after it closes.
+Viewing the same client again, changing their follow-up or refreshing its status keeps your reading position, as far as the remaining content allows.
+
 The profile shows the selected client's name, phone, email, address and tags. Tags appear as chips in lowercase alphabetical order, or as `No tags` when there are no tags. A pending follow-up shows its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it shows `Follow-up: None`; with no selected client it shows `No client selected.`
 
 Your open profile will follow the client, even when their row number changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
