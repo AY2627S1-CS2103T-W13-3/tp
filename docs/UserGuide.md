@@ -285,6 +285,8 @@ Format: `followup INDEX d/DATE m/DESCRIPTION`
 
 Use a calendar date in `YYYY-MM-DD` format. A new or replacement date may be today or later; past dates are rejected with `Follow-up date cannot be in the past.` An already saved follow-up can become overdue as time passes. The description must contain 1–200 printable English ASCII characters after outer ordinary spaces are removed. Its internal spaces are retained.
 
+Within a description, `d/` and `m/` immediately preceded by an ordinary space are reserved command prefixes. They cause a duplicate-field error, even when the description is wrapped in quotation marks; quotes do not escape prefixes. For example, `followup 1 d/2099-12-15 m/Confirm d/m/y format` is rejected. Use `followup 1 d/2099-12-15 m/Confirm day/month/year format` instead, with a valid displayed index and a date that has not passed. Slash text without that preceding space, such as `ref:d/m/y`, is allowed.
+
 For example, `followup 2 d/2099-12-15 m/Discuss renewal options` records the action for the second displayed client, provided that date has not passed. Success reports `Follow-up for NAME recorded for DATE.` or `Follow-up for NAME updated to DATE.` The list and profile refresh immediately. In the pending list, changing the due date may move the client to another row; the open profile stays with that client.
 
 An invalid displayed index is reported before an invalid date or description. Invalid input and failed saves leave the previous follow-up and list unchanged.
