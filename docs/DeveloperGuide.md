@@ -289,6 +289,13 @@ After the caller has successfully saved any dirty candidate, `commitFrom(candida
 
 This mapping matters for an identical follow-up replacement. The candidate may contain a new `Person` object with equal values, while publication skips resetting the live client data when it has equal values. Publishing the candidate object directly would leave selection pointing outside the live list. Mapping to the committed live record retains a canonical visible selection whether the data was reset or retained.
 
+Profile scrolling is separate from model selection: `ClientProfilePanel` starts a different client's profile at its vertical minimum.
+The UI compares unchanged name, phone, email, address and tags to retain the reading position across immutable follow-up replacements.
+It does not compare names alone, so selecting a separate same-name client resets the scroll position.
+This continuity check is only a presentation policy; canonical-record membership and selection still belong to the model.
+Repeated views, date refreshes and failed commands do not reset the current profile; reopening a closed profile starts at the top.
+`ClientProfileScrollTest` checks rendered scrolling, same-name clients and real Logic commands, including follow-up replacement and failed saving.
+
 #### Selection transition evidence
 
 `ClientProfileSelectionTest` covers model-level selection transitions using a fixed date of `2026-10-12`: same-name records, pending reordering, filter exclusion, follow-up clearing, deletion, candidate isolation and equal-value replacement. Canonical-object assertions distinguish correct record tracking from value equality. The existing model and pending-list suites provide regression coverage for the authoritative displayed list and stable due-date ordering.
