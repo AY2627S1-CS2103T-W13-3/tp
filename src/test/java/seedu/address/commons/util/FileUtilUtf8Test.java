@@ -11,6 +11,8 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import seedu.address.commons.exceptions.DataLoadingException;
+
 /** Tests that saved text is decoded without silently replacing malformed bytes. */
 public class FileUtilUtf8Test {
     @TempDir
@@ -29,6 +31,18 @@ public class FileUtilUtf8Test {
         for (byte[] bytes : malformed) {
             Files.write(file, bytes);
             assertThrows(IOException.class, () -> FileUtil.readFromFile(file));
+        }
+    }
+
+    @Test
+    public void readFromFile_leadingBom_ignoresOneSignatureAndPreservesValue() throws Exception {
+        Path file = folder.resolve("bom.json");
+        Files.writeString(file, "\ufeff\"value\ufeff\" \n");
+        assertEquals("\"value\ufeff\" \n", FileUtil.readFromFile(file));
+        assertEquals("value\ufeff", JsonUtil.readJsonFile(file, String.class).orElseThrow());
+        for (String invalid : new String[] {"\ufeff\ufeff{}", " \ufeff{}", "{}\ufeff", "\ufeff{}{}"}) {
+            Files.writeString(file, invalid);
+            assertThrows(DataLoadingException.class, () -> JsonUtil.readJsonFile(file, Object.class));
         }
     }
 

@@ -67,6 +67,11 @@ public class LoadingDiagnosticPrivacyTest {
     }
 
     @Test
+    public void trailingClientData_startupAndCommands_preserveFileWithoutLoggingClientContents() throws Exception {
+        assertProtectedStartup("{\"persons\":[" + CLIENT_JSON + "]}x");
+    }
+
+    @Test
     public void wrongClientType_startupAndCommands_preserveFileWithoutPublishingPartialData() throws Exception {
         assertProtectedStartup("{\"persons\":[" + CLIENT_JSON + ","
                 + "{\"name\":{\"value\":\"Private Canary\"}}]}");
