@@ -21,6 +21,7 @@ import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
 import seedu.address.model.person.FollowUp;
+import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
 
 /** Tests mutation commands against the real model with a fixed command date. */
@@ -43,18 +44,33 @@ public class SetFollowUpCommandTest {
     }
 
     @Test
-    public void execute_existingFollowUp_replacesBothFieldsAndReordersPendingView() throws Exception {
+    public void execute_newOverdueFollowUp_recordsAndPreservesContact() throws Exception {
+        Model model = modelWith(ALICE, BENSON);
+
+        CommandResult result = new SetFollowUpCommand(FIRST, "2026-10-06", "Carry-over call").execute(model);
+
+        Person updated = ALICE.withFollowUp(new FollowUp(TODAY.minusDays(1), "Carry-over call"));
+        assertEquals("Follow-up for Alice Pauline recorded for 2026-10-06.", result.getFeedbackToUser());
+        assertEquals(List.of(updated, BENSON), model.getAddressBook().getPersonList());
+        assertEquals(List.of(updated, BENSON), model.getFilteredPersonList());
+        assertEquals(FollowUpStatus.OVERDUE, updated.getFollowUp().orElseThrow().getStatus(model.getToday()));
+        assertTrue(model.hasUnsavedChanges());
+    }
+
+    @Test
+    public void execute_existingFollowUp_replacesWithOverdueActionAndReordersPendingView() throws Exception {
         Person alice = ALICE.withFollowUp(new FollowUp(TODAY.plusDays(2), "Old action"));
         Person benson = BENSON.withFollowUp(new FollowUp(TODAY.plusDays(1), "Call Benson"));
         Model model = modelWith(alice, benson);
         model.showPendingFollowUps();
 
-        CommandResult result = new SetFollowUpCommand(FIRST, "2026-10-10", "Renew policy").execute(model);
+        CommandResult result = new SetFollowUpCommand(FIRST, "2026-10-06", "Renew policy").execute(model);
 
-        Person updated = BENSON.withFollowUp(new FollowUp(TODAY.plusDays(3), "Renew policy"));
-        assertEquals("Follow-up for Benson Meier updated to 2026-10-10.", result.getFeedbackToUser());
+        Person updated = BENSON.withFollowUp(new FollowUp(TODAY.minusDays(1), "Renew policy"));
+        assertEquals("Follow-up for Benson Meier updated to 2026-10-06.", result.getFeedbackToUser());
         assertEquals(List.of(alice, updated), model.getAddressBook().getPersonList());
-        assertEquals(List.of(alice, updated), model.getFilteredPersonList());
+        assertEquals(List.of(updated, alice), model.getFilteredPersonList());
+        assertEquals(FollowUpStatus.OVERDUE, updated.getFollowUp().orElseThrow().getStatus(model.getToday()));
         assertTrue(model.showingFollowUpsProperty().get());
         assertTrue(model.hasUnsavedChanges());
     }
@@ -99,19 +115,33 @@ public class SetFollowUpCommandTest {
 
     @Test
     public void execute_invalidDate_precedesInvalidDescription() {
-        for (String date : List.of("2026-02-30", "2026-2-07", "0000-01-01", "", "2026-10-07\t")) {
+        for (String date : List.of("2026-02-30", "2026-02-29", "1900-02-29", "2026-2-07",
+                "0000-01-01", "10000-01-01", "", "2026-10-07\t")) {
             assertFailureUnchanged(new SetFollowUpCommand(FIRST, date, ""), modelWith(ALICE),
                     FollowUp.MESSAGE_INVALID_DATE);
         }
     }
 
     @Test
-    public void execute_pastDate_precedesInvalidDescriptionAndPreservesPendingView() {
+    public void execute_pastDateWithInvalidDescription_reportsDescriptionAndPreservesPendingView() {
         Person alice = ALICE.withFollowUp(new FollowUp(TODAY.minusDays(2), "Overdue"));
         Model model = modelWith(alice);
         model.showPendingFollowUps();
         assertFailureUnchanged(new SetFollowUpCommand(FIRST, "2026-10-06", ""), model,
-                "Follow-up date cannot be in the past.");
+                FollowUp.MESSAGE_INVALID_DESCRIPTION);
+    }
+
+    @Test
+    public void execute_earliestDateAndPastLeapDay_recordsOverdueAction() throws Exception {
+        for (String date : List.of("0001-01-01", "2024-02-29")) {
+            Model model = modelWith(ALICE);
+
+            new SetFollowUpCommand(FIRST, date, "Carry-over action").execute(model);
+
+            FollowUp action = model.getFilteredPersonList().get(0).getFollowUp().orElseThrow();
+            assertEquals(LocalDate.parse(date), action.getDueDate());
+            assertEquals(FollowUpStatus.OVERDUE, action.getStatus(model.getToday()));
+        }
     }
 
     @Test
@@ -138,18 +168,19 @@ public class SetFollowUpCommandTest {
     public void execute_candidate_usesSampledDateAndKeepsLiveStateUntilCommit() throws Exception {
         Model live = modelWith(ALICE);
         Model candidate = live.forkForCommand(TODAY.plusDays(1));
-        assertFailureUnchanged(new SetFollowUpCommand(FIRST, "2026-10-07", "Call"), candidate,
-                "Follow-up date cannot be in the past.");
 
-        new SetFollowUpCommand(FIRST, "2026-10-08", "Call").execute(candidate);
+        new SetFollowUpCommand(FIRST, "2026-10-07", "Call").execute(candidate);
 
+        Person updated = ALICE.withFollowUp(new FollowUp(TODAY, "Call"));
         assertEquals(List.of(ALICE), live.getFilteredPersonList());
         assertEquals(TODAY, live.getToday());
         assertFalse(live.hasUnsavedChanges());
+        assertEquals(TODAY.plusDays(1), candidate.getToday());
+        assertEquals(FollowUpStatus.OVERDUE, updated.getFollowUp().orElseThrow().getStatus(candidate.getToday()));
         assertTrue(candidate.hasUnsavedChanges());
         live.commitFrom(candidate);
-        assertEquals(List.of(ALICE.withFollowUp(new FollowUp(TODAY.plusDays(1), "Call"))),
-                live.getFilteredPersonList());
+        assertEquals(List.of(updated), live.getFilteredPersonList());
+        assertEquals(TODAY.plusDays(1), live.getToday());
     }
 
     @Test

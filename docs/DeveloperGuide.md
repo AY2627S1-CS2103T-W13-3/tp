@@ -357,7 +357,7 @@ The saved-data warning is a separate persistent label controlled by `logic.isDat
 
 `Person` contains an optional immutable `FollowUp` with a `LocalDate` due date and an action description. Recording or replacing an action creates a new `Person` that preserves every contact field and tag; clearing removes the optional action. There is no action history or completion flag.
 
-`FollowUpCommandParser` recognizes either `followup INDEX clear` or one date and one description prefix. Commands resolve the index against the current displayed list before validating a new date/action. New actions cannot be dated before the candidate's sampled date. Stored overdue actions remain valid: JSON conversion checks calendar/description validity without imposing a today-based restriction.
+`FollowUpCommandParser` recognizes either `followup INDEX clear` or one date and one description prefix. Commands resolve the index against the current displayed list before validating a new date/action. New and replacement actions accept past dates for overdue carry-over work, using the same strict calendar, year (`0001`–`9999`) and description validation as stored actions. Date errors precede description errors; a valid past date with an invalid description reports the description error.
 
 `ArgumentTokenizer` recognizes `d/` and `m/` anywhere they immediately follow an ordinary space (U+0020), including inside a description. It does not interpret quotation marks or provide prefix escaping. Repeating either prefix therefore fails duplicate-prefix validation before command execution; an existing action stays unchanged. For example, `m/Confirm d/m/y format` repeats `d/`, while `m/Confirm day/month/year format` and `m/Check ref:d/m/y` preserve the intended descriptions.
 
@@ -614,6 +614,18 @@ Close the app before editing its JSON; back up the file first.
 5. Try `add`, `delete` or `followup`. Expect the changes-blocked diagnostic before command-specific parsing. Confirm the invalid file's bytes are unchanged.
 6. Close the app, restore the valid backup and relaunch. Expect normal writable operation.
 
+### Recording and replacing overdue carry-over work
+
+Use a disposable writable folder and two fictional clients. Substitute actual dates for yesterday, today and tomorrow.
+
+1. Record the first client's follow-up for yesterday and the second client's for tomorrow. Enter `followups`; expect the overdue action first with `OVERDUE` and the future action second with `UPCOMING`.
+2. Enter `view 2`, then replace that client's action using a date earlier than the first action. Expect the client to move to row 1 with `OVERDUE`; the profile and `VIEWING` marker must stay with that client.
+3. Close and relaunch, then enter `followups`. Expect the same dates, descriptions, statuses and ordering, with all contact fields retained and no profile selected.
+4. Try an invalid calendar date, such as `2026-02-29`, and a valid past date with an empty `m/` value. Expect the date and description errors respectively; client data, list and selection must remain unchanged.
+
+`SetFollowUpCommandTest` covers past-date acceptance, strict date/year boundaries and validation order.
+`FollowUpWorkflowIntegrationTest` covers search/pending targeting, profile reconciliation, ties and reordering, save/load, a single command-date sample across midnight, and failed-save preservation of data, date, selection and saved bytes.
+
 ### Window, help and long content
 
 - Test full/search/pending modes, scrolling and empty lists. Ordinary rows show no action fields; reused/empty rows show no stale badge or `VIEWING` marker.
@@ -632,7 +644,7 @@ Help window and data-file footer (automated tests cover only the URL constant an
 
 ### Integrated v1.4 dashboard checks
 
-Use a disposable folder and fictional clients. Add at least three clients and assign actions for today and a future date; use the automated fixed-date fixtures for overdue/date-boundary scenarios.
+Use a disposable folder and fictional clients. Add at least three clients and assign actions for yesterday, today and a future date; use the automated fixed-date fixtures for additional date-boundary scenarios.
 
 1. Run `list`, then `view 1`. Enter `find` with another client's name. Only the numbered table is filtered; the global pending summary retains all actions. The profile clears when its client leaves the command list.
 2. Run `followups` and select a client with `view INDEX`. Replace their action with another valid date. The table renumbers in due-date order while the profile and VIEWING markers follow the same record. Clear the action in pending mode; that row and summary card disappear and selection clears.
