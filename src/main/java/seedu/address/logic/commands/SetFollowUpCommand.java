@@ -20,7 +20,6 @@ public final class SetFollowUpCommand extends Command {
             + "Or: followup INDEX clear";
     public static final String MESSAGE_RECORDED = "Follow-up for %1$s recorded for %2$s.";
     public static final String MESSAGE_UPDATED = "Follow-up for %1$s updated to %2$s.";
-    public static final String MESSAGE_PAST_DATE = "Follow-up date cannot be in the past.";
 
     private final Index targetIndex;
     private final String dateText;
@@ -47,9 +46,6 @@ public final class SetFollowUpCommand extends Command {
         FollowUp followUp;
         try {
             LocalDate dueDate = FollowUp.parseDate(dateText);
-            if (dueDate.isBefore(model.getToday())) {
-                throw new CommandException(MESSAGE_PAST_DATE);
-            }
             followUp = new FollowUp(dueDate, descriptionText);
         } catch (IllegalArgumentException e) {
             throw new CommandException(e.getMessage(), e);

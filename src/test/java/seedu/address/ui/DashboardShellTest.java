@@ -99,7 +99,8 @@ public class DashboardShellTest {
 
         assertThrows(CommandException.class, () -> labels.logic.execute("delete 99"));
         labels.assertLabels("Pending clients", "2 shown");
-        assertThrows(CommandException.class, () -> labels.logic.execute("followup 1 d/2026-10-19 m/Past"));
+        assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
+                labels.logic.execute("followup 1 d/2026-10-19 m/"));
         labels.assertLabels("Pending clients", "2 shown");
     }
 

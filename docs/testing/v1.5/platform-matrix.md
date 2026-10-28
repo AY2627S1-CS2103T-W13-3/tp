@@ -24,14 +24,49 @@ The wrapping tests were checked against a regression: turning off wrapping on th
 
 **Observation:** at 853x480 the pending summary's viewport is about 99 px tall, shorter than one 114 px card. Scrolling still reaches every card, and the sidebar divider gives the summary more room. This is not treated as a defect, but screenshots and manual checks at 1280x720/150% should expect it.
 
+**Fixture safety and repeatability.** `DisplayMatrixFixtureTest` invokes the actual generator with an explicit date, reloads all 1,000 records through storage, checks the 29 overdue / 2 due-today / 70 upcoming distribution and long values, and verifies that regeneration refuses to overwrite existing data.
+
+## Composed-candidate record: 28 October 2026
+
+The existing layout changes and documentation from PR #136 are merged. This follow-up adds repeatable fixture generation and a packaged backend check; it does **not** complete the physical display matrix.
+
+- **Source:** [fb0a548cc69a61a9c99110c099ff1b4137d74e41](https://github.com/wkc75/tp/commit/fb0a548cc69a61a9c99110c099ff1b4137d74e41), a separate composed candidate containing the fixes for #130–#134 and these verification tools. This is not a merged release candidate on team master.
+- **Artifact:** `PolicyHarbor.jar`, SHA-256 `dc4b250ee964a6640ba86d6c78d782f248fe6fe6e0a8e01d08a9b1b7827a7008`.
+- **Environment:** macOS 26.6.2 (25G83), arm64; Zulu JDK+FX 25.0.3+9-LTS (Zulu25.34+17-CA); reference date 2026-10-28. Physical resolution/scaling was not verified.
+- **Automated checks:** 624 tests passed, plus Checkstyle, coverage generation, the repository checks and packaging. Three native-input methods in `CommandSubmissionTest` were excluded locally: `submit_enterKey_submitsOnceAndRestoresTypingAfterSuccessAndFailure`, `submit_mouseClick_submitsOnceAndRestoresTypingAfterSuccessAndFailure`, and `submit_tabAndSpace_submitsOnceAndRestoresTypingAfterSuccessAndFailure`. All three failed the unchanged baseline because the initial native click did not reach the input. The exclusion is local; the committed CI configuration is unchanged.
+- **Packaged backend:** `packagedBackendCheck` passed against production classes from this JAR with assertions enabled and 1,000 fictional clients. Filtering/index mapping, long-profile data, invalid-index rejection, follow-up reorder/clear/delete and save/reload passed. Selection was empty after reload.
+- **Startup smoke only:** both ordinary `java -jar` and `java -ea -jar` launches loaded the fixture and reached UI startup without a fatal exception. The assertion-enabled launch left the data file byte-identical (SHA-256 `054d808d606109ae21510acf2be2337c3d504e47b36ab7905fc789e3cb0ef125`). The session could not inspect or interact with the Java window, so these are log/process observations, not proof of visual layout, Enter/Run, error focus recovery or scrolling. Each launch was stopped after the smoke check.
+
+Single-run backend observations, measured inside `packagedBackendCheck` (including disk persistence for mutations):
+
+| Operation | Time (ms) |
+| --- | ---: |
+| Load and initialise the 1,000-client model | 266.868 |
+| `find Client` | 113.319 |
+| `view 999` in the filtered list | 128.456 |
+| `list` | 118.641 |
+| `view 1` for the long-profile client | 110.783 |
+| `followups` | 110.903 |
+| Replace the first action and reorder it to the end | 238.268 |
+| Clear that action | 219.444 |
+| Delete the first remaining pending client | 220.864 |
+
+These times exclude rendering and scrolling and are not a performance guarantee. All nine physical OS/resolution/scaling rows below remain **Pending**. Complete native input and visual acceptance on the final merged JAR before closing #135; CI and logical layout tests do not replace those checks. Screenshot claimants should use the fixture and narrow-viewport observation above, then record their actual platform and artifact.
+
 ## Packaged-JAR display matrix
 
 ### Setup
 
 1. Build the candidate with `./gradlew shadowJar` and record its SHA-256 (`shasum -a 256 build/libs/PolicyHarbor.jar`, or `certutil -hashfile build\libs\PolicyHarbor.jar SHA256` on Windows) and the source commit.
-2. Run `DisplayMatrixFixture` (in `src/test/java/seedu/address/ui`) from the IDE with a fresh folder as its program argument. It writes `data/addressbook.json` with 1,000 fictional clients and refuses to overwrite an existing file. Follow-up dates are relative to a reference date, which defaults to today and is printed. The app classifies follow-ups against the date it runs on, so generate the folder on the day of the check and record the printed date in the row. A second argument (`yyyy-MM-dd`) recreates the exact file another checker used.
+2. Generate fictional data with `./gradlew displayMatrixFixture --args="/absolute/path/to/fresh-folder 2026-10-28"` (Windows: `gradlew.bat`). Replace the path and date with the folder and reference date for your check. Alternatively, run `DisplayMatrixFixture` (in `src/test/java/seedu/address/ui`) from the IDE with those arguments. It writes `data/addressbook.json` with 1,000 fictional clients and refuses to overwrite an existing file. Follow-up dates are relative to a reference date, which defaults to today and is printed. The app classifies follow-ups against the date it runs on, so generate the folder on the day of the check and record the printed date in the row. A second argument (`yyyy-MM-dd`) recreates the exact file another checker used.
 3. Copy the JAR into that folder and launch it from a terminal there with `java -jar PolicyHarbor.jar`. Run `java -version` first and record the JDK.
 4. Set the physical resolution and OS scaling for the row being checked.
+
+### Separate backend acceptance and timing
+
+Run `./gradlew packagedBackendCheck --args="/absolute/path/to/another-fresh-folder"` (Windows: `gradlew.bat`). This builds the JAR, loads production classes from that JAR ahead of test outputs, generates 1,000 fictional clients and checks filter/index mapping, long profile data, rejected input, follow-up reorder/clear/delete and save/reload. Assertions must be enabled; the task enables them and the checker refuses to run without them. The fixture refuses to replace existing client data.
+
+The output identifies the loaded JAR and reports backend command times, including persistence for mutations. These are single-run observations, not a performance guarantee. They exclude rendering, scrolling, keyboard/mouse submission and physical display scaling; none of the desktop matrix rows can be marked passed from this command.
 
 ### Scenarios for each row
 

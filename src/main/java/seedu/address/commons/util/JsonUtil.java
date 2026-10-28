@@ -38,7 +38,14 @@ public class JsonUtil {
 
     static <T> T deserializeObjectFromJsonFile(Path jsonFile, Class<T> classOfObjectToDeserialize)
             throws IOException {
-        return fromJsonString(FileUtil.readFromFile(jsonFile), classOfObjectToDeserialize);
+        return deserializeObjectFromJsonFile(jsonFile, classOfObjectToDeserialize,
+                false, new DeserializationFeature[0]);
+    }
+
+    private static <T> T deserializeObjectFromJsonFile(Path jsonFile, Class<T> classOfObjectToDeserialize,
+            boolean rejectDuplicateProperties, DeserializationFeature... features) throws IOException {
+        return fromJsonString(FileUtil.readFromFile(jsonFile), classOfObjectToDeserialize,
+                rejectDuplicateProperties, features);
     }
 
     /**
@@ -51,9 +58,32 @@ public class JsonUtil {
      */
     public static <T> Optional<T> readJsonFile(
             Path filePath, Class<T> classOfObjectToDeserialize) throws DataLoadingException {
+        return readJsonFile(filePath, classOfObjectToDeserialize, false);
+    }
+
+    /**
+     * Reads a JSON file, optionally rejecting repeated property names within each object.
+     * Client data uses strict detection; ordinary preferences retain their legacy last-value behavior.
+     */
+    public static <T> Optional<T> readJsonFile(Path filePath, Class<T> classOfObjectToDeserialize,
+            boolean rejectDuplicateProperties) throws DataLoadingException {
+        return readJsonFile(filePath, classOfObjectToDeserialize, rejectDuplicateProperties,
+                new DeserializationFeature[0]);
+    }
+
+    /** Reads a JSON file with optional reader-specific deserialization features. */
+    public static <T> Optional<T> readJsonFile(Path filePath, Class<T> classOfObjectToDeserialize,
+            DeserializationFeature... features) throws DataLoadingException {
+        return readJsonFile(filePath, classOfObjectToDeserialize, false, features);
+    }
+
+    /** Combines client-data duplicate-key checks with reader-specific validation. */
+    public static <T> Optional<T> readJsonFile(Path filePath, Class<T> classOfObjectToDeserialize,
+            boolean rejectDuplicateProperties, DeserializationFeature... features) throws DataLoadingException {
         requireNonNull(filePath);
 
-        if (!Files.exists(filePath)) {
+        // Only confirmed absence may bypass loading; an unknown access status must still be read.
+        if (Files.notExists(filePath)) {
             return Optional.empty();
         }
         logger.info("JSON file " + filePath + " found.");
@@ -61,7 +91,8 @@ public class JsonUtil {
         T jsonFile;
 
         try {
-            jsonFile = deserializeObjectFromJsonFile(filePath, classOfObjectToDeserialize);
+            jsonFile = deserializeObjectFromJsonFile(filePath, classOfObjectToDeserialize,
+                    rejectDuplicateProperties, features);
         } catch (IOException e) {
             // Jackson messages and causes can include client data, so keep them out of ordinary logs.
             logger.warning("Error reading JSON file " + filePath + " (invalid JSON/data format or I/O failure).");
@@ -96,8 +127,27 @@ public class JsonUtil {
      * @return The instance of T with the specified values in the JSON string
      */
     public static <T> T fromJsonString(String json, Class<T> instanceClass) throws IOException {
+        return fromJsonString(json, instanceClass, false);
+    }
+
+    /** Converts one JSON root, with optional duplicate-property rejection scoped to this parser. */
+    public static <T> T fromJsonString(String json, Class<T> instanceClass, boolean rejectDuplicateProperties)
+            throws IOException {
+        return fromJsonString(json, instanceClass, rejectDuplicateProperties, new DeserializationFeature[0]);
+    }
+
+    /** Converts one JSON root with specified reader-specific validation features. */
+    public static <T> T fromJsonString(String json, Class<T> instanceClass, DeserializationFeature... features)
+            throws IOException {
+        return fromJsonString(json, instanceClass, false, features);
+    }
+
+    /** Converts one JSON root using both duplicate-key and unknown-property validation when requested. */
+    public static <T> T fromJsonString(String json, Class<T> instanceClass,
+            boolean rejectDuplicateProperties, DeserializationFeature... features) throws IOException {
         try (JsonParser parser = objectMapper.getFactory().createParser(json)) {
-            T value = objectMapper.readValue(parser, instanceClass);
+            parser.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, rejectDuplicateProperties);
+            T value = objectMapper.readerFor(instanceClass).withFeatures(features).readValue(parser);
             if (parser.nextToken() != null) {
                 throw new IOException("Unexpected content after the JSON root.");
             }

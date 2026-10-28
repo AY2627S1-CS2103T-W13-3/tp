@@ -151,7 +151,8 @@ public class ClientProfileWorkflowIntegrationTest {
 
         for (String command : List.of("add n/Bob Lee p/444 e/bob@example.com a/Street",
                 "delete 1", "followup 1 d/2026-10-16 m/Replace action", "followup 1 clear")) {
-            assertThrows(CommandException.class, LogicManager.MESSAGE_SAVE_FAILED, () -> logic.execute(command));
+            assertThrows(CommandException.class, String.format(LogicManager.MESSAGE_SAVE_FAILED, file), () ->
+                    logic.execute(command));
             assertEquals(stored, model.getAddressBook().getPersonList());
             assertEquals(displayed, model.getFilteredPersonList());
             assertTrue(model.showingFollowUpsProperty().get());
@@ -215,8 +216,8 @@ public class ClientProfileWorkflowIntegrationTest {
                 logic.execute("followup 1 d/2026-02-30 m/Call"));
         assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
                 logic.execute("followup 1 d/2026-10-13 m/" + "x".repeat(201)));
-        assertThrows(CommandException.class, "Follow-up date cannot be in the past.", () ->
-                logic.execute("followup 1 d/2026-10-11 m/Call"));
+        assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
+                logic.execute("followup 1 d/2026-10-11 m/"));
         assertThrows(CommandException.class, "The client index provided is invalid.", () ->
                 logic.execute("followup 11 d/2026-02-30 m/Call"));
         assertEquals(pendingBeforeFailure, model.getFilteredPersonList());

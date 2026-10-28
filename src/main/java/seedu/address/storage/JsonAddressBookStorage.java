@@ -10,6 +10,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.commons.exceptions.IllegalValueException;
@@ -53,7 +55,8 @@ public class JsonAddressBookStorage {
         requireNonNull(filePath);
 
         Optional<JsonSerializableAddressBook> jsonAddressBook = JsonUtil.readJsonFile(
-                filePath, JsonSerializableAddressBook.class);
+                filePath, JsonSerializableAddressBook.class, true,
+                DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         if (!jsonAddressBook.isPresent()) {
             return Optional.empty();
         }
@@ -86,11 +89,13 @@ public class JsonAddressBookStorage {
 
         String json = JsonUtil.toJsonString(new JsonSerializableAddressBook(addressBook));
         Path destination = filePath.toAbsolutePath();
+        rejectSymbolicLink(destination);
         Path parent = destination.getParent();
         Files.createDirectories(parent);
         Path temporaryFile = Files.createTempFile(parent, ".addressbook-", ".tmp");
         try {
             writeTemporaryFile(temporaryFile, json);
+            rejectSymbolicLink(destination);
             replaceFile(temporaryFile, destination);
         } finally {
             try {
@@ -98,6 +103,12 @@ public class JsonAddressBookStorage {
             } catch (IOException cleanupError) {
                 logger.warning("Could not remove temporary address book file: " + cleanupError.getMessage());
             }
+        }
+    }
+
+    private void rejectSymbolicLink(Path destination) throws SymbolicLinkSaveException {
+        if (Files.isSymbolicLink(destination)) {
+            throw new SymbolicLinkSaveException(destination);
         }
     }
 

@@ -66,6 +66,23 @@ public class MainAppTest {
     }
 
     @Test
+    public void unknownSavedFields_blockChangesWithoutOverwritingFile() throws Exception {
+        Path file = testFolder.resolve("unknown-fields.json");
+        String original = "{\"persons\":[{\"name\":\"Alice Tan\",\"phone\":\"91110001\","
+                + "\"email\":\"alice@example.com\",\"address\":\"Blk 1\",\"tag\":[\"vip\"]}]}";
+        Files.writeString(file, original);
+        Storage storage = storage(file);
+        Model model = new MainApp().initModelManager(storage, new UserPrefs());
+        assertTrue(model.isDataLoadingBlocked());
+        assertTrue(model.getAddressBook().getPersonList().isEmpty());
+        LogicManager logic = new LogicManager(model, storage);
+        logic.execute("list");
+        assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () ->
+                logic.execute("add n/Bob p/123 e/bob@example.com a/Street"));
+        assertEquals(original, Files.readString(file));
+    }
+
+    @Test
     public void trailingJsonContent_blocksChangesAndPreservesFile() throws Exception {
         Path file = testFolder.resolve("trailing.json");
         for (String trailing : new String[] {"x", "{\"persons\":[]}", "[1,2]", "{"}) {
@@ -79,6 +96,24 @@ public class MainAppTest {
                     logic.execute("add n/Ada p/123 e/ada@example.com a/Street"));
             assertEquals(original, Files.readString(file));
         }
+    }
+
+    @Test
+    public void localNameForms_addAndRestart_preservesFullNames() throws Exception {
+        Storage storage = storage(testFolder.resolve("local-names.json"));
+        MainApp app = new MainApp();
+        Model model = app.initModelManager(storage, new UserPrefs());
+        LogicManager logic = new LogicManager(model, storage);
+        String[] names = {"Ravi s/o Kumar", "Priya d/o Raj", "Mary-Ann Lim", "Sean O'Brien",
+            "Tan Ah Kow @ Tan Ah Kau", "Dr. Lim"};
+        for (int index = 0; index < names.length; index++) {
+            logic.execute("add n/" + names[index] + " p/9111000" + index
+                    + " e/client" + index + "@example.com a/Blk 1");
+            assertEquals(names[index], model.getAddressBook().getPersonList().get(index).getName().fullName);
+        }
+        Model restarted = app.initModelManager(storage, new UserPrefs());
+        assertFalse(restarted.isDataLoadingBlocked());
+        assertEquals(model.getAddressBook(), restarted.getAddressBook());
     }
 
     @Test
@@ -108,6 +143,28 @@ public class MainAppTest {
         assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () ->
                 logic.execute("add n/Ada p/123 e/ada@example.com a/Street"));
         assertEquals("null", Files.readString(file));
+    }
+
+    @Test
+    public void bomEncodedFiles_loadClientsAndPreferencesWithoutChangingClientBytes() throws Exception {
+        Path file = testFolder.resolve("bom-clients.json");
+        Storage storage = storage(file);
+        storage.saveAddressBook(TypicalPersons.getTypicalAddressBook());
+        String original = "\ufeff" + Files.readString(file);
+        Files.writeString(file, original);
+        Path preferencesFile = testFolder.resolve("bom-preferences.json");
+        Files.writeString(preferencesFile, "\ufeff{\"guiSettings\":{\"windowWidth\":1234,\"windowHeight\":789}}");
+        MainApp app = new MainApp();
+        UserPrefs preferences = app.initPrefs(new JsonUserPrefsStorage(preferencesFile));
+        assertEquals(1234, preferences.getGuiSettings().getWindowWidth());
+        Model model = app.initModelManager(storage, preferences);
+        assertFalse(model.isDataLoadingBlocked());
+        assertEquals(TypicalPersons.getTypicalAddressBook(), model.getAddressBook());
+        assertEquals(original, Files.readString(file));
+        new LogicManager(model, storage).execute("add n/New Client p/123 e/new@example.com a/Street");
+        Model restarted = app.initModelManager(storage, preferences);
+        assertFalse(restarted.isDataLoadingBlocked());
+        assertEquals(model.getAddressBook(), restarted.getAddressBook());
     }
 
     @Test

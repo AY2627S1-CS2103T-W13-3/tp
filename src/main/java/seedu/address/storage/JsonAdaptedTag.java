@@ -1,5 +1,7 @@
 package seedu.address.storage;
 
+import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -42,7 +44,7 @@ class JsonAdaptedTag {
         if (tagName == null) {
             throw new IllegalValueException(Tag.MESSAGE_CONSTRAINTS);
         }
-        String trimmedTagName = tagName.replaceAll("^ +| +$", "");
+        String trimmedTagName = trimOrdinarySpaces(tagName);
         if (!Tag.isValidTagName(trimmedTagName)) {
             throw new IllegalValueException(Tag.MESSAGE_CONSTRAINTS);
         }
