@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -260,5 +261,27 @@ public class JsonAddressBookStorageTest {
                 assertEquals(1, files.count());
             }
         }
+    }
+
+    @Test
+    public void saveAddressBook_symbolicLink_preservesLinkAndTarget() throws Exception {
+        Path target = testFolder.resolve("original.json");
+        Path link = testFolder.resolve("addressbook.json");
+        AddressBook original = getTypicalAddressBook();
+        new JsonAddressBookStorage(target).saveAddressBook(original);
+        byte[] originalBytes = Files.readAllBytes(target);
+        try {
+            Files.createSymbolicLink(link, target.getFileName());
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            Assumptions.assumeTrue(false, "Symbolic links unavailable: " + e.getMessage());
+        }
+
+        AddressBook changed = new AddressBook(original);
+        changed.addPerson(HOON);
+        assertThrows(SymbolicLinkSaveException.class, () -> new JsonAddressBookStorage(link).saveAddressBook(changed));
+        assertTrue(Files.isSymbolicLink(link));
+        assertEquals(target.getFileName(), Files.readSymbolicLink(link));
+        assertTrue(java.util.Arrays.equals(originalBytes, Files.readAllBytes(target)));
+        assertEquals(original, new AddressBook(new JsonAddressBookStorage(link).readAddressBook().orElseThrow()));
     }
 }
