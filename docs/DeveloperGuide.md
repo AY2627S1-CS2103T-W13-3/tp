@@ -390,6 +390,18 @@ The marker is retained because deleting it could allow a new process to lock a r
 * [Logging guide](Logging.md)
 * [DevOps guide](DevOps.md)
 
+### Diagnostic log fallback
+
+`LogsCenter` installs the console handler before attempting to open its rotating `policyharbor.log` files.
+If file-handler creation throws `IOException`, it emits a generic warning through the initialized base logger and continues with console logging.
+The warning does not include exception details. Other initialization failures still propagate; this fallback does not make client-data or preference writes succeed in a read-only folder.
+
+`LogsCenterTest` launches a fresh JVM per scenario so it exercises static initialization independently of shared test-runner logging.
+It obstructs `policyharbor.log.0` with a directory and verifies successful initialization and subsequent stderr logging, alongside writable-file creation, append preservation and log-level checks.
+For a packaged manual check, launch the JAR from a disposable writable folder containing a directory named `policyharbor.log.0`.
+Expect the console warning followed by normal startup logging and the main window. Repeat from a fresh writable folder without the obstruction and confirm that `policyharbor.log.0` is created as a file.
+On POSIX, also repeat from a disposable readable/searchable but non-writable folder (for example, mode `0500`), restoring its permissions afterwards; later data or preference write failures remain outside this fallback.
+
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Appendix: Requirements**

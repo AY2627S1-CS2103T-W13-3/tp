@@ -349,6 +349,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 * **Saved-data warning:** close the app and back up `data/addressbook.json` before repairing invalid data or restoring a valid backup. If startup could not access the data folder, restore its access permissions instead of replacing valid client data, then restart to reload.
   The app stays protected for the current session even after access returns; query commands cannot remove the warning.
   Only a confirmed missing data file starts an empty, writable client list.
+* **Diagnostic log unavailable:** if `Unable to create diagnostic log file; continuing with console logging.` appears in the launch terminal, PolicyHarbor continues logging there. Check that the launch folder is writable and that `policyharbor.log.0` is not a directory, then restart to restore file logging. Client-data and preference writes still require their own writable files and folders.
 * **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.4.
 
 
