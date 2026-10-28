@@ -187,8 +187,8 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 It scans the two outer boundaries for U+0020 instead of retrying a trailing-space regular expression at each internal space.
 Internal spacing, case, non-ASCII characters and the existing validation order remain unchanged; tabs and other whitespace are not silently stripped by this helper.
 The address validator still checks complete UTF-16 surrogate pairs, and stored values continue through the same domain rules as command input.
-`LongWhitespaceCommandTest` exercises a long valid name through add, save/load and search, plus prompt rejection of an overlength follow-up without changing saved bytes.
-`StringUtilTest` checks the short-input contract, including empty/blank text, internal spaces, tabs, non-breaking spaces and Unicode text.
+`LongWhitespaceCommandTest` exercises a long valid name through add, save/load and search, plus rejection of an overlength follow-up without changing saved bytes.
+`StringUtilTest` checks the short-input contract, including empty/blank text, internal spaces, tabs, non-breaking spaces and Unicode text. Its large-string timing regression measures only the pure trim call; workflow correctness tests do not impose a disk-I/O deadline.
 
 `LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, index and save failures preserve live data, list mode/order, selection and date; successful read-only commands do not save.
 
