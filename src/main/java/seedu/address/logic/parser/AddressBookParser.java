@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.Command;
 import seedu.address.logic.commands.DeleteCommand;
+import seedu.address.logic.commands.EditCommand;
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.ListCommand;
@@ -71,6 +72,7 @@ public class AddressBookParser {
 
         return switch (commandWord) {
             case AddCommand.COMMAND_WORD -> new AddCommandParser().parse(arguments);
+            case EditCommand.COMMAND_WORD -> new EditCommandParser().parse(arguments);
             case DeleteCommand.COMMAND_WORD -> new DeleteCommandParser().parse(arguments);
             case ViewCommand.COMMAND_WORD -> new ViewCommandParser().parse(arguments);
             case FollowUpCommandParser.COMMAND_WORD -> new FollowUpCommandParser().parse(arguments);
@@ -89,6 +91,7 @@ public class AddressBookParser {
 
     private static boolean isMutationCommand(String commandWord) {
         return commandWord.equals(AddCommand.COMMAND_WORD)
+                || commandWord.equals(EditCommand.COMMAND_WORD)
                 || commandWord.equals(DeleteCommand.COMMAND_WORD)
                 || commandWord.equals(FollowUpCommandParser.COMMAND_WORD);
     }
