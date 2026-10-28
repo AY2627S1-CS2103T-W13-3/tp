@@ -1,6 +1,7 @@
 package seedu.address.logic.parser;
 
 import static java.util.Objects.requireNonNull;
+import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -130,10 +131,6 @@ public class ParserUtil {
             tagSet.add(parseTag(tagName));
         }
         return tagSet;
-    }
-
-    private static String trimOrdinarySpaces(String value) {
-        return value.replaceAll("^ +| +$", "");
     }
 
 }

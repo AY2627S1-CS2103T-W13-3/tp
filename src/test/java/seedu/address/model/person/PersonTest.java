@@ -232,6 +232,28 @@ public class PersonTest {
     }
 
     @Test
+    public void isDuplicateOf_samePhoneDigitsWithDifferentFormatting() {
+        Person first = new PersonBuilder().withName("Rachel Lim").withPhone("+65 9123 4567")
+                .withEmail("first@example.com").build();
+        Person reformatted = new PersonBuilder(first).withPhone("65-9123-4567")
+                .withEmail("second@example.com").build();
+        assertTrue(first.isDuplicateOf(reformatted));
+        assertTrue(reformatted.isDuplicateOf(first));
+        assertFalse(first.equals(reformatted));
+    }
+
+    @Test
+    public void isDuplicateOf_unicodeNameAndFormattedPhone_matchTogether() {
+        Person first = new PersonBuilder().withName("José Tan").withPhone("+65 9123 4567")
+                .withEmail("first@example.com").build();
+        Person second = new PersonBuilder(first).withName("JOSE\u0301  TAN").withPhone("65-9123-4567")
+                .withEmail("second@example.com").build();
+        assertTrue(first.isDuplicateOf(second));
+        assertTrue(second.isDuplicateOf(first));
+        assertFalse(first.equals(second));
+    }
+
+    @Test
     public void isDuplicateOf_contactOverlap_isNonTransitive() {
         Person first = new PersonBuilder().withName("Rachel Lim").withPhone("111")
                 .withEmail("one@example.com").build();

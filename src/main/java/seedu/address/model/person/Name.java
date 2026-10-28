@@ -2,6 +2,7 @@ package seedu.address.model.person;
 
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
+import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
 
 /**
  * Represents a Person's name in the address book.
@@ -22,7 +23,7 @@ public class Name {
      */
     public Name(String name) {
         requireNonNull(name);
-        String trimmedName = name.replaceAll("^ +| +$", "");
+        String trimmedName = trimOrdinarySpaces(name);
         checkArgument(isValidName(trimmedName), MESSAGE_CONSTRAINTS);
         fullName = trimmedName;
     }
@@ -32,7 +33,7 @@ public class Name {
      */
     public static boolean isValidName(String test) {
         requireNonNull(test);
-        String trimmedName = test.replaceAll("^ +| +$", "");
+        String trimmedName = trimOrdinarySpaces(test);
         if (trimmedName.isEmpty()) {
             return false;
         }

@@ -2,6 +2,7 @@ package seedu.address.model.person;
 
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
+import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -82,10 +83,6 @@ public final class FollowUp {
 
     private static boolean isValidYear(LocalDate date) {
         return date.getYear() >= 1 && date.getYear() <= 9999;
-    }
-
-    private static String trimOrdinarySpaces(String text) {
-        return text.replaceAll("^ +| +$", "");
     }
 
     @Override
