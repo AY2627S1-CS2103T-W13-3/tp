@@ -96,6 +96,44 @@ public class InaccessibleDataRecoveryTest {
         assertEquals(restarted.getAddressBook(), storage.readAddressBook().orElseThrow());
     }
 
+    @Test
+    public void startup_absentFileUnderInaccessibleParent_requiresAccessibleRestart() throws Exception {
+        Set<PosixFilePermission> permissions = originalPermissions();
+        Files.delete(clientsFile);
+        assertTrue(Files.notExists(clientsFile));
+        assertFalse(JsonUtil.readJsonFile(clientsFile, Object.class).isPresent());
+
+        MainApp app = new MainApp();
+        Model freshInstall = app.initModelManager(storage, new UserPrefs());
+        assertFalse(freshInstall.isDataLoadingBlocked());
+        assertTrue(freshInstall.getAddressBook().getPersonList().isEmpty());
+
+        Model protectedSession;
+        try {
+            // The file is absent, but the application cannot confirm that without parent access.
+            denyDirectoryAccess();
+            assertThrows(DataLoadingException.class, () -> JsonUtil.readJsonFile(clientsFile, Object.class));
+            protectedSession = app.initModelManager(storage, new UserPrefs());
+            assertTrue(protectedSession.isDataLoadingBlocked());
+            assertTrue(protectedSession.getAddressBook().getPersonList().isEmpty());
+        } finally {
+            Files.setPosixFilePermissions(dataDirectory, permissions);
+        }
+
+        String add = "add n/Recovery Client p/81234567 e/recovery@example.com a/Recovery Street";
+        LogicManager blockedLogic = new LogicManager(protectedSession, storage);
+        blockedLogic.execute("list");
+        assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute(add));
+        assertTrue(Files.notExists(clientsFile));
+
+        Model restarted = app.initModelManager(storage, new UserPrefs());
+        assertFalse(restarted.isDataLoadingBlocked());
+        assertTrue(restarted.getAddressBook().getPersonList().isEmpty());
+        new LogicManager(restarted, storage).execute(add);
+        assertEquals(1, restarted.getAddressBook().getPersonList().size());
+        assertEquals(restarted.getAddressBook(), storage.readAddressBook().orElseThrow());
+    }
+
     private Set<PosixFilePermission> originalPermissions() throws IOException {
         assumeTrue(Files.getFileStore(dataDirectory).supportsFileAttributeView(PosixFileAttributeView.class),
                 "This regression requires POSIX directory permissions");
