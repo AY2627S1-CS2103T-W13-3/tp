@@ -11,7 +11,7 @@ import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
 public class Name {
 
     public static final String MESSAGE_CONSTRAINTS =
-            "Names may contain letters from any language, digits 0-9, combining accents and ordinary spaces."
+            "Names may contain letters from any language, digits 0-9, combining accents, ordinary spaces and / - ' @ ."
                     + " Names must not be blank.";
 
     public final String fullName;
@@ -37,12 +37,18 @@ public class Name {
         if (trimmedName.isEmpty()) {
             return false;
         }
+        int first = trimmedName.codePointAt(0);
+        if (!Character.isLetter(first) && !(first >= '0' && first <= '9')) {
+            return false;
+        }
         boolean canHaveCombiningMark = false;
         for (int offset = 0; offset < trimmedName.length();) {
             int codePoint = trimmedName.codePointAt(offset);
             if (Character.isLetter(codePoint)) {
                 canHaveCombiningMark = true;
-            } else if (codePoint >= '0' && codePoint <= '9' || codePoint == ' ') {
+            } else if (codePoint >= '0' && codePoint <= '9' || codePoint == ' '
+                    || codePoint == '/' || codePoint == '-' || codePoint == '\''
+                    || codePoint == '@' || codePoint == '.') {
                 canHaveCombiningMark = false;
             } else if (!canHaveCombiningMark || !isCombiningMark(codePoint)) {
                 return false;

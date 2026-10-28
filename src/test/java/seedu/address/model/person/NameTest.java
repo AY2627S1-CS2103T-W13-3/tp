@@ -40,6 +40,19 @@ public class NameTest {
     }
 
     @Test
+    public void constructor_localNameForms_preservesPunctuationAndSpacing() {
+        for (String name : new String[] {"Ravi s/o Kumar", "Priya d/o Raj", "Mary-Ann Lim", "Sean O'Brien",
+            "Tan Ah Kow @ Tan Ah Kau", "Dr. Lim", "A/B", "R@chel"}) {
+            assertTrue(Name.isValidName(name));
+            assertEquals(name, new Name("  " + name + "  ").fullName);
+        }
+        for (String invalid : new String[] {"-", "'", "@", ".", "/", "-Mary", "Sean_OBrien", "Mary\nAnn"}) {
+            assertFalse(Name.isValidName(invalid));
+            assertThrows(IllegalArgumentException.class, () -> new Name(invalid));
+        }
+    }
+
+    @Test
     public void equals() {
         Name name = new Name("Valid Name");
 

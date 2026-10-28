@@ -99,6 +99,24 @@ public class MainAppTest {
     }
 
     @Test
+    public void localNameForms_addAndRestart_preservesFullNames() throws Exception {
+        Storage storage = storage(testFolder.resolve("local-names.json"));
+        MainApp app = new MainApp();
+        Model model = app.initModelManager(storage, new UserPrefs());
+        LogicManager logic = new LogicManager(model, storage);
+        String[] names = {"Ravi s/o Kumar", "Priya d/o Raj", "Mary-Ann Lim", "Sean O'Brien",
+            "Tan Ah Kow @ Tan Ah Kau", "Dr. Lim"};
+        for (int index = 0; index < names.length; index++) {
+            logic.execute("add n/" + names[index] + " p/9111000" + index
+                    + " e/client" + index + "@example.com a/Blk 1");
+            assertEquals(names[index], model.getAddressBook().getPersonList().get(index).getName().fullName);
+        }
+        Model restarted = app.initModelManager(storage, new UserPrefs());
+        assertFalse(restarted.isDataLoadingBlocked());
+        assertEquals(model.getAddressBook(), restarted.getAddressBook());
+    }
+
+    @Test
     public void longEmail_addAndRestart_preservesSavedClient() throws Exception {
         Path file = testFolder.resolve("long-email.json");
         Storage storage = storage(file);

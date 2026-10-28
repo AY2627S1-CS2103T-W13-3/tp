@@ -198,6 +198,8 @@ Tests cover domain partitions, exact messages, validation precedence, normalized
 
 ### Saved client loading
 
+`Name` allows `/`, `-`, `'`, `@` and `.` after an initial English letter or digit, supporting local name forms while retaining existing case and spacing rules. The shared validator applies to command parsing and saved records; punctuation is retained on save/restart and in duplicate comparison. `s/o` and `d/o` are literal name text, since neither is an `add` field prefix.
+
 `JsonAdaptedPerson` validates saved contact fields using the domain types after removing outer ordinary spaces, matching command input. `JsonAdaptedTag` validates tags before `Tag` converts them to lowercase; collecting them into a set removes case variants. Missing tags become an empty set. Optional follow-ups, including overdue dates, use the existing follow-up adapter.
 
 `JsonSerializableAddressBook` converts every record before installing the list through `AddressBook.setPersons`. That central collection operation checks every pair with `Person.isDuplicateOf`, including the non-transitive case. Missing entries, invalid values and duplicates become loading failures. `JsonAddressBookStorage` translates them to `DataLoadingException`; `MainApp` then starts with an empty, mutation-blocked model while leaving the saved file unchanged. A repaired file loads on the next startup.

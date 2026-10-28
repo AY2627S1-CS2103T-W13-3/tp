@@ -135,7 +135,7 @@ Supply each required prefix exactly once. The prefixes may appear in any order a
 
 | Field | Accepted values |
 | --- | --- |
-| Name | Non-blank letters from any language, digits `0`–`9`, combining accents and ordinary spaces. Control characters and invalid Unicode are rejected. Case, accents and internal spaces are preserved. |
+| Name | Starts with a letter or digit; supports letters from any language, ASCII digits, combining accents, ordinary spaces and `/ - ' @ .`. Original spelling and punctuation are preserved. |
 | Phone | At least three digits `0`–`9`, with an optional leading `+` and single spaces or hyphens between digit groups, such as `+65 9123 4567`. The entered format and leading zeroes are retained. |
 | Email | Before one `@`, ASCII letters and digits may be joined by `+`, `_`, `.` or `-`. Consecutive `+`, `_` and `-` are accepted, but periods must separate alphanumeric characters. Domain labels may contain consecutive hyphens (including `xn--` Punycode labels), but must start and end with a letter or digit. The final label must contain two adjacent letters or digits. Stored case is preserved. |
 | Address | Non-empty single-line text, including punctuation, non-English text and emoji. |
@@ -151,6 +151,8 @@ Address input and recovery:
 * Non-English text and emoji are supported. An address containing an invalid Unicode character sequence is rejected; correct the address and submit it again.
 * When editing the saved JSON directly, use complete characters. An incomplete Unicode escape pair, such as a lone `\uD800` in an address, causes the whole client file to be rejected at startup, even if the JSON syntax is otherwise correct.
 * In that case, the app shows the saved-data warning and blocks client changes to protect the file. Close the app, back up the file, correct the affected address or restore a valid backup, then restart. Editing the file while the app is open does not clear the warning.
+
+Names such as `Ravi s/o Kumar`, `Priya d/o Raj`, `Mary-Ann Lim`, `Sean O'Brien`, `Tan Ah Kow @ Tan Ah Kau` and `Dr. Lim` can be entered as written. For example: `add n/Ravi s/o Kumar p/91110010 e/ravi@example.com a/Blk 1`.
 
 A client is a duplicate when **their name matches and either their phone or email matches** an existing client. Names are compared ignoring case, Unicode composition and repeated ordinary spaces; phones are compared by digits (so `+65 9123 4567` and `65-9123-4567` match), and emails ignore case. Address, tags and follow-up do not affect this check. Two clients may share a name if both their phone and email differ. Different names may share contact details. Duplicate checks include clients hidden by the current filter.
 
