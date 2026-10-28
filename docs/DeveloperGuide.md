@@ -188,6 +188,17 @@ Tests cover domain partitions, exact messages, validation precedence, normalized
 
 **Strict JSON parsing.** `JsonUtil.fromJsonString` reads one root value and checks that no additional tokens remain. Trailing non-whitespace content, including a second JSON value, causes loading to fail; trailing JSON whitespace remains valid. `JsonUtil.readJsonFile` also rejects a null root. These checks apply before saved client records are converted. A client-data loading failure follows the protected startup path above: the empty model blocks mutations and preserves the original file. Repair the file or restore a valid backup, then restart the application before resuming client modifications.
 
+**Strict text decoding.** Saved-client loading follows these boundaries:
+
+* `FileUtil.readFromFile` reads UTF-8 with malformed-input reporting. A stray continuation byte, truncated sequence or invalid leading byte raises an `IOException` before Jackson receives a changed string.
+* `JsonUtil.readJsonFile` translates that I/O failure to `DataLoadingException`.
+* `MainApp` enters the same protected startup path as invalid JSON. No client is partly loaded and the original bytes remain untouched.
+* Valid UTF-8 Unicode, an intentionally encoded replacement character, JSON Unicode escapes and trailing JSON whitespace remain readable. Escaped invalid UTF-16 values are a separate domain-validation concern.
+
+`FileUtilUtf8Test` checks the decoder partitions. `SavedDataEncodingRecoveryTest` checks protected commands, byte preservation and repair followed by a writable restart.
+
+**Filesystem retry.** `LogicManager` saves a candidate model before publishing it. If the data directory has become a regular file, `JsonAddressBookStorage` fails before replacing the destination and `LogicManager` leaves the live model unchanged. `StorageDirectoryRecoveryTest` moves a disposable directory aside, observes the real save failure, restores the directory and retries successfully. This verifies the existing atomic-save boundary without adding another fallback writer.
+
 A saved record uses the following JSON shape. Tags are strings, not objects; omit `followUp` (or use `null`) when no action is pending. Do not add session selection or a computed status to the file.
 
 ```json
