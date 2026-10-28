@@ -38,7 +38,8 @@ public class Email {
         for (int i = 0; i < separator; i++) {
             char character = test.charAt(i);
             boolean alphanumeric = isAsciiAlphanumeric(character);
-            if (!alphanumeric && (!previousAlphanumeric || "+_.-".indexOf(character) < 0)) {
+            if (!alphanumeric && (i == 0 || "+_.-".indexOf(character) < 0
+                    || test.charAt(i - 1) == '.' || character == '.' && !previousAlphanumeric)) {
                 return false;
             }
             previousAlphanumeric = alphanumeric;
@@ -47,7 +48,7 @@ public class Email {
             return false;
         }
 
-        // Each domain label starts/ends with an alphanumeric character; separators cannot repeat.
+        // Each domain label starts/ends with an alphanumeric character; hyphens may repeat inside labels.
         // The last label also needs an adjacent alphanumeric pair, matching the existing grammar.
         previousAlphanumeric = false;
         boolean hasAdjacentPair = false;
@@ -56,11 +57,11 @@ public class Email {
             if (isAsciiAlphanumeric(character)) {
                 hasAdjacentPair |= previousAlphanumeric;
                 previousAlphanumeric = true;
-            } else if ((character == '-' || character == '.') && previousAlphanumeric) {
+            } else if (character == '-' && (previousAlphanumeric || test.charAt(i - 1) == '-')) {
                 previousAlphanumeric = false;
-                if (character == '.') {
-                    hasAdjacentPair = false;
-                }
+            } else if (character == '.' && previousAlphanumeric) {
+                previousAlphanumeric = false;
+                hasAdjacentPair = false;
             } else {
                 return false;
             }
