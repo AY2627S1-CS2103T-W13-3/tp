@@ -13,13 +13,12 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import seedu.address.commons.core.index.Index;
-import seedu.address.logic.Messages;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
@@ -27,14 +26,14 @@ import seedu.address.model.person.Person;
 /** Tests mutation commands against the real model with a fixed command date. */
 public class SetFollowUpCommandTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 7);
-    private static final Index FIRST = Index.fromOneBased(1);
+    private static final ClientId FIRST = new ClientId(1);
 
     @Test
     public void execute_newFollowUp_recordsAndPreservesContact() throws Exception {
         Model model = modelWith(ALICE, BENSON);
         CommandResult result = new SetFollowUpCommand(FIRST, " 2026-10-07 ", " Call  Alice ").execute(model);
 
-        assertEquals("Follow-up for Alice Pauline recorded for 2026-10-07.", result.getFeedbackToUser());
+        assertEquals("Follow-up for client ID 1: Alice Pauline recorded for 2026-10-07.", result.getFeedbackToUser());
         Person updated = ALICE.withFollowUp(new FollowUp(TODAY, "Call  Alice"));
         assertEquals(List.of(updated, BENSON), model.getAddressBook().getPersonList());
         assertEquals(List.of(updated, BENSON), model.getFilteredPersonList());
@@ -50,7 +49,7 @@ public class SetFollowUpCommandTest {
         CommandResult result = new SetFollowUpCommand(FIRST, "2026-10-06", "Carry-over call").execute(model);
 
         Person updated = ALICE.withFollowUp(new FollowUp(TODAY.minusDays(1), "Carry-over call"));
-        assertEquals("Follow-up for Alice Pauline recorded for 2026-10-06.", result.getFeedbackToUser());
+        assertEquals("Follow-up for client ID 1: Alice Pauline recorded for 2026-10-06.", result.getFeedbackToUser());
         assertEquals(List.of(updated, BENSON), model.getAddressBook().getPersonList());
         assertEquals(List.of(updated, BENSON), model.getFilteredPersonList());
         assertEquals(FollowUpStatus.OVERDUE, updated.getFollowUp().orElseThrow().getStatus(model.getToday()));
@@ -64,10 +63,10 @@ public class SetFollowUpCommandTest {
         Model model = modelWith(alice, benson);
         model.showPendingFollowUps();
 
-        CommandResult result = new SetFollowUpCommand(FIRST, "2026-10-06", "Renew policy").execute(model);
+        CommandResult result = new SetFollowUpCommand(new ClientId(2), "2026-10-06", "Renew policy").execute(model);
 
         Person updated = BENSON.withFollowUp(new FollowUp(TODAY.minusDays(1), "Renew policy"));
-        assertEquals("Follow-up for Benson Meier updated to 2026-10-06.", result.getFeedbackToUser());
+        assertEquals("Follow-up for client ID 2: Benson Meier updated to 2026-10-06.", result.getFeedbackToUser());
         assertEquals(List.of(alice, updated), model.getAddressBook().getPersonList());
         assertEquals(List.of(updated, alice), model.getFilteredPersonList());
         assertEquals(FollowUpStatus.OVERDUE, updated.getFollowUp().orElseThrow().getStatus(model.getToday()));
@@ -82,7 +81,7 @@ public class SetFollowUpCommandTest {
 
         CommandResult result = new SetFollowUpCommand(FIRST, "2026-10-07", "Call Alice").execute(model);
 
-        assertEquals("Follow-up for Alice Pauline updated to 2026-10-07.", result.getFeedbackToUser());
+        assertEquals("Follow-up for client ID 1: Alice Pauline updated to 2026-10-07.", result.getFeedbackToUser());
         assertEquals(List.of(alice), model.getFilteredPersonList());
         assertTrue(model.hasUnsavedChanges());
     }
@@ -92,7 +91,7 @@ public class SetFollowUpCommandTest {
         Model model = modelWith(ALICE, BENSON);
         model.updateFilteredPersonList(person -> person.equals(BENSON));
 
-        new SetFollowUpCommand(FIRST, "2026-10-08", "Call Benson").execute(model);
+        new SetFollowUpCommand(new ClientId(2), "2026-10-08", "Call Benson").execute(model);
 
         Person updated = BENSON.withFollowUp(new FollowUp(TODAY.plusDays(1), "Call Benson"));
         assertEquals(List.of(ALICE, updated), model.getAddressBook().getPersonList());
@@ -105,12 +104,12 @@ public class SetFollowUpCommandTest {
     public void execute_invalidDisplayedIndex_precedesInvalidDateAndDescription() {
         Model model = modelWith(ALICE, BENSON);
         model.updateFilteredPersonList(person -> person.equals(BENSON));
-        assertFailureUnchanged(new SetFollowUpCommand(Index.fromOneBased(2), "bad", ""), model,
-                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
-        assertFailureUnchanged(new SetFollowUpCommand(Index.fromOneBased(Integer.MAX_VALUE), "bad", ""), model,
-                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+        assertFailureUnchanged(new SetFollowUpCommand(new ClientId(3), "bad", ""), model,
+                "No client with ID 3.");
+        assertFailureUnchanged(new SetFollowUpCommand(new ClientId(Integer.MAX_VALUE), "bad", ""), model,
+                "No client with ID 2147483647.");
         assertFailureUnchanged(new SetFollowUpCommand(FIRST, "bad", ""), modelWith(),
-                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                "No client with ID 1.");
     }
 
     @Test
@@ -197,7 +196,7 @@ public class SetFollowUpCommandTest {
         SetFollowUpCommand command = new SetFollowUpCommand(FIRST, "2026-10-07", "Call");
         assertEquals(command, command);
         assertEquals(command, new SetFollowUpCommand(FIRST, "2026-10-07", "Call"));
-        assertNotEquals(command, new SetFollowUpCommand(Index.fromOneBased(2), "2026-10-07", "Call"));
+        assertNotEquals(command, new SetFollowUpCommand(new ClientId(2), "2026-10-07", "Call"));
         assertNotEquals(command, new SetFollowUpCommand(FIRST, "2026-10-08", "Call"));
         assertNotEquals(command, new SetFollowUpCommand(FIRST, "2026-10-07", "Renew"));
         assertNotEquals(command, null);
@@ -208,7 +207,7 @@ public class SetFollowUpCommandTest {
     public void toStringMethod() {
         SetFollowUpCommand command = new SetFollowUpCommand(FIRST, "2026-10-07", "Call");
         assertEquals(SetFollowUpCommand.class.getCanonicalName()
-                + "{targetIndex=" + FIRST + ", dateText=2026-10-07, descriptionText=Call}", command.toString());
+                + "{targetId=" + FIRST + ", dateText=2026-10-07, descriptionText=Call}", command.toString());
     }
 
     private static Model modelWith(Person... persons) {
