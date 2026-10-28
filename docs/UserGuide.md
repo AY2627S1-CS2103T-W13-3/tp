@@ -331,6 +331,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 * **If the app does not start on macOS:** follow the [SE-EDU setup guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) to install and activate Zulu Java 25 with JavaFX. Check `java -version` and `which java` in the same terminal, then run `java -jar PolicyHarbor.jar`. A different active Java installation may cause JavaFX loading errors.
 * **Saved-data warning:** close the app, back up `data/addressbook.json`, then repair it or restore a valid backup. Restart to reload; query commands cannot remove the warning.
+* **Diagnostic log unavailable:** if `Unable to create diagnostic log file; continuing with console logging.` appears in the launch terminal, PolicyHarbor continues logging there. Check that the launch folder is writable and that `policyharbor.log.0` is not a directory, then restart to restore file logging. Client-data and preference writes still require their own writable files and folders.
 * **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.4.
 
 
