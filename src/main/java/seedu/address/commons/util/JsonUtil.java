@@ -96,8 +96,7 @@ public class JsonUtil {
      * @return The instance of T with the specified values in the JSON string
      */
     public static <T> T fromJsonString(String json, Class<T> instanceClass) throws IOException {
-        try (JsonParser parser = objectMapper.getFactory()
-                .createParser(json.startsWith("\ufeff") ? json.substring(1) : json)) {
+        try (JsonParser parser = objectMapper.getFactory().createParser(json)) {
             T value = objectMapper.readValue(parser, instanceClass);
             if (parser.nextToken() != null) {
                 throw new IOException("Unexpected content after the JSON root.");

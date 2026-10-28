@@ -66,28 +66,6 @@ public class MainAppTest {
     }
 
     @Test
-    public void bomEncodedFiles_loadClientsAndPreferencesWithoutChangingClientBytes() throws Exception {
-        Path file = testFolder.resolve("bom-clients.json");
-        Storage storage = storage(file);
-        storage.saveAddressBook(TypicalPersons.getTypicalAddressBook());
-        String original = "\ufeff" + Files.readString(file);
-        Files.writeString(file, original);
-        Path preferencesFile = testFolder.resolve("bom-preferences.json");
-        Files.writeString(preferencesFile, "\ufeff{\"guiSettings\":{\"windowWidth\":1234,\"windowHeight\":789}}");
-        MainApp app = new MainApp();
-        UserPrefs preferences = app.initPrefs(new JsonUserPrefsStorage(preferencesFile));
-        assertEquals(1234, preferences.getGuiSettings().getWindowWidth());
-        Model model = app.initModelManager(storage, preferences);
-        assertFalse(model.isDataLoadingBlocked());
-        assertEquals(TypicalPersons.getTypicalAddressBook(), model.getAddressBook());
-        assertEquals(original, Files.readString(file));
-        new LogicManager(model, storage).execute("add n/New Client p/123 e/new@example.com a/Street");
-        Model restarted = app.initModelManager(storage, preferences);
-        assertFalse(restarted.isDataLoadingBlocked());
-        assertEquals(model.getAddressBook(), restarted.getAddressBook());
-    }
-
-    @Test
     public void trailingJsonContent_blocksChangesAndPreservesFile() throws Exception {
         Path file = testFolder.resolve("trailing.json");
         for (String trailing : new String[] {"x", "{\"persons\":[]}", "[1,2]", "{"}) {
@@ -130,6 +108,28 @@ public class MainAppTest {
         assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () ->
                 logic.execute("add n/Ada p/123 e/ada@example.com a/Street"));
         assertEquals("null", Files.readString(file));
+    }
+
+    @Test
+    public void bomEncodedFiles_loadClientsAndPreferencesWithoutChangingClientBytes() throws Exception {
+        Path file = testFolder.resolve("bom-clients.json");
+        Storage storage = storage(file);
+        storage.saveAddressBook(TypicalPersons.getTypicalAddressBook());
+        String original = "\ufeff" + Files.readString(file);
+        Files.writeString(file, original);
+        Path preferencesFile = testFolder.resolve("bom-preferences.json");
+        Files.writeString(preferencesFile, "\ufeff{\"guiSettings\":{\"windowWidth\":1234,\"windowHeight\":789}}");
+        MainApp app = new MainApp();
+        UserPrefs preferences = app.initPrefs(new JsonUserPrefsStorage(preferencesFile));
+        assertEquals(1234, preferences.getGuiSettings().getWindowWidth());
+        Model model = app.initModelManager(storage, preferences);
+        assertFalse(model.isDataLoadingBlocked());
+        assertEquals(TypicalPersons.getTypicalAddressBook(), model.getAddressBook());
+        assertEquals(original, Files.readString(file));
+        new LogicManager(model, storage).execute("add n/New Client p/123 e/new@example.com a/Street");
+        Model restarted = app.initModelManager(storage, preferences);
+        assertFalse(restarted.isDataLoadingBlocked());
+        assertEquals(model.getAddressBook(), restarted.getAddressBook());
     }
 
     @Test
