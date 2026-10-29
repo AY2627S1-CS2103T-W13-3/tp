@@ -46,8 +46,8 @@ Command .down.> Model : <<call>>
 Model -[hidden]right-> Storage
 
 Logic ..> CommandResult
-LogicManager ..> CommandResult
-Command ..> CommandResult : <<create>>
+Command ..> CommandResult
+XYZCommand ..> CommandResult : <<create>>
 
 note top of Logic
     getAllPersonList(): full committed clients in insertion order.
@@ -62,7 +62,7 @@ note as PublicationNote
     Identity is retained; selection is reconciled by Client ID.
     A failed save does not publish the candidate.
 end note
-XYZCommand -[hidden]down-> PublicationNote
+CommandResult -[hidden]down-> PublicationNote
 
 note as CommandExamples
     XYZ is a placeholder for routed commands, e.g.
