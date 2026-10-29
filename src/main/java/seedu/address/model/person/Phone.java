@@ -8,11 +8,12 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
  * Guarantees: immutable; is valid as declared in {@link #isValidPhone(String)}
  */
 public class Phone {
-
-
     public static final String MESSAGE_CONSTRAINTS =
             "Phone numbers need at least 3 digits (0-9). An optional leading + and single spaces or hyphens between"
                     + " digit groups are allowed.";
+    private static final int MIN_PHONE_DIGITS = 3;
+    private static final int MIN_QUERY_DIGITS = 1;
+
     public final String value;
     private final String digits;
 
@@ -25,13 +26,25 @@ public class Phone {
         requireNonNull(phone);
         checkArgument(isValidPhone(phone), MESSAGE_CONSTRAINTS);
         value = phone;
-        digits = phone.replace("+", "").replace(" ", "").replace("-", "");
+        digits = extractDigits(phone);
     }
 
     /**
      * Returns true if a given string is a valid phone number.
      */
     public static boolean isValidPhone(String test) {
+        return hasValidFormat(test, MIN_PHONE_DIGITS);
+    }
+
+    /**
+     * Returns whether a search query has valid phone formatting and at least one ASCII digit.
+     * Search fragments may be shorter than stored phone numbers.
+     */
+    public static boolean isValidPhoneQuery(String query) {
+        return hasValidFormat(query, MIN_QUERY_DIGITS);
+    }
+
+    private static boolean hasValidFormat(String test, int minimumDigits) {
         requireNonNull(test);
         int digitCount = 0;
         boolean previousWasDigit = false;
@@ -49,10 +62,20 @@ public class Phone {
                 return false;
             }
         }
-        return digitCount >= 3 && previousWasDigit;
+        // The look-ahead check ensures every accepted separator is followed by a digit.
+        return digitCount >= minimumDigits;
     }
 
-    /** Returns whether both phone numbers contain the same digits, regardless of display formatting. */
+    /**
+     * Removes the optional plus sign and display separators, retaining leading zeroes.
+     */
+    static String extractDigits(String value) {
+        return value.replace("+", "").replace(" ", "").replace("-", "");
+    }
+
+    /**
+     * Returns whether both phone numbers contain the same digits, regardless of display formatting.
+     */
     boolean hasSameDigitsAs(Phone other) {
         return other != null && digits.equals(other.digits);
     }

@@ -42,7 +42,7 @@ public class FollowUpCommandParserTest {
     }
 
     @Test
-    public void parse_shapeErrors_takePriorityOverDuplicatesAndIndex() {
+    public void parse_shapeErrors_takePriorityOverDuplicatesAndClientId() {
         assertParseFailure(parser, " 0 d/2026-10-05 d/2026-10-06", FORMAT_MESSAGE);
         assertParseFailure(parser, " 1 clear extra", FORMAT_MESSAGE);
         assertParseFailure(parser, " d/2026-10-05 m/x", FORMAT_MESSAGE);
@@ -50,7 +50,7 @@ public class FollowUpCommandParserTest {
     }
 
     @Test
-    public void parse_duplicatePrefixes_takePriorityOverIndex() {
+    public void parse_duplicatePrefixes_takePriorityOverClientId() {
         assertParseFailure(parser, " 0 d/2026-10-05 d/2026-10-06 m/x",
                 MESSAGE_DUPLICATE_FIELDS + "d/");
         assertParseFailure(parser, " 0 d/2026-10-05 d/2026-10-06 m/x m/y",
@@ -58,7 +58,7 @@ public class FollowUpCommandParserTest {
     }
 
     @Test
-    public void parse_indexSyntax_failure() {
+    public void parse_clientIdSyntax_failure() {
         assertParseFailure(parser, " 0 clear", MESSAGE_INVALID_CLIENT_ID);
         assertParseFailure(parser, " +1 clear", MESSAGE_INVALID_CLIENT_ID);
         assertParseFailure(parser, " 1.5 clear", MESSAGE_INVALID_CLIENT_ID);
@@ -73,7 +73,7 @@ public class FollowUpCommandParserTest {
     }
 
     @Test
-    public void parseIndex_longLeadingZeroes_success() throws Exception {
+    public void parseClientId_longLeadingZeroes_success() throws Exception {
         assertEquals(new ClientId(1), ClientIdParserUtil.parseClientId("000000000000000000001"));
         assertEquals(new ClientId(Integer.MAX_VALUE), ClientIdParserUtil.parseClientId("00000000002147483647"));
         assertEquals(new ClientId(3), ClientIdParserUtil.parseClientId("3"));

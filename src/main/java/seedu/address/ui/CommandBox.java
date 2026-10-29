@@ -46,6 +46,7 @@ public class CommandBox extends UiPart<Region> {
     /**
      * Creates a command box that reports rejected input without submitting a command.
      *
+     * @param commandExecutor Executes submitted commands.
      * @param inputErrorHandler Displays validation feedback for rejected input.
      * @throws NullPointerException If either callback or an FXML-injected control is null.
      */

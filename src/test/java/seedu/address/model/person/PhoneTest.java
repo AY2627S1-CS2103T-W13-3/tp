@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 public class PhoneTest {
@@ -39,6 +41,14 @@ public class PhoneTest {
         assertTrue(Phone.isValidPhone("124293842033123")); // long phone numbers
         assertTrue(Phone.isValidPhone("+65 9123 4567"));
         assertTrue(Phone.isValidPhone("65-9123-4567"));
+    }
+
+    @Test
+    public void isValidPhone_incompleteDigitGroups_rejectedForNumbersAndQueries() {
+        for (String invalid : List.of("123-", "123 ", "123-+4", "123-/", "123-:", "123-a")) {
+            assertFalse(Phone.isValidPhone(invalid), invalid);
+            assertFalse(Phone.isValidPhoneQuery(invalid), invalid);
+        }
     }
 
     @Test

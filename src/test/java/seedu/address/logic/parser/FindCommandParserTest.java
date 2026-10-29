@@ -60,6 +60,22 @@ public class FindCommandParserTest {
     }
 
     @Test
+    public void parse_shortPhoneQueries_acceptsFragmentsWithValidFormatting() {
+        for (String query : List.of("0", "12", "+0", "+12", "0-1", "0 1")) {
+            assertParseSuccess(parser, "p/" + query,
+                    new FindCommand(new ClientSearchPredicate(Field.PHONE, query)));
+        }
+    }
+
+    @Test
+    public void parse_malformedPhoneQueries_rejectsMisplacedSeparatorsAndNonAsciiDigits() {
+        for (String query : List.of("+", "-1", "+ 1", "1--2", "1  2", "1- 2", "1 +2", "1-", "１２３", "١٢٣")) {
+            assertParseFailure(parser, "p/" + query,
+                    "Invalid command format!\n" + FindCommand.MESSAGE_USAGE);
+        }
+    }
+
+    @Test
     public void parse_invalidExplicitFields_throwsParseException() {
         for (String input : List.of("n/", "p/---", "p/12x", "t/has space", "n/Rachel p/9123",
                 "p/9123 t/renewal", "Rachel n/rac", "t/renewal n/rac")) {

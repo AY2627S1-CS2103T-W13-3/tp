@@ -52,12 +52,12 @@ class ClientWorkflowsIntegrationTest {
         byte[] originalBytes = Files.readAllBytes(dataFile);
         StorageManager storage = new StorageManager(addressBookStorage,
                 new JsonUserPrefsStorage(testFolder.resolve("prefs.json"))) {
-            private boolean failNextSave = true;
+            private boolean shouldFailNextSave = true;
 
             @Override
             public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
-                if (failNextSave) {
-                    failNextSave = false;
+                if (shouldFailNextSave) {
+                    shouldFailNextSave = false;
                     throw new IOException("Injected save failure");
                 }
                 super.saveAddressBook(addressBook);

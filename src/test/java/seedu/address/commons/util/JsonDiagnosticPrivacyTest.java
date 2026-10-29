@@ -12,9 +12,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -34,6 +31,7 @@ import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.model.UserPrefs;
 import seedu.address.storage.JsonAddressBookStorage;
+import seedu.address.testutil.LogCapturingHandler;
 
 /** Tests privacy at the JSON loading diagnostic boundary. */
 public class JsonDiagnosticPrivacyTest {
@@ -43,14 +41,14 @@ public class JsonDiagnosticPrivacyTest {
     public Path testFolder;
 
     private Logger logger;
-    private CapturingHandler handler;
+    private LogCapturingHandler handler;
 
     @BeforeEach
     public void setUp() throws IOException {
         // Initialize JsonUtil first because obtaining a logger removes its existing handlers.
         JsonUtil.fromJsonString("{}", Object.class);
         logger = LogsCenter.getLogger(JsonUtil.class);
-        handler = new CapturingHandler();
+        handler = new LogCapturingHandler();
         logger.addHandler(handler);
     }
 
@@ -88,7 +86,7 @@ public class JsonDiagnosticPrivacyTest {
         DataLoadingException failure = assertPrivateFailure("{\"value\":\"" + CANARY + "\"}",
                 file -> JsonUtil.readJsonFile(file, RejectingValue.class));
         assertInstanceOf(JsonMappingException.class, failure.getCause());
-        assertTrue(stackTrace(failure.getCause().getCause()).contains(CANARY));
+        assertTrue(getStackTrace(failure.getCause().getCause()).contains(CANARY));
     }
 
     @Test
@@ -108,7 +106,7 @@ public class JsonDiagnosticPrivacyTest {
 
         DataLoadingException failure = assertThrows(DataLoadingException.class, () ->
                 operation.load(file));
-        assertTrue(stackTrace(failure).contains(CANARY),
+        assertTrue(getStackTrace(failure).contains(CANARY),
                 "The fixture must exercise an exception containing untrusted contents");
         assertArrayEquals(original, Files.readAllBytes(file));
         assertPrivateDiagnostics(file);
@@ -116,9 +114,9 @@ public class JsonDiagnosticPrivacyTest {
     }
 
     private void assertPrivateDiagnostics(Path file) {
-        assertTrue(handler.records.stream().anyMatch(record -> record.getLevel().equals(Level.WARNING)
+        assertTrue(handler.getRecords().stream().anyMatch(record -> record.getLevel().equals(Level.WARNING)
                 && record.getMessage().contains(file.toString())), "Retain a useful warning with the file path");
-        for (LogRecord record : handler.records) {
+        for (LogRecord record : handler.getRecords()) {
             assertFalse(record.getMessage().contains(CANARY), "Log message exposes client contents");
             assertNull(record.getThrown(), "Do not attach untrusted exception details to loading diagnostics");
             assertFalse(new SimpleFormatter().format(record).contains(CANARY),
@@ -126,7 +124,7 @@ public class JsonDiagnosticPrivacyTest {
         }
     }
 
-    private static String stackTrace(Throwable failure) {
+    private static String getStackTrace(Throwable failure) {
         StringWriter result = new StringWriter();
         failure.printStackTrace(new PrintWriter(result));
         return result.toString();
@@ -143,22 +141,5 @@ public class JsonDiagnosticPrivacyTest {
     @FunctionalInterface
     private interface LoadingOperation {
         void load(Path file) throws DataLoadingException;
-    }
-
-    private static class CapturingHandler extends Handler {
-        private final List<LogRecord> records = new ArrayList<>();
-
-        @Override
-        public void publish(LogRecord record) {
-            records.add(record);
-        }
-
-        @Override
-        public void flush() {
-        }
-
-        @Override
-        public void close() {
-        }
     }
 }

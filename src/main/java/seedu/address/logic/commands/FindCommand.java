@@ -9,7 +9,9 @@ import seedu.address.logic.Messages;
 import seedu.address.model.Model;
 import seedu.address.model.person.Person;
 
-/** Finds clients by bare whole-name/full-phone keywords or an explicit name, phone, or tag query. */
+/**
+ * Finds clients by bare whole-name/full-phone keywords or an explicit name, phone, or tag query.
+ */
 public class FindCommand extends Command {
 
     public static final String COMMAND_WORD = "find";
@@ -19,7 +21,9 @@ public class FindCommand extends Command {
 
     private final Predicate<Person> predicate;
 
-    /** Creates a command that displays all clients matching the supplied predicate. */
+    /**
+     * Creates a command that displays all clients matching the supplied predicate.
+     */
     public FindCommand(Predicate<Person> predicate) {
         requireNonNull(predicate);
         this.predicate = predicate;
