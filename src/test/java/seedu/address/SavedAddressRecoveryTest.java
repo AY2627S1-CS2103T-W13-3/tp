@@ -55,10 +55,10 @@ public class SavedAddressRecoveryTest {
                     logic.execute("list");
                     logic.execute("find Alice");
                     logic.execute("followups");
-                    assertThrows(CommandException.class, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX, () ->
+                    assertThrows(CommandException.class, "No client with ID 1.", () ->
                             logic.execute("view 1"));
                     for (String command : new String[] {"add n/Cara p/333 e/cara@example.com a/Blk 3",
-                        "delete 1", "followup 1 clear"}) {
+                        "delete 1", "followup 1 clear", "edit 1 n/Updated Client"}) {
                         assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () ->
                                 logic.execute(command));
                     }

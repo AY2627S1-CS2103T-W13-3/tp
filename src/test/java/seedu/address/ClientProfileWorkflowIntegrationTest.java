@@ -49,14 +49,14 @@ public class ClientProfileWorkflowIntegrationTest {
         Model model = model(first, second);
         LogicManager logic = new LogicManager(model, storage(testFolder.resolve("clients.json")), clock());
 
-        assertEquals("Showing client: Rachel Lim", logic.execute("view 02").getFeedbackToUser());
+        assertEquals("Showing client ID 2: Rachel Lim", logic.execute("view 02").getFeedbackToUser());
         assertSame(second, model.selectedPersonProperty().get());
         assertFalse(model.hasUnsavedChanges());
 
         logic.execute("followups");
         assertEquals(List.of(second, first), model.getFilteredPersonList());
         assertSame(second, model.selectedPersonProperty().get());
-        logic.execute("followup 1 d/2026-10-15 m/Send policy quotation");
+        logic.execute("followup 2 d/2026-10-15 m/Send policy quotation");
         assertEquals(List.of(first, model.selectedPersonProperty().get()), model.getFilteredPersonList());
         assertSame(model.getFilteredPersonList().get(1), model.selectedPersonProperty().get());
         assertEquals("222", model.selectedPersonProperty().get().getPhone().value);
@@ -187,7 +187,7 @@ public class ClientProfileWorkflowIntegrationTest {
     }
 
     @Test
-    public void manyClients_pendingIndicesAndRejectedCommandsKeepCorrectRecords() throws Exception {
+    public void manyClients_permanentIdsAndRejectedCommandsKeepCorrectRecords() throws Exception {
         Path file = testFolder.resolve("many-clients.json");
         Model model = model();
         LogicManager logic = new LogicManager(model, storage(file), clock());
@@ -207,24 +207,24 @@ public class ClientProfileWorkflowIntegrationTest {
         assertEquals(List.of("Client 50", "Client 45", "Client 40", "Client 35", "Client 30",
                 "Client 25", "Client 20", "Client 15", "Client 10", "Client 5"),
                 model.getFilteredPersonList().stream().map(person -> person.getName().fullName).toList());
-        logic.execute("view 0000000001");
+        logic.execute("view 0000000050");
         assertEquals("Client 50", model.selectedPersonProperty().get().getName().fullName);
 
         List<Person> pendingBeforeFailure = List.copyOf(model.getFilteredPersonList());
         byte[] savedBeforeFailure = Files.readAllBytes(file);
         assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DATE, () ->
-                logic.execute("followup 1 d/2026-02-30 m/Call"));
+                logic.execute("followup 50 d/2026-02-30 m/Call"));
         assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
-                logic.execute("followup 1 d/2026-10-13 m/" + "x".repeat(201)));
+                logic.execute("followup 50 d/2026-10-13 m/" + "x".repeat(201)));
         assertThrows(CommandException.class, FollowUp.MESSAGE_INVALID_DESCRIPTION, () ->
-                logic.execute("followup 1 d/2026-10-11 m/"));
-        assertThrows(CommandException.class, "The client index provided is invalid.", () ->
-                logic.execute("followup 11 d/2026-02-30 m/Call"));
+                logic.execute("followup 50 d/2026-10-11 m/"));
+        assertThrows(CommandException.class, "No client with ID 51.", () ->
+                logic.execute("followup 51 d/2026-02-30 m/Call"));
         assertEquals(pendingBeforeFailure, model.getFilteredPersonList());
         assertEquals("Client 50", model.selectedPersonProperty().get().getName().fullName);
         assertArrayEquals(savedBeforeFailure, Files.readAllBytes(file));
 
-        logic.execute("delete 1");
+        logic.execute("delete 50");
         assertEquals(9, model.getFilteredPersonList().size());
         assertNull(model.selectedPersonProperty().get());
         logic.execute("list");

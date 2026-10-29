@@ -119,11 +119,14 @@ class ClientWorkflowsIntegrationTest {
         assertEquals("1 client(s) listed!", logic.execute("find t/renewal").getFeedbackToUser());
         model.selectPerson(model.getFilteredPersonList().get(0));
         Person matching = new PersonBuilder().withName("New Renewal Client").withPhone("55556666")
-                .withEmail("new-renewal@example.com").withTags("renewal").build();
+                .withEmail("new-renewal@example.com").withAddress("Somewhere").withTags("renewal").build();
         logic.execute("add n/New Renewal Client p/55556666 e/new-renewal@example.com a/Somewhere t/renewal");
 
         assertEquals(List.of(existing, matching), model.getFilteredPersonList());
-        assertEquals(2, model.getAddressBook().getClientId(matching).orElseThrow().getValue());
+        Person canonical = model.getAddressBook().getPersonById(new ClientId(2)).orElseThrow();
+        assertEquals(matching, canonical);
+        assertEquals(2, model.getAddressBook().getClientId(canonical).orElseThrow().getValue());
+        assertTrue(model.getAddressBook().getClientId(matching).isEmpty());
         assertSame(existing, model.selectedPersonProperty().get());
 
         logic.execute("add n/Other Client p/66667777 e/other@example.com a/Somewhere t/urgent");
