@@ -18,6 +18,11 @@ public final class ViewCommand extends Command {
 
     private final ClientId targetId;
 
+    /**
+     * Creates a command that selects the client with the given permanent ID.
+     *
+     * @throws NullPointerException If {@code targetId} is null.
+     */
     public ViewCommand(ClientId targetId) {
         this.targetId = requireNonNull(targetId);
     }

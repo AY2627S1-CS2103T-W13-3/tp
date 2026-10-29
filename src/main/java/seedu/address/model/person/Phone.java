@@ -62,7 +62,8 @@ public class Phone {
                 return false;
             }
         }
-        return digitCount >= minimumDigits && previousWasDigit;
+        // The look-ahead check ensures every accepted separator is followed by a digit.
+        return digitCount >= minimumDigits;
     }
 
     /**
