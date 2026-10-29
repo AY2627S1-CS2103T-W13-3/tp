@@ -5,7 +5,7 @@ title: User Guide
 
 PolicyHarbor helps independent insurance agents in Singapore keep client contacts and their next follow-up together. Find a client, review their details, update their contact information and record the next conversation, using typed commands in a desktop workspace.
 
-**Build covered:** this guide describes the v1.5 release candidate, with permanent Client IDs, contact editing and name/phone/tag search. Its window title is **PolicyHarbor v1.5**. The tested candidate was built from [verified source revision `97c10e2a`](https://github.com/AY2627S1-CS2103T-W13-3/tp/commit/97c10e2ad63e20b00db58657d5cd06182de0ae6f). A matching v1.5 JAR has not yet been published on the [releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases). Until it is available, obtain the matching `PolicyHarbor.jar` from the team. The published v1.4 JAR uses different command targeting and does not match this guide.
+**Build covered:** this guide describes the published [PolicyHarbor v1.5 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5), with permanent Client IDs, contact editing and name/phone/tag search. Download [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) for the [v1.5 source tag](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/v1.5) (commit `cb060cf3`). The application window displays **PolicyHarbor v1.5**.
 
 * Table of Contents
 {:toc}
@@ -15,7 +15,7 @@ PolicyHarbor helps independent insurance agents in Singapore keep client contact
 ### Install and launch
 
 1. Install Java **25**. On macOS, follow the [SE-EDU Java installation guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) for the prescribed Zulu JDK with JavaFX.
-2. Obtain the matching `PolicyHarbor.jar` described above and place it in a **writable folder**, such as a folder you create in Documents. Keep an existing client-data file backed up before replacing an older JAR.
+2. Download [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) from the official v1.5 release and place it in a **writable folder**, such as a folder you create in Documents. Keep an existing client-data file backed up before replacing an older JAR.
 3. Open a terminal and use `cd` to enter that folder. Check `java -version` in the same terminal; it should report Java 25. Then run:
 
    ```text

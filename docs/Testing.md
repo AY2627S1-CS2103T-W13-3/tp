@@ -48,6 +48,24 @@ Tests use fixed dates and temporary data folders. Storage failure tests inject w
 
 Pure display-function tests do not prove FXML binding, focus, wrapping or scaling. Follow the Developer Guide's [manual testing appendix](DeveloperGuide.md#appendix-instructions-for-manual-testing) against the actual JAR before a release, and record the tested platform/runtime and remaining gaps.
 
+## Published v1.5 verification
+
+The [published v1.5 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5) uses [source tag `v1.5`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/v1.5) at `cb060cf3460df83499e9eea4ab9865d9ebe664c3`. Its [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) is **12,587,362 bytes**, with SHA-256:
+
+```text
+1ff50ee4666c1b9177a481f58c805d6971f850a27776512b396c4298cf9e5d8c
+```
+
+**Uploaded-asset check (29 October 2026):** the official download passed ZIP integrity and executable-manifest checks, matched GitHub's asset digest, and was byte-for-byte identical to the separately built artifact from the tagged source. In a fresh folder on macOS 26.6.2 arm64 with Zulu JDK+FX 25.0.3, `java -jar PolicyHarbor.jar` started and displayed the native window title `PolicyHarbor v1.5`. The published binary was not rebuilt or replaced during this check.
+
+The earlier comprehensive QA used source `97c10e2ad63e20b00db58657d5cd06182de0ae6f`, a **12,587,304-byte** JAR before the final invisible-only address fix in PR #249. That different candidate has SHA-256:
+
+```text
+f2624a0707b078aa636e3b062a93659f0f84d4e33fd87f3186548020b60e1f82
+```
+
+Retain its results as historical evidence, not as the final release checksum. This uploaded-asset check repeated startup and identity verification; it does not claim a new complete GUI regression, Windows/Linux desktop verification or completion of the physical display matrix. The alternate-working-directory file-location concern remains separate unresolved work.
+
 ## v1.5 dashboard layout and platform matrix
 
 `DashboardLayoutBoundaryTest` lays out the real window at the logical sizes of the release display matrix and checks a 1,000-client table, long unbroken profile values and a full pending summary. `DisplayMatrixFixture` writes the matching 1,000-client data file for packaged-JAR checks. Run `./gradlew displayMatrixFixture --args="/absolute/path/to/fresh-folder yyyy-MM-dd"`; the folder must not already contain a client-data file. `DisplayMatrixFixtureTest` checks round-trip loading, the reference-date distribution and refusal to overwrite existing data. Use `./gradlew packagedBackendCheck --args="/absolute/path/to/another-fresh-folder"` for a self-checking 1,000-client workflow and backend timings against the built JAR. This does not exercise keyboard/mouse input or rendering. Record automated results and every packaged OS/resolution/scaling check in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md); combinations nobody has run stay pending.

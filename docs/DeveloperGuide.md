@@ -9,7 +9,7 @@ title: Developer Guide
 
 PolicyHarbor helps individual insurance agents manage contact records and one pending next action per client. This guide is for developers: start with component responsibilities, then follow the identity, command-publication and persistence invariants before changing the product. Exact command syntax is in the [User Guide](UserGuide.html).
 
-**Version baseline:** this guide describes the verified v1.5 release-candidate implementation at [`97c10e2a`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/97c10e2ad63e20b00db58657d5cd06182de0ae6f). The tested candidate reports `V1.5` and displays the window title `PolicyHarbor v1.5`. The latest published JAR is v1.4; obtain the matching v1.5 candidate from the team until v1.5 is published. Before publishing v1.5, align the final tag, uploaded JAR, guides and testing record; repeat packaged checks if the implementation changes.
+**Version baseline:** this guide describes the published [PolicyHarbor v1.5 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5) at [tag `v1.5`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/v1.5), commit [`cb060cf3`](https://github.com/AY2627S1-CS2103T-W13-3/tp/commit/cb060cf3460df83499e9eea4ab9865d9ebe664c3). Its `PolicyHarbor.jar` reports `V1.5` and displays the window title `PolicyHarbor v1.5`. The [published-artifact verification record](Testing.html#published-v15-verification) identifies its checksum and distinguishes it from earlier QA candidates; earlier run records do not establish that every final packaged-app scenario has passed.
 
 ## **Acknowledgements**
 
@@ -520,7 +520,7 @@ These are acceptance criteria. Platform, timing and physical-display targets req
 
 ## **Appendix: Instructions for manual testing**
 
-These are independent packaged-app procedures, not a statement that every OS/scaling combination has passed. Use **only disposable synthetic data**. Record the JAR checksum, matching commit, Java/OS and physical display settings. Run each lettered scenario in its own fresh writable working folder; copy the same `PolicyHarbor.jar` there and launch from that folder with Java 25 (`java -jar PolicyHarbor.jar`). On macOS use the prescribed Zulu JDK+FX setup from [SettingUp](SettingUp.html). Expect the title `PolicyHarbor v1.5`; also verify the artifact checksum.
+These are independent packaged-app procedures, not a statement that every OS/scaling combination has passed. Use **only disposable synthetic data**. Record the JAR checksum, matching commit, Java/OS and physical display settings. Run each lettered scenario in its own fresh writable working folder; copy the [published v1.5 `PolicyHarbor.jar`](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) there and launch from that folder with Java 25 (`java -jar PolicyHarbor.jar`). On macOS use the prescribed Zulu JDK+FX setup from [SettingUp](SettingUp.html). Expect the title `PolicyHarbor v1.5`; also verify the artifact checksum.
 
 **Two-client fixture:** whenever requested below, start an empty folder, launch, and enter these lines separately. Expect Rachel ID 1 with lowercase `health`/`active` tags, Amanda ID 2, and no selected profile. Repeated tag case variants collapse.
 
