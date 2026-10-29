@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.IntNode;
 
 import seedu.address.commons.exceptions.IllegalValueException;
@@ -43,8 +44,11 @@ class JsonAdaptedPerson {
      * Constructs a {@code JsonAdaptedPerson} with the given person details.
      */
     @JsonCreator
-    public JsonAdaptedPerson(@JsonProperty("name") String name, @JsonProperty("phone") String phone,
-            @JsonProperty("email") String email, @JsonProperty("address") String address,
+    public JsonAdaptedPerson(
+            @JsonProperty("name") @JsonDeserialize(using = StoredTextDeserializer.class) String name,
+            @JsonProperty("phone") @JsonDeserialize(using = StoredTextDeserializer.class) String phone,
+            @JsonProperty("email") @JsonDeserialize(using = StoredTextDeserializer.class) String email,
+            @JsonProperty("address") @JsonDeserialize(using = StoredTextDeserializer.class) String address,
             @JsonProperty("tags") List<JsonAdaptedTag> tags,
             @JsonProperty("followUp") JsonAdaptedFollowUp followUp,
             @JsonProperty("clientId") JsonNode clientId) {
