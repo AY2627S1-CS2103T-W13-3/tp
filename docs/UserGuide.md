@@ -209,7 +209,7 @@ For example, given Alice (ID 2) and Rachel (ID 17):
 | Invalid ID token, such as `0`, `-1`, `1.5`, `abc` or `2147483648` | `Client ID must be a positive integer from 1 to 2147483647.` |
 | Valid ID that does not exist, such as `view 1` when only IDs 2 and 17 exist | `No client with ID 1.` |
 
-Missing or extra tokens take priority over ID syntax. A failed view preserves the previous selection, list and displayed date. In a failed-load session, `view` is still allowed, but an unknown ID reports `No client with ID ID.` because no clients were loaded.
+Missing or extra tokens take priority over ID syntax. A failed view preserves the previous selection, list and displayed date. In a failed-load session, `view` is still allowed, but an unknown ID reports `No client with ID 1.` (for example, when entering `view 1`) because no clients were loaded.
 
 On success, `view` opens the selected client's full profile in the right pane and marks the corresponding row `VIEWING`.
 
@@ -393,7 +393,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 * **Window restoration:** PolicyHarbor restores the window on its saved screen when that screen is available. If the saved screen is unavailable, startup fits the window inside the primary screen's usable area. You do not need to delete `preferences.json` when disconnecting a secondary screen.
 * **If the workspace feels cramped on a small or highly scaled display:** maximize the window, then drag the main divider and the sidebar divider towards the area you are reading. The command box and feedback stay at the top of the window; the table and both right-hand panels scroll to show the rest.
-* **Help window:** use the Help menu or `F1` to open or restore the existing Help window. If it is minimised, invoking Help again brings it back instead of opening a duplicate.
+* **Help window:** use the Help menu or `F1` to open the Help window. If it is minimised, invoking Help again restores the same window instead of opening a duplicate.
 
 --------------------------------------------------------------------------------------------------------------------
 
