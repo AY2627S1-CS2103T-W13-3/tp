@@ -15,8 +15,8 @@ For product questions and bug reports, use the [team issue tracker](https://gith
 
 [[github](https://github.com/josthan12)]
 
-* Role: Developer
-* Responsibilities: TBC
+* Role: Developer — Command Processing & Search Lead
+* Responsibilities: Develop and maintain command parsing, client search and command-input workflows. Implement follow-up command routing, validation and user feedback. Ensure commands behave consistently and provide clear error messages through automated tests and regression testing.
 
 ### Ayush Jain
 
@@ -24,8 +24,8 @@ For product questions and bug reports, use the [team issue tracker](https://gith
 
 [[github](https://github.com/Ayushjain8541)]
 
-* Role: Developer
-* Responsibilities: TBC
+* Role: Developer — Project Coordination & Core Model Lead
+* Responsibilities: Coordinate project milestones, development priorities, team meetings and release preparation. Develop and maintain core client and follow-up domain models, including permanent client identity management. Support feature integration, code reviews and verification of release readiness.
 
 ### Gwen Lim
 
@@ -33,8 +33,8 @@ For product questions and bug reports, use the [team issue tracker](https://gith
 
 [[github](https://github.com/gwenlim89)]
 
-* Role: Developer
-* Responsibilities: TBC
+* Role: Developer — Client Workflow Integration & Quality Assurance Lead
+* Responsibilities: Develop and integrate client-management workflows, including follow-up management, profile selection, permanent-ID command targeting and client editing. Maintain consistency between model state, command execution and displayed client information. Coordinate cross-feature testing, regression checks and data-integrity verification.
 
 ### Kin Chong
 
@@ -42,8 +42,8 @@ For product questions and bug reports, use the [team issue tracker](https://gith
 
 [[github](https://github.com/wkc75)]
 
-* Role: Developer
-* Responsibilities: TBC
+* Role: Developer — UI/UX & Documentation Lead
+* Responsibilities: Develop and maintain the client dashboard, client table, pending follow-up presentation and Help interface. Ensure the interface remains readable and usable across different layouts and display sizes. Coordinate User Guide and Developer Guide updates, UI documentation and usability verification.
 
 ### Somaaditya Samal
 
@@ -51,5 +51,5 @@ For product questions and bug reports, use the [team issue tracker](https://gith
 
 [[github](https://github.com/SomaadityaSamal)]
 
-* Role: Developer
-* Responsibilities: TBC
+* Role: Developer — Data Persistence & Storage Lead
+* Responsibilities: Develop and maintain client-data storage, JSON serialization and persistence workflows. Ensure safe loading, saving and migration of client information, including permanent client IDs and follow-up records. Implement storage validation and recovery safeguards, and contribute to client-profile presentation, integration testing and release verification.
