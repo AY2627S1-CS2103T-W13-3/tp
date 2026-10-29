@@ -109,8 +109,8 @@ class ClientAddWorkflowTest {
         Model model = new ModelManager(addressBook, new UserPrefs());
         Person duplicate = new PersonBuilder(first).withAddress("Different Address").build();
 
-        CommandException duplicateError = assertThrows(CommandException.class,
-                () -> new AddCommand(duplicate).execute(model));
+        CommandException duplicateError = assertThrows(CommandException.class, () ->
+                new AddCommand(duplicate).execute(model));
         assertEquals(AddCommand.MESSAGE_DUPLICATE_PERSON, duplicateError.getMessage());
         assertEquals(2, model.getAddressBook().getNextClientId());
         assertEquals(List.of(first), model.getAddressBook().getPersonList());
