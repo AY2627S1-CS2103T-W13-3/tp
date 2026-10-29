@@ -70,10 +70,10 @@ public class DuplicateJsonRecoveryTest {
         logic.execute("list");
         logic.execute("find Ada");
         logic.execute("followups");
-        assertThrows(CommandException.class, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX, () ->
+        assertThrows(CommandException.class, "No client with ID 1.", () ->
                 logic.execute("view 1"));
         for (String command : new String[] {"add n/Bob p/456 e/bob@example.com a/Office",
-            "delete 1", "followup 1 clear"}) {
+            "delete 1", "followup 1 clear", "edit 1 n/Updated Client"}) {
             assertThrows(ParseException.class, Messages.MESSAGE_CHANGES_BLOCKED, () -> logic.execute(command));
         }
         assertTrue(model.isDataLoadingBlocked());

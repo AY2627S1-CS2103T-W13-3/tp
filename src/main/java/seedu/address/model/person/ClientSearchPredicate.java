@@ -17,6 +17,7 @@ public class ClientSearchPredicate implements Predicate<Person> {
     private final Field field;
     private final String query;
 
+    /** Creates a predicate for one validated explicit search field and query. */
     public ClientSearchPredicate(Field field, String query) {
         requireNonNull(field);
         requireNonNull(query);
@@ -28,9 +29,9 @@ public class ClientSearchPredicate implements Predicate<Person> {
     public boolean test(Person person) {
         requireNonNull(person);
         return switch (field) {
-        case NAME -> containsNameIgnoreCase(person.getName().fullName, query);
-        case PHONE -> phoneDigits(person.getPhone().value).contains(phoneDigits(query));
-        case TAG -> person.getTags().stream().anyMatch(tag -> tag.tagName.equalsIgnoreCase(query));
+            case NAME -> containsNameIgnoreCase(person.getName().fullName, query);
+            case PHONE -> phoneDigits(person.getPhone().value).contains(phoneDigits(query));
+            case TAG -> person.getTags().stream().anyMatch(tag -> tag.tagName.equalsIgnoreCase(query));
         };
     }
 

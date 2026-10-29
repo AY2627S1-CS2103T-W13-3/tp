@@ -21,6 +21,7 @@ import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.model.person.ClientContainsKeywordsPredicate;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.model.person.exceptions.DuplicatePersonException;
@@ -161,8 +162,8 @@ public class ClientProfileSelectionTest {
 
         new AddCommand(JOHN).execute(model);
         assertSame(AMANDA, model.selectedPersonProperty().get());
-        assertEquals(List.of(RACHEL, AMANDA, JOHN), model.getFilteredPersonList());
-        assertFalse(model.showingFollowUpsProperty().get());
+        assertEquals(List.of(AMANDA, RACHEL), model.getFilteredPersonList());
+        assertTrue(model.showingFollowUpsProperty().get());
 
         new ListCommand().execute(model);
 
@@ -289,21 +290,22 @@ public class ClientProfileSelectionTest {
     }
 
     @Test
-    public void setAddressBook_removedOrRecreatedSelection_doesNotRediscoverByValueOrName() {
+    public void setAddressBook_recreatedSelection_rebindsByIdAndClearsWhenIdRemoved() {
         Model model = createModel(AMANDA, OTHER_AMANDA);
         model.selectPerson(AMANDA);
         AddressBook recreated = new AddressBook();
         Person equalRecord = new PersonBuilder(AMANDA).build();
-        recreated.addPerson(equalRecord);
-        recreated.addPerson(OTHER_AMANDA);
+        recreated.restorePersons(List.of(equalRecord, OTHER_AMANDA),
+                List.of(new ClientId(1), new ClientId(2)), 3);
 
         model.setAddressBook(recreated);
 
-        assertNull(model.selectedPersonProperty().get());
+        assertSame(equalRecord, model.selectedPersonProperty().get());
+        assertNotSame(AMANDA, model.selectedPersonProperty().get());
         assertSame(equalRecord, model.getFilteredPersonList().get(0));
         model.selectPerson(equalRecord);
         AddressBook withoutSelected = new AddressBook();
-        withoutSelected.addPerson(OTHER_AMANDA);
+        withoutSelected.restorePersons(List.of(OTHER_AMANDA), List.of(new ClientId(2)), 3);
         model.setAddressBook(withoutSelected);
         assertNull(model.selectedPersonProperty().get());
         assertEquals(List.of(OTHER_AMANDA), model.getFilteredPersonList());

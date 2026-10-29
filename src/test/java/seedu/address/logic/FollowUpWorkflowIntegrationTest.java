@@ -60,7 +60,7 @@ public class FollowUpWorkflowIntegrationTest {
         assertEquals(List.of("Amanda Lee", "Rachel Lim"), names(model.getFilteredPersonList()));
         assertEquals(List.of("Rachel Lim", "Amanda Lee", "John Tan"), names(book.getPersonList()));
 
-        logic.execute("followup 1 d/2026-10-07 m/Updated Amanda");
+        logic.execute("followup 2 d/2026-10-07 m/Updated Amanda");
         assertEquals(List.of("Rachel Lim", "Amanda Lee"), names(model.getFilteredPersonList()));
         assertEquals("Updated Amanda", model.getFilteredPersonList().get(1).getFollowUp()
                 .orElseThrow().getDescription());
@@ -159,7 +159,7 @@ public class FollowUpWorkflowIntegrationTest {
 
         logic.execute("find Rachel");
         logic.execute("view 1");
-        assertEquals("Follow-up for Rachel Lim recorded for 2026-10-03.",
+        assertEquals("Follow-up for client ID 1: Rachel Lim recorded for 2026-10-03.",
                 logic.execute("followup 1 d/2026-10-03 m/Carry-over call").getFeedbackToUser());
         Person overdueRachel = rachel.withFollowUp(new FollowUp(TODAY.minusDays(1), "Carry-over call"));
         assertEquals(List.of(overdueRachel), model.getFilteredPersonList());
@@ -173,7 +173,7 @@ public class FollowUpWorkflowIntegrationTest {
                 model.getFilteredPersonList().stream()
                         .map(person -> person.getFollowUp().orElseThrow().getStatus(model.getToday())).toList());
         logic.execute("view 2");
-        assertEquals("Follow-up for Amanda Lee updated to 2026-10-03.",
+        assertEquals("Follow-up for client ID 2: Amanda Lee updated to 2026-10-03.",
                 logic.execute("followup 2 d/2026-10-03 m/Overdue renewal").getFeedbackToUser());
         Person overdueAmanda = amanda.withFollowUp(new FollowUp(TODAY.minusDays(1), "Overdue renewal"));
         // Equal dates retain full-list insertion order, even when the viewed action is replaced.
@@ -211,7 +211,7 @@ public class FollowUpWorkflowIntegrationTest {
         ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
         LogicManager logic = new LogicManager(model, storage(file), clock());
 
-        assertEquals("Follow-up for Rachel Lim recorded for 0001-01-01.",
+        assertEquals("Follow-up for client ID 1: Rachel Lim recorded for 0001-01-01.",
                 logic.execute("followup 1 d/0001-01-01 m/Carry-over call").getFeedbackToUser());
         Person expected = rachel.withFollowUp(new FollowUp(LocalDate.of(1, 1, 1), "Carry-over call"));
         assertEquals(List.of(expected), model.getAddressBook().getPersonList());
@@ -284,7 +284,7 @@ public class FollowUpWorkflowIntegrationTest {
             }
         };
         LogicManager logic = new LogicManager(model, failingStorage, clock);
-        List<String> unsupportedCommands = List.of("edit 1 n/Updated Rachel", "clear", "help", "exit");
+        List<String> unsupportedCommands = List.of("clear", "help", "exit");
         for (String command : List.of("add n/Bob p/92345678 e/bob@example.com a/Street",
                 "delete 1", "edit 1 n/Updated Rachel", "followup 1 d/2026-10-06 m/Replace",
                 "followup 1 d/2026-10-06 m/续保电话 👩\u200d💻",
