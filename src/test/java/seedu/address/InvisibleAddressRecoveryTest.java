@@ -61,7 +61,7 @@ public class InvisibleAddressRecoveryTest {
                     model.selectPerson(person);
                     AddressBook original = new AddressBook(model.getAddressBook());
                     Path file = Files.createTempDirectory(testFolder, "command-").resolve("clients.json");
-                    Storage storage = storage(file);
+                    Storage storage = createStorage(file);
                     storage.saveAddressBook(model.getAddressBook());
                     byte[] originalBytes = Files.readAllBytes(file);
                     LogicManager logic = new LogicManager(model, storage, CLOCK);
@@ -91,7 +91,7 @@ public class InvisibleAddressRecoveryTest {
                             + "{\"name\":\"Bob\",\"phone\":\"222\","
                             + "\"email\":\"bob@example.com\",\"address\":\"" + escaped + "\",\"tags\":[]}]}");
                     byte[] original = Files.readAllBytes(file);
-                    Storage storage = storage(file);
+                    Storage storage = createStorage(file);
                     assertThrows(DataLoadingException.class, () -> storage.readAddressBook());
 
                     Model model = new MainApp().initModelManager(storage, new UserPrefs());
@@ -110,7 +110,7 @@ public class InvisibleAddressRecoveryTest {
     public void visibleMultilingualAddress_addEditAndRestart_preservesTextAndIdentity() throws Exception {
         for (String visible : List.of("Blk \u3164 123", "\u115f\u1161", "新加坡 🏠 #02-01", "Cafe\u0301", "🏠", "-")) {
             Path file = Files.createTempDirectory(testFolder, "visible-").resolve("clients.json");
-            Storage storage = storage(file);
+            Storage storage = createStorage(file);
             Model model = new ModelManager(new AddressBook(), new UserPrefs(), TODAY, false);
             LogicManager logic = new LogicManager(model, storage, CLOCK);
             logic.execute("add n/Alice p/111 e/alice@example.com a/" + visible);
@@ -125,7 +125,7 @@ public class InvisibleAddressRecoveryTest {
         }
     }
 
-    private Storage storage(Path file) {
+    private Storage createStorage(Path file) {
         return new StorageManager(new JsonAddressBookStorage(file),
                 new JsonUserPrefsStorage(testFolder.resolve("prefs.json")));
     }
