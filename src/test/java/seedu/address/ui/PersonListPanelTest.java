@@ -193,13 +193,78 @@ public class PersonListPanelTest {
         showingFollowUps.set(true);
         runOnFx(() -> {
             show(300);
+            settleLayout();
             assertSame(TableView.UNCONSTRAINED_RESIZE_POLICY, table.getColumnResizePolicy());
             assertTrue(horizontalScrollBar().isVisible());
 
             scene.getRoot().resize(700, 400);
-            layout();
+            settleLayout();
             assertNotSame(TableView.UNCONSTRAINED_RESIZE_POLICY, table.getColumnResizePolicy());
         });
+    }
+
+    @Test
+    public void allClients_scrollbarReducesViewport_keepsEmailReachable() throws Exception {
+        assertScrollbarBoundary(false);
+    }
+
+    @Test
+    public void followUps_scrollbarReducesViewport_keepsStatusReachable() throws Exception {
+        assertScrollbarBoundary(true);
+    }
+
+    private void assertScrollbarBoundary(boolean isPending) throws Exception {
+        source.setAll(clients(100));
+        showingFollowUps.set(isPending);
+        runOnFx(() -> {
+            show(700);
+            double minimumWidth = table.getVisibleLeafColumns().stream()
+                    .mapToDouble(TableColumn::getMinWidth).sum();
+            double tableWidth = minimumWidth + table.getInsets().getLeft() + table.getInsets().getRight() + 1;
+            scene.getRoot().resize(scene.getRoot().getLayoutBounds().getWidth() + tableWidth - table.getWidth(), 400);
+            settleLayout();
+
+            assertTrue(table.getWidth() > minimumWidth, "The outer table fits the column minima");
+            assertTrue(table.lookup(".clipped-container").getLayoutBounds().getWidth() < minimumWidth,
+                    "The vertical scrollbar makes the actual viewport too narrow");
+            assertSame(TableView.UNCONSTRAINED_RESIZE_POLICY, table.getColumnResizePolicy());
+            ScrollBar horizontal = horizontalScrollBar();
+            assertTrue(horizontal.isVisible(), "The rightmost column must be reachable by scrolling");
+            horizontal.setValue(horizontal.getMax());
+            settleLayout();
+            TableCell<Person, Person> lastCell = cell(row(0), isPending ? "Status" : "Email");
+            Node viewport = table.lookup(".clipped-container");
+            assertTrue(lastCell.localToScene(lastCell.getLayoutBounds()).getMaxX()
+                    <= viewport.localToScene(viewport.getClip().getBoundsInParent()).getMaxX() + 1,
+                    "Scrolling to the end must expose the rightmost cell");
+
+            source.setAll(clients(1));
+            settleLayout();
+            assertNotSame(TableView.UNCONSTRAINED_RESIZE_POLICY, table.getColumnResizePolicy(),
+                    "Removing the vertical scrollbar restores fitting without resizing the window");
+            assertFalse(horizontalScrollBar().isVisible());
+
+            source.setAll(clients(100));
+            settleLayout();
+            assertSame(TableView.UNCONSTRAINED_RESIZE_POLICY, table.getColumnResizePolicy());
+            showingFollowUps.set(!isPending);
+            settleLayout();
+            if (isPending) {
+                assertNotSame(TableView.UNCONSTRAINED_RESIZE_POLICY, table.getColumnResizePolicy());
+            } else {
+                assertSame(TableView.UNCONSTRAINED_RESIZE_POLICY, table.getColumnResizePolicy());
+            }
+            scene.getRoot().resize(900, 400);
+            settleLayout();
+            assertNotSame(TableView.UNCONSTRAINED_RESIZE_POLICY, table.getColumnResizePolicy());
+        });
+    }
+
+    private void settleLayout() {
+        // Policy changes can request another layout after the scrollbar geometry changes.
+        for (int i = 0; i < 4; i++) {
+            layout();
+        }
     }
 
     @SuppressWarnings("unchecked")
