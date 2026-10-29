@@ -61,6 +61,30 @@ public class DashboardIntegrationTest {
     }
 
     @Test
+    public void help_minimisedWindow_restoresExistingStage() throws Exception {
+        runOnFx(() -> {
+            try (Fixture fixture = new Fixture()) {
+                fixture.window.handleHelp();
+                Stage helpStage = Stage.getWindows().stream()
+                        .filter(window -> window.isShowing()
+                                && window != fixture.window.getPrimaryStage())
+                        .map(window -> (Stage) window)
+                        .findFirst()
+                        .orElseThrow();
+                try {
+                    helpStage.setIconified(true);
+                    assertTrue(helpStage.isIconified());
+                    fixture.window.handleHelp();
+                    assertTrue(helpStage.isShowing());
+                    assertFalse(helpStage.isIconified());
+                } finally {
+                    helpStage.hide();
+                }
+            }
+        });
+    }
+
+    @Test
     public void commands_filteredTable_keepsGlobalPendingAndCanonicalProfile() throws Exception {
         runOnFx(() -> {
             try (Fixture fixture = new Fixture()) {
