@@ -3,7 +3,7 @@ layout: page
 title: User Guide
 ---
 
-PolicyHarbor v1.4 is a desktop application for individual insurance agents to manage clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results.
+This guide describes the PolicyHarbor v1.5 client-management workflows. The published v1.4 JAR still uses displayed row indices and does not support the `edit` command. Use a v1.5-compatible build when following the permanent Client ID instructions below.
 
 * Table of Contents
 {:toc}
@@ -15,7 +15,7 @@ PolicyHarbor v1.4 is a desktop application for individual insurance agents to ma
 1. Ensure that Java `25` is installed on your computer.<br>
    **Mac users:** Ensure you have the precise JDK version prescribed [here](https://se-education.org/guides/tutorials/javaInstallationMac.html).
 
-1. Download the latest `PolicyHarbor.jar` from the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases).
+1. Download `PolicyHarbor.jar` from the v1.5 (when published) or a later release on the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases). Until then, use a JAR built from the current `master` source. **Do not use the v1.4 JAR with this guide:** its command targeting and supported features differ.
 
 1. Copy the file to the folder where you want PolicyHarbor to store its data.
 
@@ -66,15 +66,13 @@ PolicyHarbor v1.4 is a desktop application for individual insurance agents to ma
 
 ### Reading the workspace
 
-[![Pending follow-ups and the selected client profile](images/Ui.png)](images/Ui.png)
-
-*PolicyHarbor workspace with fictional clients. Open the image to enlarge it.*
+The client table shows permanent Client IDs alongside contact details. The selected client profile appears on the right, above the global pending follow-up summary. Screenshots from the older row-index interface have been omitted; the Client ID column in your v1.5-compatible build is the command target.
 
 The light dashboard keeps the command field, **Run** button and feedback strip at the top. Enter and Run submit the same current text once. A successful command clears the input; a rejected command keeps it for correction, marks the field and shows **Error** above the complete message. Editing clears the field's error style; the feedback remains until the next command. Long feedback wraps and can be scrolled, selected and copied.
 
-* **Left: the numbered client table.** These are the indices used by `view`, `delete` and `followup`. It shows all clients after `list`, matches after `find`, and clients with follow-ups after `followups`. Columns cannot be sorted independently of command order. Narrow tables scroll horizontally.
-* **Upper right: the selected client profile.** Use `view INDEX` to open a client's complete details. Long fields and tags wrap; scroll within the profile to read everything.
-* **Lower right: all pending follow-ups.** This unnumbered summary always includes every client's action, even when the left table is filtered. It groups actions under `OVERDUE`, `DUE TODAY` and `UPCOMING`, with due-date order and insertion-order ties within each group. It does not provide indices for commands. Use `find` or `followups` and the left table to target a client.
+* **Left: the client table.** The `Client ID` column shows each client's permanent ID. Use that ID with `view`, `edit`, `delete` and `followup`, even after searching or reordering the list. The table shows all clients after `list`, matches after `find`, and clients with follow-ups after `followups`. Columns cannot be sorted independently of command order. Narrow tables scroll horizontally.
+* **Upper right: the selected client profile.** Use `view ID` to open a client's complete details. Long fields and tags wrap; scroll within the profile to read everything.
+* **Lower right: all pending follow-ups.** This summary always includes every client's action, even when the left table is filtered. It groups actions under `OVERDUE`, `DUE TODAY` and `UPCOMING`, with due-date order and insertion-order ties within each group. Use the client's permanent ID shown in the workspace when entering commands; a position in this summary is not an ID.
 
 Drag the main divider to change the table/sidebar widths. Drag the divider between the profile and pending summary to change their heights. Each right-hand panel scrolls independently.
 
@@ -82,9 +80,9 @@ On a small or highly scaled screen, such as 1280x720 at 150% scaling, a right-ha
 
 Long values without spaces, such as a long email address, wrap onto extra lines in the table, profile and pending summary instead of being cut off.
 
-The `#` column has room for row numbers of up to five digits, so indices stay fully readable in lists of up to 99,999 clients.
+The `Client ID` column shows permanent IDs, which may contain gaps after deletions and do not change with filtering or due-date ordering.
 
-The table shows row number, name, phone and email. In `followups` mode it also shows due date and status; read the full action in the sidebar or selected profile.
+The table shows Client ID, name, phone and email. In `followups` mode it also shows due date and status; read the full action in the sidebar or selected profile.
 
 | Badge | Meaning |
 | --- | --- |
@@ -94,7 +92,7 @@ The table shows row number, name, phone and email. In `followups` mode it also s
 
 Follow-up statuses refresh automatically using the current date when PolicyHarbor starts, when the main window regains focus and once every minute while the application is running. You do not need to enter a command just to refresh the statuses.
 
-In `followups` mode the table is ordered by due date, with insertion-order ties. Row numbers always run continuously from 1. The selected canonical client is marked `VIEWING` in the table and, if they have an action, in the summary. Clicking or highlighting either view does not select a profile or execute a command.
+In `followups` mode the table is ordered by due date, with insertion-order ties. Client IDs stay unchanged when rows move. The selected canonical client is marked `VIEWING` in the table and, if they have an action, in the summary. Clicking or highlighting either view does not select a profile or execute a command.
 
 An empty table says `No clients to display.` or, in `followups` mode, `There are no pending follow-ups.`. An empty global summary has its own empty message. Finding no matches can leave an empty table alongside a populated summary; this is expected.
 
@@ -104,22 +102,22 @@ If saved data could not be loaded at startup, a warning stays above the workspac
 
 ### Keyboard workflow and error correction
 
-Suppose Alice Morgan and Bob Chen are already in your client list. To review Alice's next action, enter each command separately:
+Suppose Alice Morgan has Client ID `17` and Bob Chen has Client ID `42`. To review Alice's next action, enter each command separately:
 
-1. `find Alice` narrows the numbered table. If several clients match, identify Alice by her contact details and use her displayed index in the next commands.
-2. `view 1` opens the first match's profile so you can check the intended client before changing a follow-up.
-3. `followup 1 d/2099-12-15 m/Call about renewal` sets Alice's action. Replace the example date with the action's due date in `YYYY-MM-DD` format; past dates are allowed for overdue work.
+1. `find Alice` narrows the table. If several clients match, identify Alice by her contact details and check the `Client ID` column.
+2. `view 17` opens Alice's profile so you can confirm the intended client before changing a follow-up.
+3. `followup 17 d/2099-12-15 m/Call about renewal` sets Alice's action. Replace the example date with the action's due date in `YYYY-MM-DD` format; past dates are allowed for overdue work.
 4. `find Bob` switches the table to Bob and clears Alice's profile. Alice's action remains in the global pending summary.
-5. `followups` returns to the numbered pending list. Read its indices again before your next command because this list is ordered by due date.
+5. `followups` shows pending clients in due-date order. Alice's ID remains `17` regardless of her row position.
 
-If you submit `view 0` with Enter, the rejected line remains in the command field. Press Backspace, type `1` and press Enter to correct the index without clicking the field again; use another valid displayed index when needed.
+If you submit `view 0` with Enter, the rejected line remains in the command field. Correct its ID to `17` and press Enter to open Alice without clicking the field again. If Alice is not visible in the current list, `view 17` returns to the full list to show her.
 You can also reach **Run** with Tab and activate it with Space. After a rejected Run submission, typing focus returns to the field; if the retained line is selected, type the corrected command to replace it.
 
 ### Supported commands
 
 Command words are case-sensitive. The supported words are `add`, `delete`, `edit`, `view`, `find`, `list`, `followup` and `followups`.
 
-Standalone `clear`, `help` and `exit` are unsupported and return exactly `Unknown command.`, even when saved data could not be loaded. Use `followup INDEX clear` to clear one client's follow-up; this remains supported. Close the application with the window's close button. The GUI Help menu and `F1` shortcut remain separate from typed commands.
+Standalone `clear`, `help` and `exit` are unsupported and return exactly `Unknown command.`, even when saved data could not be loaded. Use `followup ID clear` to clear one client's follow-up; this remains supported. Close the application with the window's close button. The GUI Help menu and `F1` shortcut remain separate from typed commands.
 
 Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected before command recognition or argument validation. Blank input returns `Enter a command.`. For example, `VIEW 1` returns `Unknown command.` because `view` must be lowercase.
 
@@ -189,31 +187,31 @@ Format: `list`
 
 ### Selecting a client: `view`
 
-Selects the client at an index in the **currently displayed list** and returns `Showing client: NAME`, using the stored name without a trailing period. For Rachel Lim, the feedback is `Showing client: Rachel Lim`.
+Selects a client using their **permanent Client ID**, not the row's position in the current list. For example, if Rachel Lim has Client ID `17`, the feedback is `Showing client ID 17: Rachel Lim`.
 
-Format: `view INDEX`
+Format: `view ID`
 
-Supply exactly one index containing digits `0`–`9`, with a value from `1` to `2147483647`. Leading zeroes are allowed, including long runs of zeroes: `view 02` and `view 0002` both mean `view 2`. The index must refer to an existing displayed row.
+Supply exactly one ID containing ASCII digits `0`–`9`, with a value from `1` to `2147483647`. Leading zeroes are allowed: `view 017` and `view 17` target the same client. Read the ID from the `Client ID` column or the feedback from `add`. IDs are permanent, so deleting clients, filtering results or sorting follow-ups does not renumber the remaining IDs.
 
-The command keeps client data, list mode, row order and numbering unchanged and does not save. After `find`, use search-result indices; after `followups`, use pending-list indices rather than full-list positions. Two same-name clients remain separate records even though their success feedback uses the same name.
+`view` resolves the ID against **all saved clients**, including clients hidden by the current search or pending list. If the client is hidden, the app returns to the full list and opens their profile. If already visible, the current list mode and order remain unchanged. Viewing never saves or modifies client data.
 
-Examples:
+For example, given Alice (ID 2) and Rachel (ID 17):
 
-* `list` then `view 2` selects the second client in the full list, if present.
-* `find Rachel` then `view 1` selects the first matching Rachel, if present.
-* `followups` then `view 01` selects the first displayed pending client, if present.
+* `find Rachel` shows Rachel as the first and only result; `view 17` opens Rachel, **not** `view 1`.
+* `followups` can reorder the visible rows; `view 17` still opens Rachel.
+* `view 2` opens Alice even if the current filter hides her; the full list becomes visible.
 
 | Input problem | Exact result |
 | --- | --- |
-| Missing index or extra tokens, such as `view 0 extra` | `Invalid command format!` followed by a newline and `Usage: view INDEX` |
-| One invalid index token, such as `0`, `-1`, `1.5`, `abc` or `2147483648` | `Index must be a positive integer from 1 to 2147483647.` |
-| Valid index beyond the displayed list | `The client index provided is invalid.` |
+| Missing ID or extra tokens, such as `view 0 extra` | `Invalid command format!` followed by a newline and `Usage: view ID` |
+| Invalid ID token, such as `0`, `-1`, `1.5`, `abc` or `2147483648` | `Client ID must be a positive integer from 1 to 2147483647.` |
+| Valid ID that does not exist, such as `view 1` when only IDs 2 and 17 exist | `No client with ID 1.` |
 
-Missing or extra tokens take priority over index syntax; valid syntax is checked before the displayed-list range. A failed view preserves the previous selection, list and displayed date. In a failed-load session, `view` is still allowed: a valid index produces the range error against the empty list rather than a mutation-blocked message.
+Missing or extra tokens take priority over ID syntax. A failed view preserves the previous selection, list and displayed date. In a failed-load session, `view` is still allowed, but an unknown ID reports `No client with ID 1.` (for example, when entering `view 1`) because no clients were loaded.
 
-On success, `view` opens the selected client's full profile in the right pane and marks the matching row `VIEWING`.
+On success, `view` opens the selected client's full profile in the right pane and marks the corresponding row `VIEWING`.
 
-[![Full client list with Rachel Lim's contact details and follow-up](images/ClientProfile.png)](images/ClientProfile.png)
+The selected profile displays the client's contact details and pending follow-up. Verify their permanent ID in the client table before entering a command.
 
 ### Finding clients: `find`
 
@@ -250,37 +248,55 @@ Search does not change client data or save it. The selected client remains selec
 
 For example, search for Rachel with `find n/rac`, then use `view 17` and `edit 17 p/+65 9234 5678`. The ID continues to target Rachel even if a later filter hides her; editing preserves her ID and pending follow-up.
 
+### Editing a client's details: `edit`
+
+Changes one or more contact fields for an existing client, identified by their permanent Client ID. The client's ID and pending follow-up are preserved.
+
+Format: `edit ID [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]...`
+
+At least one field must be provided. Omitted fields keep their existing values. The same name, phone, email, address and tag validation rules used by `add` apply. Each of `n/`, `p/`, `e/` and `a/` may appear only once; repeat `t/` to supply multiple tags. Supplying tags replaces the client's **entire** tag set instead of adding to it; use only `t/` with an empty value to clear all tags.
+
+For example, if Rachel's Client ID is `17`:
+
+* `edit 17 p/+65 9123 4567` changes only her phone number.
+* `edit 17 a/Blk 456 t/renewal t/priority` updates her address and replaces all her tags with `priority` and `renewal`.
+* `edit 17 t/` removes all her tags.
+
+A successful edit reports `Client ID 17 updated: ` followed by the client's updated contact details and tags. `edit 17` without a field reports `At least one field to edit must be provided.`; an unknown ID reports `No client with ID 17.` when ID 17 does not exist. An edit that would duplicate another client is rejected with `This person already exists in PolicyHarbor.` Invalid input or a failed save leaves client data unchanged.
+
+Editing retains the current list mode. Search results are re-evaluated, so a client may disappear from a filtered list when their details no longer match. The edited client's permanent ID does not change.
+
 ### Deleting a client: `delete`
 
-Deletes the client at an index in the **currently displayed list**. After `find`, use the search-result indices; after `followups`, use the pending list's due-date order. Deleting a client also removes their follow-up. The active list mode remains unchanged and its rows are renumbered.
+Deletes the client identified by their **permanent Client ID**, even if that client is hidden by the current search or pending list. Deleting a client also removes their follow-up. The active list mode remains unchanged; displayed rows may change, but other clients keep their IDs.
 
-Format: `delete INDEX`
+Format: `delete ID`
 
-Supply exactly one index, using digits `0`–`9`, from `1` to `2147483647`. Leading zeroes are allowed: `delete 02` means `delete 2`. The index must also refer to an existing displayed row.
+Supply exactly one ID containing ASCII digits `0`–`9`, with a value from `1` to `2147483647`. Leading zeroes are allowed: `delete 017` targets Client ID 17. The ID must belong to an existing client; it is not a position in the displayed list.
 
 Examples:
 
-* `list` followed by `delete 2` deletes the second client in the full list.
-* `find Rachel` followed by `delete 1` deletes the first Rachel shown, preserving any other same-name client.
-* `followups` followed by `delete 01` deletes the first pending client shown, even if that client occupies another position in the full list.
+* `list` followed by `delete 17` deletes the client whose ID is 17, regardless of their row position.
+* `find Rachel` followed by `delete 17` deletes Rachel only if her ID is 17. Do not use `delete 1` merely because she appears first.
+* `followups` followed by `delete 2` deletes Client ID 2 even if that client is currently hidden. Check the ID before deleting.
 
-Success text uses the deleted client's contact details and sorted tags, without their follow-up. For example:
+Success text includes the deleted client's ID, contact details and sorted tags, without their follow-up. For example:
 
 ```text
-Deleted client: Rachel Lim; Phone: 001; Email: Rachel@example.com; Address: Blk 123; Tags: [active] [health]
+Deleted client ID 17: Rachel Lim; Phone: 001; Email: Rachel@example.com; Address: Blk 123; Tags: [active] [health]
 ```
 
-| Input problem | Result |
+| Input problem | Exact result |
 | --- | --- |
-| Missing index or extra tokens, such as `delete 0 extra` | `Invalid command format!` followed by a newline and `Usage: delete INDEX` |
-| One invalid index token, such as `0`, `-1`, `abc`, `1.5` or `2147483648` | `Index must be a positive integer from 1 to 2147483647.` |
-| Valid index beyond the displayed list | `The client index provided is invalid.` |
+| Missing ID or extra tokens, such as `delete 0 extra` | `Invalid command format!` followed by a newline and `Usage: delete ID` |
+| Invalid ID token, such as `0`, `-1`, `abc`, `1.5` or `2147483648` | `Client ID must be a positive integer from 1 to 2147483647.` |
+| Valid ID not found in the saved client list | `No client with ID 17.` (if ID 17 does not exist) |
 
-Shape errors take priority over index syntax. A rejected delete leaves data, the current list and date unchanged. A save failure also keeps the previous state and reports `Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.` Deletion is blocked if saved data could not be loaded at startup.
+Shape errors take priority over ID syntax. A rejected delete leaves data, the current list and date unchanged. A save failure also keeps the previous state and reports `Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.` Deletion is blocked if saved data could not be loaded at startup.
 
 ### Keeping the same client profile open
 
-Use `view INDEX` to select a client in the currently displayed list. The right pane updates with that client's details.
+Use `view ID` to select a client by permanent Client ID. If that client is currently hidden, the full list opens first. The right pane then updates with that client's details.
 
 Opening a different client starts their profile at the top, so their name and contact details are visible first.
 This also applies to separate clients who share a name and to reopening a profile after it closes.
@@ -288,7 +304,7 @@ Viewing the same client again, changing their follow-up or refreshing its status
 
 The profile shows the selected client's name, phone, email, address and tags. Tags appear as chips in lowercase alphabetical order, or as `No tags` when there are no tags. A pending follow-up shows its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it shows `Follow-up: None`; with no selected client it shows `No client selected.`
 
-Your open profile will follow the client, even when their row number changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
+Your open profile will follow the client, even when their row position changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
 
 | Change | Result for your open profile |
 | --- | --- |
@@ -297,34 +313,34 @@ Your open profile will follow the client, even when their row number changes. Tw
 | Record or replace that client's follow-up | Update their profile and keep it open, even if the pending list moves their row. |
 | Clear that client's follow-up in the full list or search results | Keep their profile open without a follow-up. |
 | Clear that client's follow-up in the pending list | Close their profile because the client leaves the pending list. |
-| Delete the open client | Close their profile; do not open the client who inherits their row number. |
-| Delete another client or change another client's follow-up | Keep the same client open despite any renumbering. |
+| Delete the open client | Close their profile; do not open another client automatically. |
+| Delete another client or change another client's follow-up | Keep the same client open despite any row reordering. |
 
 Once a profile closes because its client leaves the list, returning to the full list will not reopen it. You will need another successful `view` command. Reopening the application also starts without an open profile. A failed command or failed save leaves the previous profile unchanged.
 
 ### Recording or replacing a follow-up: `followup`
 
-Records one pending action for the client at an index in the **currently displayed list**, or replaces that client's existing action.
+Records one pending action for a client identified by their **permanent Client ID**, or replaces that client's existing action. The ID is resolved against all saved clients, including hidden clients.
 
-Format: `followup INDEX d/DATE m/DESCRIPTION`
+Format: `followup ID d/DATE m/DESCRIPTION`
 
 Use an existing calendar date in `YYYY-MM-DD` format, with a year from `0001` to `9999`. A new or replacement follow-up may be due in the past, today or in the future. Use the original due date to record overdue carry-over work; a date before today displays as `OVERDUE`. An already saved follow-up can also become overdue as time passes.
 
-Descriptions support multilingual text, accents, punctuation and emoji, such as `followup 1 d/2099-12-15 m/续保电话`. They must contain 1–200 Unicode code points after outer ordinary spaces are removed. A letter with a combining accent or a joined emoji can contain several code points. Original spelling and internal spaces are preserved. Notes must include visible text or a symbol; whitespace, formatting characters or combining marks alone do not form a valid note. Controls, line breaks and invalid or unassigned Unicode characters are rejected. The existing reserved-prefix rules for `d/` and `m/` still apply.
+Descriptions support multilingual text, accents, punctuation and emoji, such as `followup 17 d/2099-12-15 m/续保电话`. They must contain 1–200 Unicode code points after outer ordinary spaces are removed. A letter with a combining accent or a joined emoji can contain several code points. Original spelling and internal spaces are preserved. Notes must include visible text or a symbol; whitespace, formatting characters or combining marks alone do not form a valid note. Controls, line breaks and invalid or unassigned Unicode characters are rejected. The existing reserved-prefix rules for `d/` and `m/` still apply.
 
-Within a description, `d/` and `m/` immediately preceded by an ordinary space are reserved command prefixes. They cause a duplicate-field error, even when the description is wrapped in quotation marks; quotes do not escape prefixes. For example, `followup 1 d/2099-12-15 m/Confirm d/m/y format` is rejected. Use `followup 1 d/2099-12-15 m/Confirm day/month/year format` instead, with a valid displayed index and date. Slash text without that preceding space, such as `ref:d/m/y`, is allowed.
+Within a description, `d/` and `m/` immediately preceded by an ordinary space are reserved command prefixes. They cause a duplicate-field error, even when the description is wrapped in quotation marks; quotes do not escape prefixes. For example, `followup 17 d/2099-12-15 m/Confirm d/m/y format` is rejected. Use `followup 17 d/2099-12-15 m/Confirm day/month/year format` instead. Slash text without that preceding space, such as `ref:d/m/y`, is allowed.
 
-For example, `followup 2 d/2099-12-15 m/Discuss renewal options` records the action for the second displayed client. To record an overdue task, use a past date, such as `followup 2 d/2026-10-26 m/Carry-over renewal call` when today is `2026-10-28`. Success reports `Follow-up for NAME recorded for DATE.` or `Follow-up for NAME updated to DATE.` The list and profile refresh immediately. In the pending list, changing the due date may move the client to another row; the open profile stays with that client.
+For example, `followup 17 d/2099-12-15 m/Discuss renewal options` records Rachel's action if her ID is 17, regardless of her position in the table. Success reports `Follow-up for client ID 17: Rachel Lim recorded for 2099-12-15.`, or `Follow-up for client ID 17: Rachel Lim updated to 2099-12-15.` when replacing an action. The list and profile refresh immediately. In pending mode, changing the due date may move the client to another row without changing their ID.
 
-An invalid displayed index is reported before an invalid date or description. Invalid input and failed saves leave the previous follow-up and list unchanged.
+An unknown ID produces `No client with ID 17.` when ID 17 does not exist, before validating the new date or description in command execution. Invalid input and failed saves leave the previous follow-up and list unchanged.
 
-### Clearing a follow-up: `followup INDEX clear`
+### Clearing a follow-up: `followup ID clear`
 
-Removes the pending action for the client at an index in the **currently displayed list**. Success reports `Follow-up for NAME cleared.` If the client has no pending action, the result is `This client has no pending follow-up.` In pending mode, a cleared client disappears from the list; in the full list or search results, the client remains visible. A failed save preserves the action.
+Removes the pending action from the client identified by a permanent ID. For Rachel (ID 17), success reports `Follow-up for client ID 17: Rachel Lim cleared.` If the client has no pending action, the result is `This client has no pending follow-up.` If the ID does not exist, the result is `No client with ID 17.`. In pending mode, a cleared client disappears from the list; in the full list or search results, the client remains visible. A failed save preserves the action.
 
 ### Showing pending follow-ups: `followups`
 
-Shows only clients with pending actions, ordered by ascending due date. Clients with the same due date retain their original insertion order. The feedback is `Pending follow-ups`, or `There are no pending follow-ups.` if none remain. Use the indices **shown in this list** for `view`, `delete` and singular `followup`. `list` returns to the full list, and `find` searches all clients even if they were hidden in pending mode.
+Shows only clients with pending actions, ordered by ascending due date. Clients with the same due date retain their original insertion order. The feedback is `Pending follow-ups`, or `There are no pending follow-ups.` if none remain. Use the **permanent Client IDs** shown in the table for `view`, `edit`, `delete` and singular `followup` commands. Positions in this reordered list are not command targets. `list` returns to the full list, and `find` searches all clients even if they were hidden in pending mode.
 
 ### Saving the data
 
@@ -370,12 +386,12 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
   The app stays protected for the current session even after access returns; query commands cannot remove the warning.
   Only a confirmed missing data file starts an empty, writable client list.
 * **Diagnostic log unavailable:** if `Unable to create diagnostic log file; continuing with console logging.` appears in the launch terminal, PolicyHarbor continues logging there. Check that the launch folder is writable and that `policyharbor.log.0` is not a directory, then restart to restore file logging. Client-data and preference writes still require their own writable files and folders.
-* **MVP scope:** one pending follow-up per client. Follow-up history, notifications, archiving and typed contact editing are not provided in v1.4.
+* **MVP scope:** one pending follow-up per client. Follow-up history, notifications and archiving are not provided. Contact details can be updated with `edit`.
 
 
 * **Window restoration:** PolicyHarbor restores the window on its saved screen when that screen is available. If the saved screen is unavailable, startup fits the window inside the primary screen's usable area. You do not need to delete `preferences.json` when disconnecting a secondary screen.
 * **If the workspace feels cramped on a small or highly scaled display:** maximize the window, then drag the main divider and the sidebar divider towards the area you are reading. The command box and feedback stay at the top of the window; the table and both right-hand panels scroll to show the rest.
-* **If you minimize the Help Window** and then use the `Help` menu or the keyboard shortcut `F1` again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
+* **Help window:** use the Help menu or `F1` to open the Help window. If a minimised Help window does not reappear, restore it from your operating system's dock or taskbar.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -384,12 +400,13 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 Action | Format, Examples
 -------- | ------------------
 **Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
-**Delete** | `delete INDEX`<br> e.g., `delete 3`
-**View** | `view INDEX`<br> e.g., `view 02`
+**Delete** | `delete ID`<br> e.g., `delete 17`
+**Edit** | `edit ID [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]...`<br> e.g., `edit 17 p/+65 9123 4567`
+**View** | `view ID`<br> e.g., `view 017`
 **Find** | `find KEYWORD [MORE_KEYWORDS]...` or `find n/NAME_PART`, `find p/PHONE_PART`, `find t/TAG`<br> e.g., `find James 81234562`, `find n/jam`, `find p/8123`, `find t/renewal`
 **List** | `list`
-**Record or replace follow-up** | `followup INDEX d/DATE m/DESCRIPTION`
-**Clear follow-up** | `followup INDEX clear`
+**Record or replace follow-up** | `followup ID d/DATE m/DESCRIPTION`
+**Clear follow-up** | `followup ID clear`
 **Pending follow-ups** | `followups`
 
 Standalone `clear`, `help` and `exit` return `Unknown command.`. Use the window's close button to exit.
