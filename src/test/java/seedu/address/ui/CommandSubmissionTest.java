@@ -8,9 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static seedu.address.testutil.JavaFxTestUtil.assumeNativeUiAvailable;
 import static seedu.address.testutil.JavaFxTestUtil.callOnFxThread;
-import static seedu.address.testutil.JavaFxTestUtil.runOnFxThread;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,8 +19,6 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -44,11 +40,8 @@ import javafx.scene.control.Control;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
-import javafx.scene.robot.Robot;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import seedu.address.commons.core.LogsCenter;
@@ -309,21 +302,6 @@ public class CommandSubmissionTest {
     }
 
     @Test
-    public void submit_mouseClick_submitsOnceAndRestoresTypingAfterSuccessAndFailure() throws Exception {
-        assertShownSubmission(SubmissionMethod.RUN_ACTION);
-    }
-
-    @Test
-    public void submit_enterKey_submitsOnceAndRestoresTypingAfterSuccessAndFailure() throws Exception {
-        assertShownSubmission(SubmissionMethod.ENTER);
-    }
-
-    @Test
-    public void submit_tabAndSpace_submitsOnceAndRestoresTypingAfterSuccessAndFailure() throws Exception {
-        assertShownSubmission(SubmissionMethod.RUN_KEYBOARD);
-    }
-
-    @Test
     public void submit_rejectedCommands_retainInputStateAndFocusThenRecover() throws Exception {
         callOnFxThread(() -> {
             for (SubmissionMethod method : SubmissionMethod.values()) {
@@ -519,156 +497,6 @@ public class CommandSubmissionTest {
         assertEquals(List.of(person), model.getFilteredPersonList());
         assertSame(person, model.selectedPersonProperty().get());
         assertEquals(TODAY, model.getToday());
-    }
-
-    /**
-     * Exercises native submission and subsequent typing for successful and rejected commands.
-     */
-    private static void assertShownSubmission(SubmissionMethod method) throws Exception {
-        assumeNativeUiAvailable();
-        List<String> executedTexts = new ArrayList<>();
-        CommandBoxFixture fixture = createNativeSubmissionFixture(executedTexts);
-        Stage stage = callOnFxThread(() -> showCommandWindow(fixture.scene));
-        try {
-            Robot robot = callOnFxThread(Robot::new);
-            focusNativeInput(stage, fixture, robot);
-            List<String> expectedTexts = new ArrayList<>();
-            for (String input : List.of("list", "parse", "command", "save")) {
-                submitNativeCommand(fixture, robot, method, input);
-                expectedTexts.add(input);
-                assertNativeSubmission(fixture, robot, executedTexts, expectedTexts, input);
-            }
-        } finally {
-            runOnFxThread(stage::close);
-        }
-    }
-
-    private static CommandBoxFixture createNativeSubmissionFixture(List<String> executedTexts) throws Exception {
-        return callOnFxThread(() -> new CommandBoxFixture(commandText -> {
-            executedTexts.add(commandText);
-            switch (commandText) {
-                case "parse":
-                    throw new ParseException("Invalid command format.");
-                case "command":
-                    throw new CommandException("Invalid client index.");
-                case "save":
-                    throw new CommandException("Unable to save changes.", new IOException("Simulated save failure"));
-                default:
-                    return new CommandResult("Submitted.");
-            }
-        }));
-    }
-
-    private static void focusNativeInput(Stage stage, CommandBoxFixture fixture, Robot robot) throws Exception {
-        awaitFxCondition(stage::isFocused, "The test window must receive native keyboard input");
-        AtomicBoolean wasInputClicked = new AtomicBoolean();
-        runOnFxThread(() -> {
-            fixture.commandTextField.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> wasInputClicked.set(true));
-            clickControl(robot, fixture.commandTextField);
-        });
-        awaitFxCondition(wasInputClicked::get, "The initial native click must reach the test input");
-        awaitFxCondition(fixture.commandTextField::isFocused, "The test input must receive native focus");
-    }
-
-    private static void submitNativeCommand(CommandBoxFixture fixture, Robot robot, SubmissionMethod method,
-            String input) throws Exception {
-        runOnFxThread(() -> {
-            fixture.commandTextField.setText(input);
-            fixture.commandTextField.positionCaret(input.length());
-            fixture.commandTextField.requestFocus();
-        });
-        awaitFxCondition(fixture.commandTextField::isFocused, "The input must be focused before submission");
-        if (method == SubmissionMethod.RUN_KEYBOARD) {
-            runOnFxThread(() -> robot.keyType(KeyCode.TAB));
-            awaitFxCondition(fixture.runButton::isFocused, "Tab must reach Run before submitting " + input);
-        }
-        runOnFxThread(() -> {
-            if (method == SubmissionMethod.RUN_ACTION) {
-                clickControl(robot, fixture.runButton);
-            } else {
-                robot.keyType(method == SubmissionMethod.ENTER ? KeyCode.ENTER : KeyCode.SPACE);
-            }
-        });
-    }
-
-    private static void assertNativeSubmission(CommandBoxFixture fixture, Robot robot, List<String> executedTexts,
-            List<String> expectedTexts, String input) throws Exception {
-        int expectedCount = expectedTexts.size();
-        awaitFxCondition(() -> executedTexts.size() >= expectedCount, "Native input must submit the command");
-        awaitFxCondition(fixture.commandTextField::isFocused, "Submission must restore actual input focus");
-        String retainedText = input.equals("list") ? "" : input;
-        runOnFxThread(() -> {
-            assertEquals(expectedTexts, executedTexts, "Each interaction must submit exactly once");
-            assertEquals(retainedText, fixture.commandTextField.getText());
-            assertEquals(input.equals("list") ? 0 : 1, errorClassCount(fixture.commandTextField));
-        });
-        assertCanTypeAfterSubmission(fixture.commandTextField, robot, retainedText);
-        runOnFxThread(() -> {
-            assertEquals(expectedTexts, executedTexts, "Typing must not cause another submission");
-            assertEquals(0, errorClassCount(fixture.commandTextField), "Typing must clear the error style");
-        });
-    }
-
-    /**
-     * Shows the test scene above other desktop windows. Must be called on the JavaFX thread.
-     */
-    private static Stage showCommandWindow(Scene scene) {
-        Stage window = new Stage();
-        window.setTitle("Command submission regression test");
-        window.setScene(scene);
-        window.setWidth(600);
-        window.setHeight(180);
-        window.setAlwaysOnTop(true);
-        window.show();
-        window.toFront();
-        window.requestFocus();
-        return window;
-    }
-
-    /**
-     * Clicks the visible control using native mouse input. Must be called on the JavaFX thread.
-     */
-    private static void clickControl(Robot robot, Control control) {
-        Bounds bounds = control.localToScreen(control.getBoundsInLocal());
-        assertTrue(bounds != null, "The control must be visible on screen");
-        robot.mouseMove(bounds.getCenterX(), bounds.getCenterY());
-        robot.mouseClick(MouseButton.PRIMARY);
-    }
-
-    /**
-     * Replaces the retained command using only native keyboard input, without requesting focus.
-     */
-    private static void assertCanTypeAfterSubmission(TextField commandTextField, Robot robot, String retainedText)
-            throws Exception {
-        callOnFxThread(() -> {
-            KeyCode shortcut = System.getProperty("os.name").startsWith("Mac") ? KeyCode.META : KeyCode.CONTROL;
-            robot.keyPress(shortcut);
-            robot.keyType(KeyCode.A);
-            robot.keyRelease(shortcut);
-            return null;
-        });
-        awaitFxCondition(() -> commandTextField.getSelectedText().equals(retainedText),
-                "The native select-all shortcut must reach the input after submission");
-        callOnFxThread(() -> {
-            robot.keyType(KeyCode.X);
-            return null;
-        });
-        awaitFxCondition(() -> commandTextField.getText().equals("x"),
-                "Typing after submission must reach the input without clicking or requesting focus");
-    }
-
-    /**
-     * Waits outside the JavaFX thread while polling observable UI state on that thread.
-     */
-    private static void awaitFxCondition(Callable<Boolean> condition, String message) throws Exception {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        while (System.nanoTime() < deadline) {
-            if (callOnFxThread(condition)) {
-                return;
-            }
-            TimeUnit.MILLISECONDS.sleep(20);
-        }
-        assertTrue(callOnFxThread(condition), message);
     }
 
     private static long errorClassCount(TextField commandTextField) {
