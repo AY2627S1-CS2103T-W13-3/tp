@@ -103,7 +103,10 @@ public class HelpWindow extends UiPart<Stage> {
      * Focuses on the help window.
      */
     public void focus() {
-        getRoot().requestFocus();
+        Stage stage = getRoot();
+        stage.setIconified(false);
+        stage.toFront();
+        stage.requestFocus();
     }
 
     /** Returns the feedback shown after a copy attempt. */
