@@ -35,10 +35,25 @@ public class Address {
      */
     public static boolean isValidAddress(String test) {
         String trimmedAddress = trimOrdinarySpaces(test);
-        return trimmedAddress.codePoints().anyMatch(codePoint -> !Character.isWhitespace(codePoint)
-                && !Character.isSpaceChar(codePoint) && Character.getType(codePoint) != Character.FORMAT)
+        return trimmedAddress.codePoints().anyMatch(Address::isVisibleAddressCharacter)
                 && trimmedAddress.matches(VALIDATION_REGEX)
                 && hasValidSurrogatePairs(trimmedAddress);
+    }
+
+    /**
+     * Invisible characters may accompany visible address text but cannot provide visible content on their own.
+     */
+    private static boolean isVisibleAddressCharacter(int codePoint) {
+        if (Character.isWhitespace(codePoint) || Character.isSpaceChar(codePoint)) {
+            return false;
+        }
+        return switch (Character.getType(codePoint)) {
+            case Character.FORMAT, Character.NON_SPACING_MARK, Character.COMBINING_SPACING_MARK,
+                    Character.ENCLOSING_MARK -> false;
+            // Hangul fillers and Braille blank have letter/symbol categories but do not provide visible content.
+            default -> codePoint != 0x115f && codePoint != 0x1160 && codePoint != 0x3164
+                    && codePoint != 0xffa0 && codePoint != 0x2800;
+        };
     }
 
     /** Returns whether every UTF-16 surrogate belongs to a complete high/low pair. */
