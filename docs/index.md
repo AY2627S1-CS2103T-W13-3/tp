@@ -26,7 +26,7 @@ description: A command-first desktop workspace for independent insurance agents 
     <div class="ph-hero-intro">
       <p>A clearer workspace for independent insurance agents in Singapore. Keep client details and the next conversation together, with typed commands and a graphical overview.</p>
       <div class="ph-actions">
-        <a class="ph-button" href="{{ release_url }}">Download PolicyHarbor <span aria-hidden="true">↗</span></a>
+        <a class="ph-button" href="{{ user_guide }}#quick-start">Get PolicyHarbor v1.5 <span aria-hidden="true">↗</span></a>
         <a class="ph-text-link" href="{{ user_guide }}">Explore the User Guide <span aria-hidden="true">→</span></a>
       </div>
       <p class="ph-requirement">PolicyHarbor v1.5 <span aria-hidden="true">·</span> Desktop app <span aria-hidden="true">·</span> Java 25</p>
@@ -121,7 +121,7 @@ followups</code></pre>
     </div>
     <ol class="ph-install">
       <li><h3>Install Java 25</h3><p>On macOS, use the <a href="https://se-education.org/guides/tutorials/javaInstallationMac.html">prescribed Zulu JDK+FX distribution</a>. Check your installation with <code>java -version</code>.</p></li>
-      <li><h3>Download the JAR</h3><p>Get <code>PolicyHarbor.jar</code> from <a href="{{ release_url }}">GitHub Releases</a> and place it in a writable folder for your client data.</p></li>
+      <li><h3>Get the v1.5 candidate</h3><p>Until v1.5 is published on <a href="{{ release_url }}">GitHub Releases</a>, obtain the matching <code>PolicyHarbor.jar</code> from the team; the published v1.4 JAR does not match these workflows. Place it in a writable folder for your client data.</p></li>
       <li><h3>Open your workspace</h3><p>Open a terminal in that folder and run:</p><pre><code>java -jar PolicyHarbor.jar</code></pre></li>
     </ol>
     <a class="ph-text-link" href="{{ user_guide }}#quick-start">Read the full installation instructions <span aria-hidden="true">→</span></a>
@@ -130,7 +130,7 @@ followups</code></pre>
   <section class="ph-closing" aria-labelledby="ph-closing-title">
     <h2 id="ph-closing-title">Stay close to your clients.<br>Stay ahead of your next step.</h2>
     <div class="ph-actions">
-      <a class="ph-button ph-button-light" href="{{ release_url }}">Download PolicyHarbor <span aria-hidden="true">↗</span></a>
+      <a class="ph-button ph-button-light" href="{{ user_guide }}#quick-start">Get PolicyHarbor v1.5 <span aria-hidden="true">↗</span></a>
       <a class="ph-text-link" href="{{ user_guide }}">Read the User Guide <span aria-hidden="true">→</span></a>
     </div>
     <p>Clients. Follow-ups. Made simple.</p>
