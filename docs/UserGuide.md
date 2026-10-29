@@ -66,9 +66,7 @@ This guide describes the PolicyHarbor v1.5 client-management workflows. The publ
 
 ### Reading the workspace
 
-[![Pending follow-ups and the selected client profile](images/Ui.png)](images/Ui.png)
-
-*PolicyHarbor workspace with fictional clients. Open the image to enlarge it.*
+The client table shows permanent Client IDs alongside contact details. The selected client profile appears on the right, above the global pending follow-up summary. Screenshots from the older row-index interface have been omitted; the Client ID column in your v1.5-compatible build is the command target.
 
 The light dashboard keeps the command field, **Run** button and feedback strip at the top. Enter and Run submit the same current text once. A successful command clears the input; a rejected command keeps it for correction, marks the field and shows **Error** above the complete message. Editing clears the field's error style; the feedback remains until the next command. Long feedback wraps and can be scrolled, selected and copied.
 
@@ -213,7 +211,7 @@ Missing or extra tokens take priority over ID syntax. A failed view preserves th
 
 On success, `view` opens the selected client's full profile in the right pane and marks the corresponding row `VIEWING`.
 
-[![Full client list with Rachel Lim's contact details and follow-up](images/ClientProfile.png)](images/ClientProfile.png)
+The selected profile displays the client's contact details and pending follow-up. Verify their permanent ID in the client table before entering a command.
 
 ### Finding clients: `find`
 
