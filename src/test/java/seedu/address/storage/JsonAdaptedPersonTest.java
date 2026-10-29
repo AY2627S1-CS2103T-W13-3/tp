@@ -160,4 +160,17 @@ public class JsonAdaptedPersonTest {
         assertThrows(IllegalValueException.class, person::toModelType);
     }
 
+    @Test
+    public void toModelType_identityMetadata_preservesContactConversionAndRejectsRawIdCoercion() throws Exception {
+        JsonAdaptedPerson identified = new JsonAdaptedPerson(BENSON,
+                new seedu.address.model.person.ClientId(17));
+        assertEquals(BENSON, identified.toModelType());
+        assertEquals(17, identified.toClientId().getValue());
+        for (String invalid : List.of("\"17\"", "17.5", "true", "0", "2147483648")) {
+            JsonAdaptedPerson adapted = seedu.address.commons.util.JsonUtil.fromJsonString(
+                    "{\"clientId\":" + invalid + "}", JsonAdaptedPerson.class);
+            assertThrows(IllegalValueException.class, adapted::toClientId);
+        }
+    }
+
 }

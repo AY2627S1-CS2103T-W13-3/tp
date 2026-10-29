@@ -1,0 +1,32 @@
+{
+  "nextClientId": 42,
+  "persons": [
+    {
+      "name": "Alice",
+      "phone": "111",
+      "email": "alice@example.com",
+      "address": "Home",
+      "tags": [],
+      "followUp": null,
+      "clientId": 2
+    },
+    {
+      "name": "Rachel",
+      "phone": "222",
+      "email": "rachel@example.com",
+      "address": "Home",
+      "tags": [],
+      "followUp": null,
+      "clientId": 17
+    },
+    {
+      "name": "Bob",
+      "phone": "333",
+      "email": "bob@example.com",
+      "address": "Home",
+      "tags": [],
+      "followUp": null,
+      "clientId": 41
+    }
+  ]
+}

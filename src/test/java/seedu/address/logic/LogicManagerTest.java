@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.Messages.MESSAGE_CHANGES_BLOCKED;
-import static seedu.address.logic.Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
 import static seedu.address.logic.commands.CommandTestUtil.EMAIL_DESC_AMY;
@@ -80,7 +79,7 @@ public class LogicManagerTest {
     @Test
     public void execute_commandExecutionError_throwsCommandException() {
         String deleteCommand = "delete 9";
-        assertCommandException(deleteCommand, MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+        assertCommandException(deleteCommand, "No client with ID 9.");
     }
 
     @Test
@@ -206,7 +205,7 @@ public class LogicManagerTest {
         assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute(addCommand));
         assertThrows(ParseException.class, "Unknown command.", () -> blockedLogic.execute("clear"));
         assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("delete 1"));
-        assertThrows(ParseException.class, "Unknown command.", () ->
+        assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () ->
                 blockedLogic.execute("edit 1 " + NAME_DESC_AMY));
         assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> blockedLogic.execute("followup 1 clear"));
     }
@@ -221,8 +220,8 @@ public class LogicManagerTest {
     }
 
     @Test
-    public void execute_followUpIndexOutOfRange_precedesInvalidDate() {
-        assertCommandException("followup 999 d/bad m/", MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+    public void execute_unknownFollowUpId_precedesInvalidDate() {
+        assertCommandException("followup 999 d/bad m/", "No client with ID 999.");
     }
 
     @Test
