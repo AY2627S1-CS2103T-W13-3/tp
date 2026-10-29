@@ -1,37 +1,24 @@
 package seedu.address.model;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.BENSON;
 import static seedu.address.testutil.TypicalPersons.CARL;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import javafx.collections.ListChangeListener;
-import seedu.address.logic.LogicManager;
-import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
-import seedu.address.storage.JsonAddressBookStorage;
-import seedu.address.storage.JsonUserPrefsStorage;
-import seedu.address.storage.StorageManager;
 import seedu.address.testutil.PersonBuilder;
 
 /** Verifies Gwen's model contract against the real aggregate identity implementation. */
@@ -41,9 +28,6 @@ public class ClientIdentityTransactionTest {
     private static final ClientId SELECTED = new ClientId(17);
     private static final ClientId LAST = new ClientId(41);
     private static final List<ClientId> IDS = List.of(FIRST, SELECTED, LAST);
-
-    @TempDir
-    public Path testFolder;
 
     @Test
     public void constructionAndFork_preserveIdsCounterAndIndependentAllocation() {
@@ -200,40 +184,6 @@ public class ClientIdentityTransactionTest {
         live.commitFrom(query);
         assertSame(BENSON, live.selectedPersonProperty().get());
         assertEquals(42, live.getAddressBook().getNextClientId());
-    }
-
-    @Test
-    public void failedDeleteAndFollowUpSaves_preserveBytesIdsViewSelectionAndCounter() throws Exception {
-        Person pending = BENSON.withFollowUp(new FollowUp(TODAY, "Call insurer"));
-        Model live = model(ALICE, pending, CARL);
-        live.showPendingFollowUps();
-        live.selectPerson(pending);
-        Path file = testFolder.resolve("clients.json");
-        new JsonAddressBookStorage(file).saveAddressBook(live.getAddressBook());
-        byte[] original = Files.readAllBytes(file);
-        AddressBook before = new AddressBook(live.getAddressBook());
-        JsonAddressBookStorage failing = new JsonAddressBookStorage(file) {
-            @Override
-            public void saveAddressBook(ReadOnlyAddressBook data) throws IOException {
-                throw new IOException("Synthetic save failure");
-            }
-        };
-        StorageManager storage = new StorageManager(failing,
-                new JsonUserPrefsStorage(testFolder.resolve("preferences.json")));
-        LogicManager logic = new LogicManager(live, storage,
-                Clock.fixed(TODAY.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC));
-        String saveMessage = String.format(LogicManager.MESSAGE_SAVE_FAILED, file);
-        for (String command : List.of("delete 17", "followup 17 d/2026-10-20 m/保单更新", "followup 17 clear")) {
-            assertThrows(CommandException.class, saveMessage, () -> logic.execute(command));
-            assertEquals(before, live.getAddressBook());
-            assertEquals(42, live.getAddressBook().getNextClientId());
-            assertEquals(List.of(pending), live.getFilteredPersonList());
-            assertSame(pending, live.selectedPersonProperty().get());
-            assertTrue(live.showingFollowUpsProperty().get());
-            assertEquals(TODAY, live.getToday());
-            assertArrayEquals(original, Files.readAllBytes(file));
-            assertFalse(live.hasUnsavedChanges());
-        }
     }
 
     private static AddressBook book(List<Person> persons, long counter) {

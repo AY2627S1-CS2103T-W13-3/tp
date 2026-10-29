@@ -2,13 +2,15 @@ package seedu.address.logic.commands;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static seedu.address.testutil.Assert.assertThrows;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +24,8 @@ import seedu.address.model.UserPrefs;
 import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
+import seedu.address.model.person.exceptions.DuplicatePersonException;
+import seedu.address.model.tag.Tag;
 import seedu.address.testutil.EditPersonDescriptorBuilder;
 import seedu.address.testutil.PersonBuilder;
 
@@ -44,13 +48,26 @@ public class EditCommandTest {
     }
 
     @Test
+    public void constructor_nullArguments_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> new EditCommand(null, new EditPersonDescriptor()));
+        assertThrows(NullPointerException.class, () -> new EditCommand(new ClientId(17), null));
+    }
+
+    @Test
+    public void execute_nullModel_throwsNullPointerException() {
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withName("New Name").build();
+        EditCommand command = new EditCommand(new ClientId(17), descriptor);
+        assertThrows(NullPointerException.class, () -> command.execute(null));
+    }
+
+    @Test
     public void execute_hiddenTarget_preservesFilterIdentityAndFollowUp() throws Exception {
         model.updateFilteredPersonList(person -> person == first);
         model.selectPerson(first);
         new EditCommandParser().parse("17 p/+65 9444-4444 t/renewal").execute(model);
         Person edited = model.getAddressBook().getPersonById(new ClientId(17)).orElseThrow();
         assertEquals("+65 9444-4444", edited.getPhone().value);
-        assertEquals(java.util.Set.of(new seedu.address.model.tag.Tag("renewal")), edited.getTags());
+        assertEquals(Set.of(new Tag("renewal")), edited.getTags());
         assertEquals(Optional.of(action), edited.getFollowUp());
         assertEquals(second.getName(), edited.getName());
         assertEquals(Optional.of(new ClientId(17)), model.getAddressBook().getClientId(edited));
@@ -61,11 +78,11 @@ public class EditCommandTest {
 
     @Test
     public void execute_selectedTargetLeavesSearch_clearsSelection() throws Exception {
-        model.updateFilteredPersonList(person -> person.getTags().contains(new seedu.address.model.tag.Tag("friend")));
+        model.updateFilteredPersonList(person -> person.getTags().contains(new Tag("friend")));
         model.selectPerson(second);
         new EditCommandParser().parse("17 t/").execute(model);
         assertTrue(model.getFilteredPersonList().isEmpty());
-        assertEquals(null, model.selectedPersonProperty().get());
+        assertNull(model.selectedPersonProperty().get());
         assertTrue(model.getAddressBook().getPersonById(new ClientId(17)).orElseThrow().getTags().isEmpty());
     }
 
@@ -87,7 +104,9 @@ public class EditCommandTest {
         for (String fields : List.of("p/9111-1111", "e/first@example.com")) {
             AddressBook before = new AddressBook(model.getAddressBook());
             EditCommand command = new EditCommandParser().parse("17 " + fields);
-            assertThrows(CommandException.class, EditCommand.MESSAGE_DUPLICATE_PERSON, () -> command.execute(model));
+            CommandException error = assertThrows(CommandException.class, () -> command.execute(model));
+            assertEquals(EditCommand.MESSAGE_DUPLICATE_PERSON, error.getMessage());
+            assertTrue(error.getCause() instanceof DuplicatePersonException);
             assertEquals(before, model.getAddressBook());
         }
     }
@@ -96,7 +115,8 @@ public class EditCommandTest {
     public void execute_unknownId_doesNotFallBackToVisibleRow() throws Exception {
         model.updateFilteredPersonList(person -> person == second);
         EditCommand command = new EditCommandParser().parse("1 n/Someone Else");
-        assertThrows(CommandException.class, "No client with ID 1.", () -> command.execute(model));
+        CommandException error = assertThrows(CommandException.class, () -> command.execute(model));
+        assertEquals("No client with ID 1.", error.getMessage());
         assertEquals(List.of(second), model.getFilteredPersonList());
     }
 
