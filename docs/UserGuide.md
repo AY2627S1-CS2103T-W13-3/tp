@@ -5,7 +5,7 @@ title: User Guide
 
 PolicyHarbor helps independent insurance agents in Singapore keep client contacts and their next follow-up together. Find a client, review their details, update their contact information and record the next conversation, using typed commands in a desktop workspace.
 
-**Build covered:** this guide describes the current release candidate being prepared for v1.6, with permanent Client IDs, contact editing and name/phone/tag search. The candidate's title bar still says v1.4. A matching v1.6 JAR has not yet been published on the [releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases). Until then, obtain a JAR built from the current `master` source from the team. The published v1.4 JAR uses different command targeting and does not match this guide.
+**Build covered:** this guide describes the current release candidate being prepared for v1.6, with permanent Client IDs, contact editing and name/phone/tag search. The candidate's title bar still says v1.4. A matching v1.6 JAR has not yet been published on the [releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases). Until then, obtain from the team a candidate JAR built from [the verified source revision `01ef0f17`](https://github.com/AY2627S1-CS2103T-W13-3/tp/commit/01ef0f17bf9631bbe50c95e2f47b5592244f3574). The published v1.4 JAR uses different command targeting and does not match this guide.
 
 * Table of Contents
 {:toc}
@@ -51,7 +51,7 @@ Close the main window, then run the JAR again from the **same folder**. Rachel, 
 
 [![PolicyHarbor showing permanent Client IDs, Rachel's selected profile and pending follow-ups](images/Ui.png)](images/Ui.png)
 
-*The workspace in pending mode, populated with fictional clients. The Client ID is the command target; the screenshot contains a larger dataset than the quick-start example. Open the image for a full-size view.*
+*The workspace in pending mode, populated with fictional clients. The Client ID is the command target; the screenshot contains a larger dataset than the quick-start example. Status badges reflect the capture date, 29 October 2026; live badges change with the current date. Open the image for a full-size view.*
 
 - **Top: command and feedback.** Type a command, then press Enter or use Run. The feedback explains the result or how to correct an error.
 - **Left: client table.** It shows Client ID, name, phone and email. `list` shows all clients, `find` shows matches and `followups` shows clients with pending actions, adding due-date and status columns. Columns cannot be sorted by clicking their headers; use the command's displayed order. Narrow tables scroll horizontally.
