@@ -42,20 +42,28 @@ public class Name {
             return false;
         }
         boolean canHaveCombiningMark = false;
+        boolean hasVisibleContent = false;
         for (int offset = 0; offset < trimmedName.length();) {
             int codePoint = trimmedName.codePointAt(offset);
             if (Character.isLetter(codePoint)) {
                 canHaveCombiningMark = true;
+                hasVisibleContent |= !isHangulFiller(codePoint);
             } else if (codePoint >= '0' && codePoint <= '9' || codePoint == ' '
                     || codePoint == '/' || codePoint == '-' || codePoint == '\''
                     || codePoint == '@' || codePoint == '.') {
                 canHaveCombiningMark = false;
+                hasVisibleContent |= codePoint >= '0' && codePoint <= '9';
             } else if (!canHaveCombiningMark || !isCombiningMark(codePoint)) {
                 return false;
             }
             offset += Character.charCount(codePoint);
         }
-        return true;
+        return hasVisibleContent;
+    }
+
+    /** These letters can accompany a name but cannot provide visible content on their own. */
+    private static boolean isHangulFiller(int codePoint) {
+        return codePoint == 0x115f || codePoint == 0x1160 || codePoint == 0x3164 || codePoint == 0xffa0;
     }
 
     private static boolean isCombiningMark(int codePoint) {
