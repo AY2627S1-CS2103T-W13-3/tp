@@ -261,12 +261,13 @@ public class CommandPasteTest {
      * Owns the real window and storage used to submit a draft after rejecting a paste.
      */
     private class DraftSubmissionFixture implements AutoCloseable {
+        private static final String ORIGINAL_ADDRESS = "Original draft address";
+        private static final String ORIGINAL_COMMAND = "add n/Alice p/111 e/alice@example.com a/" + ORIGINAL_ADDRESS;
+
         private final Path dataFile = temporaryFolder.resolve("clients.json");
         private final ModelManager model = new ModelManager();
         private final JsonAddressBookStorage addressBookStorage = new JsonAddressBookStorage(dataFile);
         private final List<String> executedCommands = new ArrayList<>();
-        private final String originalAddress = "Original draft address";
-        private final String originalCommand = "add n/Alice p/111 e/alice@example.com a/" + originalAddress;
         private final MainWindow window = new MainWindow(new Stage(), createRecordingLogic(), dataFile);
         private TextField input;
         private TextArea feedback;
@@ -291,8 +292,8 @@ public class CommandPasteTest {
             feedback = (TextArea) scene.lookup("#resultDisplay");
             feedbackStatus = (Label) scene.lookup("#feedbackStatus");
             run = (Button) scene.lookup("#runButton");
-            input.setText(originalCommand);
-            input.selectRange(originalCommand.length(), originalCommand.indexOf(originalAddress));
+            input.setText(ORIGINAL_COMMAND);
+            input.selectRange(ORIGINAL_COMMAND.length(), ORIGINAL_COMMAND.indexOf(ORIGINAL_ADDRESS));
         }
 
         private void pasteInvalidCommand() {
@@ -301,10 +302,10 @@ public class CommandPasteTest {
         }
 
         private void assertRejectedPastePreservesDraft() {
-            assertEquals(originalCommand, input.getText());
-            assertEquals(originalCommand.length(), input.getAnchor());
-            assertEquals(originalCommand.indexOf(originalAddress), input.getCaretPosition());
-            assertEquals(originalAddress, input.getSelectedText());
+            assertEquals(ORIGINAL_COMMAND, input.getText());
+            assertEquals(ORIGINAL_COMMAND.length(), input.getAnchor());
+            assertEquals(ORIGINAL_COMMAND.indexOf(ORIGINAL_ADDRESS), input.getCaretPosition());
+            assertEquals(ORIGINAL_ADDRESS, input.getSelectedText());
             assertTrue(input.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS));
             assertEquals(Messages.MESSAGE_INVALID_CHARACTERS, feedback.getText());
             assertTrue(feedbackStatus.isVisible());
@@ -322,9 +323,9 @@ public class CommandPasteTest {
         }
 
         private void assertOriginalDraftSubmitted() {
-            assertEquals(List.of(originalCommand), executedCommands);
+            assertEquals(List.of(ORIGINAL_COMMAND), executedCommands);
             assertEquals(1, model.getAddressBook().getPersonList().size());
-            assertEquals(originalAddress, model.getAddressBook().getPersonList().getFirst().getAddress().value);
+            assertEquals(ORIGINAL_ADDRESS, model.getAddressBook().getPersonList().getFirst().getAddress().value);
             assertEquals("", input.getText());
             assertFalse(input.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS));
             assertFalse(feedbackStatus.isVisible());
