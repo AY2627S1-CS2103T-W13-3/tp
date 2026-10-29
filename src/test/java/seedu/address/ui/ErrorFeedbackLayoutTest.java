@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
@@ -115,8 +116,33 @@ public class ErrorFeedbackLayoutTest {
 
     @Test
     public void overflowingError_scrollsToCompleteLastLineAndReturnsToCompactSuccess() throws Exception {
-        // Explicit lines guarantee overflow regardless of platform fonts or usage-message wrapping.
-        String message = "Additional error details.\n".repeat(40) + "Last line: retry the command.";
+        String message = overflowingMessage();
+        for (double[] size : LOGICAL_SIZES) {
+            Dashboard dashboard = callOnFx(() -> {
+                Dashboard offscreen = new Dashboard(message);
+                // Set content before the first skin layout; native desktop access is not required.
+                offscreen.submitWithoutLayout(ERROR_COMMAND);
+                offscreen.resize(size);
+                return offscreen;
+            });
+            try {
+                assertOverflowScrollAndRecovery(dashboard, message);
+            } finally {
+                runOnFx(dashboard::close);
+            }
+        }
+    }
+
+    @Test
+    public void dynamicOverflow_shownScene_scrollsAndRecoversAfterRepeatedUpdates() throws Exception {
+        boolean isMacActionsRunner = "true".equals(System.getenv("GITHUB_ACTIONS"))
+                && "macOS".equals(System.getenv("RUNNER_OS"));
+        boolean isNativeUiEnabled = Boolean.parseBoolean(System.getenv("POLICYHARBOR_NATIVE_UI_TESTS"));
+        // Match existing desktop tests; the offscreen overflow regression still runs on every platform.
+        assumeFalse(isMacActionsRunner && !isNativeUiEnabled,
+                "Native desktop tests are opt-in on macOS Actions after SIGABRT; "
+                        + "set POLICYHARBOR_NATIVE_UI_TESTS=true on a runner configured for native GUI input");
+        String message = overflowingMessage();
         Dashboard dashboard = callOnFx(() -> {
             Dashboard shown = new Dashboard(message);
             shown.showForLayoutPulses();
@@ -128,55 +154,64 @@ public class ErrorFeedbackLayoutTest {
                     dashboard.resize(size);
                     dashboard.submit(ERROR_COMMAND);
                 });
-                // Dynamic skin layout requires a real scene pulse, not only a queued FX action.
-                dashboard.awaitLayoutPulse();
-                double errorHeight = callOnFx(() -> {
-                    dashboard.layout();
-                    TextArea feedback = dashboard.feedback();
-                    assertEquals(message, feedback.getText());
-                    assertFalse(feedback.isEditable());
-                    assertTrue(feedback.isFocusTraversable());
-                    assertCharacterInsideViewport(feedback, 0);
-                    Text text = (Text) feedback.lookup(".text");
-                    Node viewport = feedback.lookup(".viewport");
-                    assertTrue(text.getLayoutBounds().getHeight() > viewport.getLayoutBounds().getHeight(),
-                            "The fixture must actually overflow before requiring a scrollbar");
-                    double height = dashboard.node("#resultDisplayPlaceholder").getLayoutBounds().getHeight();
-                    assertTrue(height < 100, "Long messages must not expand the compact feedback strip");
-                    feedback.selectAll();
-                    assertEquals(message, feedback.getSelectedText(),
-                            "The full error must remain selectable for copying");
-                    assertTrue(getVerticalScrollBar(feedback).isVisible());
-                    feedback.setScrollTop(text.getLayoutBounds().getHeight());
-                    return height;
-                });
-                dashboard.awaitLayoutPulse();
-                runOnFx(() -> {
-                    dashboard.layout();
-                    TextArea feedback = dashboard.feedback();
-                    assertTrue(feedback.getScrollTop() > 0);
-                    assertTextRangeInsideViewport(feedback, message.lastIndexOf('\n') + 1, message.length());
-                    assertEquals(message, feedback.getSelectedText(), "Scrolling must preserve the full selection");
-                    dashboard.assertCommandFocus();
-                    dashboard.submit("list");
-                });
-                dashboard.awaitLayoutPulse();
-                runOnFx(() -> {
-                    dashboard.layout();
-                    TextArea feedback = dashboard.feedback();
-                    assertFalse(dashboard.node("#feedbackStatus").isManaged());
-                    assertTrue(dashboard.node("#resultDisplayPlaceholder").getLayoutBounds().getHeight() < errorHeight,
-                            "Success should recover the space used by the Error label");
-                    assertCharacterInsideViewport(feedback, 0);
-                    assertEquals("", feedback.getSelectedText());
-                    assertEquals(0, feedback.getScrollTop());
-                    assertTrue(dashboard.node("#workspace").getLayoutBounds().getHeight() >= 100,
-                            "Feedback must leave a usable workspace at the smallest logical size");
-                });
+                assertOverflowScrollAndRecovery(dashboard, message);
             }
         } finally {
             runOnFx(dashboard::close);
         }
+    }
+
+    private static String overflowingMessage() {
+        // Explicit lines guarantee overflow regardless of platform fonts or usage-message wrapping.
+        return "Additional error details.\n".repeat(40) + "Last line: retry the command.";
+    }
+
+    private void assertOverflowScrollAndRecovery(Dashboard dashboard, String message) throws Exception {
+        // Shown scenes use real pulses; offscreen fixtures settle through queued layout actions.
+        dashboard.settleLayout();
+        double errorHeight = callOnFx(() -> {
+            dashboard.layout();
+            TextArea feedback = dashboard.feedback();
+            assertEquals(message, feedback.getText());
+            assertFalse(feedback.isEditable());
+            assertTrue(feedback.isFocusTraversable());
+            assertCharacterInsideViewport(feedback, 0);
+            Text text = (Text) feedback.lookup(".text");
+            Node viewport = feedback.lookup(".viewport");
+            assertTrue(text.getLayoutBounds().getHeight() > viewport.getLayoutBounds().getHeight(),
+                    "The fixture must actually overflow before requiring a scrollbar");
+            double height = dashboard.node("#resultDisplayPlaceholder").getLayoutBounds().getHeight();
+            assertTrue(height < 100, "Long messages must not expand the compact feedback strip");
+            feedback.selectAll();
+            assertEquals(message, feedback.getSelectedText(),
+                    "The full error must remain selectable for copying");
+            assertTrue(getVerticalScrollBar(feedback).isVisible());
+            feedback.setScrollTop(text.getLayoutBounds().getHeight());
+            return height;
+        });
+        dashboard.settleLayout();
+        runOnFx(() -> {
+            dashboard.layout();
+            TextArea feedback = dashboard.feedback();
+            assertTrue(feedback.getScrollTop() > 0);
+            assertTextRangeInsideViewport(feedback, message.lastIndexOf('\n') + 1, message.length());
+            assertEquals(message, feedback.getSelectedText(), "Scrolling must preserve the full selection");
+            dashboard.assertCommandFocus();
+            dashboard.submit("list");
+        });
+        dashboard.settleLayout();
+        runOnFx(() -> {
+            dashboard.layout();
+            TextArea feedback = dashboard.feedback();
+            assertFalse(dashboard.node("#feedbackStatus").isManaged());
+            assertTrue(dashboard.node("#resultDisplayPlaceholder").getLayoutBounds().getHeight() < errorHeight,
+                    "Success should recover the space used by the Error label");
+            assertCharacterInsideViewport(feedback, 0);
+            assertEquals("", feedback.getSelectedText());
+            assertEquals(0, feedback.getScrollTop());
+            assertTrue(dashboard.node("#workspace").getLayoutBounds().getHeight() >= 100,
+                    "Feedback must leave a usable workspace at the smallest logical size");
+        });
     }
 
     private static void assertCharacterInsideViewport(TextArea feedback, int character) {
@@ -239,7 +274,11 @@ public class ErrorFeedbackLayoutTest {
             window.getRoot().show();
         }
 
-        void awaitLayoutPulse() throws Exception {
+        void settleLayout() throws Exception {
+            if (!callOnFx(() -> window.getRoot().isShowing())) {
+                runOnFx(this::layout);
+                return;
+            }
             CountDownLatch pulse = new CountDownLatch(1);
             Runnable listener = pulse::countDown;
             runOnFx(() -> {
@@ -259,12 +298,16 @@ public class ErrorFeedbackLayoutTest {
             layout();
         }
 
-        void submit(String command) {
+        void submitWithoutLayout(String command) {
             TextField input = (TextField) node("#commandTextField");
             input.requestFocus();
             input.setText(command);
             Button run = (Button) node("#runButton");
             run.fire();
+        }
+
+        void submit(String command) {
+            submitWithoutLayout(command);
             layout();
             assertCommandFocus();
         }
