@@ -8,9 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static seedu.address.testutil.JavaFxTestUtil.assumeNativeUiAvailable;
+import static seedu.address.testutil.JavaFxTestUtil.callOnFxThread;
+import static seedu.address.testutil.JavaFxTestUtil.runOnFxThread;
 
-import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,12 +22,9 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -67,6 +65,8 @@ import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.JavaFxTestUtil;
+import seedu.address.testutil.LogCapturingHandler;
 import seedu.address.testutil.PersonBuilder;
 
 public class CommandSubmissionTest {
@@ -78,33 +78,21 @@ public class CommandSubmissionTest {
     public Path temporaryFolder;
 
     @BeforeAll
-    public static void initializeToolkit() throws InterruptedException {
-        assumeFalse(GraphicsEnvironment.isHeadless(), "JavaFX control tests require a graphical session");
-        CountDownLatch initialized = new CountDownLatch(1);
-        Runnable initialize = () -> {
-            Platform.setImplicitExit(false);
-            initialized.countDown();
-        };
-        try {
-            Platform.startup(initialize);
-        } catch (IllegalStateException alreadyStarted) {
-            // Other component tests may have initialized the shared JavaFX runtime first.
-            Platform.runLater(initialize);
-        }
-        assertTrue(initialized.await(10, TimeUnit.SECONDS), "JavaFX toolkit did not start");
+    public static void initializeToolkit() throws Exception {
+        JavaFxTestUtil.initializeToolkit();
     }
 
     @Test
     public void initializeToolkit_alreadyRunning_remainsUsable() throws Exception {
         initializeToolkit();
         initializeToolkit();
-        assertTrue(runOnFxThread(Platform::isFxApplicationThread));
-        assertFalse(runOnFxThread(Platform::isImplicitExit));
+        assertTrue(callOnFxThread(Platform::isFxApplicationThread));
+        assertFalse(callOnFxThread(Platform::isImplicitExit));
     }
 
     @Test
     public void constructor_nullExecutor_throwsNullPointerException() throws Exception {
-        NullPointerException exception = runOnFxThread(() ->
+        NullPointerException exception = callOnFxThread(() ->
                 assertThrows(NullPointerException.class, () -> new CommandBox(null)));
 
         assertEquals("commandExecutor", exception.getMessage());
@@ -114,7 +102,7 @@ public class CommandSubmissionTest {
     public void constructor_validExecutor_loadsEditableFieldWithoutExecuting() throws Exception {
         AtomicInteger executionCount = new AtomicInteger();
 
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             CommandBox commandBox = new CommandBox(commandText -> {
                 executionCount.incrementAndGet();
                 return new CommandResult("Listed all clients.");
@@ -133,7 +121,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void submit_enterAndRun_executeIdenticalTextExactlyOnce() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             List<String> executedTexts = new ArrayList<>();
             List<String> expectedTexts = new ArrayList<>();
             CommandBox commandBox = new CommandBox(commandText -> {
@@ -168,7 +156,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void runButton_isAccessibleAndDoesNotSubmitAsDefaultButton() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             CommandBox commandBox = new CommandBox(commandText -> new CommandResult("Command submitted."));
             Button runButton = assertInstanceOf(Button.class, commandBox.getRoot().lookup("#runButton"));
 
@@ -182,7 +170,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void commandBar_existingHost_keepsControlsReadableAndWithinBounds() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             Path dataFile = temporaryFolder.resolve("clients.json");
             LogicManager logic = new LogicManager(new ModelManager(), new StorageManager(
                     new JsonAddressBookStorage(dataFile),
@@ -223,7 +211,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void commandBar_narrowWidth_keepsInputAndRunAvailable() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             CommandBoxFixture fixture = new CommandBoxFixture(commandText -> new CommandResult("Submitted."));
             Region root = assertInstanceOf(Region.class, fixture.scene.getRoot());
             fixture.commandTextField.setText("find " + "Long command text ".repeat(30));
@@ -242,7 +230,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void commandBar_tabAndSpace_submitOnceAndReturnFocus() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             AtomicInteger executionCount = new AtomicInteger();
             CommandBoxFixture fixture = new CommandBoxFixture(commandText -> {
                 executionCount.incrementAndGet();
@@ -265,7 +253,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void commandBar_buttonStates_keepReadableLabelAndVisibleFocus() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             CommandBoxFixture fixture = new CommandBoxFixture(commandText -> new CommandResult("Submitted."));
             Region root = assertInstanceOf(Region.class, fixture.scene.getRoot());
             root.resize(450, root.prefHeight(450));
@@ -296,7 +284,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void commandBar_inputStates_keepVisibleBoundary() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             CommandBoxFixture fixture = new CommandBoxFixture(commandText -> new CommandResult("Submitted."));
             Region root = assertInstanceOf(Region.class, fixture.scene.getRoot());
             PseudoClass focused = PseudoClass.getPseudoClass("focused");
@@ -337,7 +325,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void submit_rejectedCommands_retainInputStateAndFocusThenRecover() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             for (SubmissionMethod method : SubmissionMethod.values()) {
                 AddressBook addressBook = new AddressBook();
                 Person person = new PersonBuilder().build();
@@ -359,27 +347,20 @@ public class CommandSubmissionTest {
                         throw e;
                     }
                 });
-                List<String> inputs = List.of("", "   ", "invalid command", "delete 9", "followup 999 d/bad m/");
-                List<String> expectedMessages = List.of("Enter a command.", "Enter a command.",
-                        Messages.MESSAGE_UNKNOWN_COMMAND, "No client with ID 9.",
-                        "No client with ID 999.");
+                List<RejectedCommand> rejectedCommands = List.of(
+                        new RejectedCommand("", "Enter a command."),
+                        new RejectedCommand("   ", "Enter a command."),
+                        new RejectedCommand("invalid command", Messages.MESSAGE_UNKNOWN_COMMAND),
+                        new RejectedCommand("delete 9", "No client with ID 9."),
+                        new RejectedCommand("followup 999 d/bad m/", "No client with ID 999."));
 
-                for (int i = 0; i < inputs.size(); i++) {
-                    fixture.commandTextField.setText(inputs.get(i));
-                    for (int attempt = 0; attempt < 2; attempt++) {
-                        fixture.submit(method);
-                        assertEquals(inputs.get(i), fixture.commandTextField.getText());
-                        assertEquals(expectedMessages.get(i), failures.getLast());
-                        assertEquals(1, errorClassCount(fixture.commandTextField));
-                        assertSame(fixture.commandTextField, fixture.scene.getFocusOwner());
-                        assertEquals(addressBook, model.getAddressBook());
-                        assertEquals(List.of(person), model.getFilteredPersonList());
-                        assertSame(person, model.selectedPersonProperty().get());
-                        assertEquals(TODAY, model.getToday());
+                for (RejectedCommand rejected : rejectedCommands) {
+                    assertRejectedCommandRetries(fixture, method, rejected, failures, () -> {
+                        assertClientStateUnchanged(model, addressBook, person);
                         assertFalse(Files.exists(dataFile));
-                    }
+                    });
                 }
-                assertEquals(inputs.size() * 2, executionCount.get());
+                assertEquals(rejectedCommands.size() * 2, executionCount.get());
 
                 fixture.commandTextField.setText("list");
                 assertEquals(0, errorClassCount(fixture.commandTextField), "Editing must reset the error style");
@@ -387,7 +368,7 @@ public class CommandSubmissionTest {
                 assertEquals("", fixture.commandTextField.getText());
                 assertEquals(0, errorClassCount(fixture.commandTextField));
                 assertSame(fixture.commandTextField, fixture.scene.getFocusOwner());
-                assertEquals(inputs.size() * 2 + 1, executionCount.get());
+                assertEquals(rejectedCommands.size() * 2 + 1, executionCount.get());
             }
             return null;
         });
@@ -395,7 +376,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void submit_saveFailure_retainsInputAndCommittedDataThenRetries() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             for (SubmissionMethod method : SubmissionMethod.values()) {
                 AddressBook addressBook = new AddressBook();
                 Person person = new PersonBuilder().build();
@@ -405,13 +386,13 @@ public class CommandSubmissionTest {
                 Path dataFile = temporaryFolder.resolve(method.name() + ".json");
                 new JsonAddressBookStorage(dataFile).saveAddressBook(addressBook);
                 byte[] savedData = Files.readAllBytes(dataFile);
-                AtomicBoolean failSave = new AtomicBoolean(true);
+                AtomicBoolean shouldFailSave = new AtomicBoolean(true);
                 AtomicInteger saveCount = new AtomicInteger();
                 JsonAddressBookStorage storage = new JsonAddressBookStorage(dataFile) {
                     @Override
                     public void saveAddressBook(ReadOnlyAddressBook data) throws IOException {
                         saveCount.incrementAndGet();
-                        if (failSave.get()) {
+                        if (shouldFailSave.get()) {
                             throw new IOException("Simulated save failure");
                         }
                         super.saveAddressBook(data);
@@ -436,15 +417,12 @@ public class CommandSubmissionTest {
                     assertEquals(String.format(LogicManager.MESSAGE_SAVE_FAILED, dataFile), failures.getLast());
                     assertEquals(1, errorClassCount(fixture.commandTextField));
                     assertSame(fixture.commandTextField, fixture.scene.getFocusOwner());
-                    assertEquals(addressBook, model.getAddressBook());
-                    assertEquals(List.of(person), model.getFilteredPersonList());
-                    assertSame(person, model.selectedPersonProperty().get());
-                    assertEquals(TODAY, model.getToday());
+                    assertClientStateUnchanged(model, addressBook, person);
                     assertArrayEquals(savedData, Files.readAllBytes(dataFile));
                     assertEquals(attempt + 1, saveCount.get());
                 }
 
-                failSave.set(false);
+                shouldFailSave.set(false);
                 fixture.submit(method);
                 assertEquals("", fixture.commandTextField.getText());
                 assertEquals(0, errorClassCount(fixture.commandTextField));
@@ -460,7 +438,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void submit_unexpectedFailure_propagatesWithoutClearingInput() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             IllegalStateException expected = new IllegalStateException("Executor unavailable");
             CommandBoxFixture fixture = new CommandBoxFixture(commandText -> {
                 throw expected;
@@ -482,7 +460,7 @@ public class CommandSubmissionTest {
 
     @Test
     public void submit_diagnostics_recordOutcomesWithoutPrivateData() throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             String privateDetails = "PRIVATE_CLIENT_COMMAND_AND_ERROR";
             CommandBoxFixture fixture = new CommandBoxFixture(commandText -> {
                 if (commandText.startsWith("parse")) {
@@ -494,21 +472,9 @@ public class CommandSubmissionTest {
                 return new CommandResult(privateDetails);
             });
             Logger logger = LogsCenter.getLogger(CommandBox.class);
-            List<LogRecord> records = new ArrayList<>();
-            Handler handler = new Handler() {
-                @Override
-                public void publish(LogRecord record) {
-                    records.add(record);
-                }
-
-                @Override
-                public void flush() {}
-
-                @Override
-                public void close() {}
-            };
+            LogCapturingHandler handler = new LogCapturingHandler();
             Level previousLevel = logger.getLevel();
-            boolean usedParentHandlers = logger.getUseParentHandlers();
+            boolean wasUsingParentHandlers = logger.getUseParentHandlers();
             logger.setLevel(Level.FINE);
             logger.setUseParentHandlers(false);
             logger.addHandler(handler);
@@ -517,6 +483,7 @@ public class CommandSubmissionTest {
                     fixture.commandTextField.setText(prefix + " " + privateDetails);
                     fixture.submit(SubmissionMethod.RUN_ACTION);
                 }
+                List<LogRecord> records = handler.getRecords();
                 assertEquals(3, records.size(), "Every submission must record an outcome at diagnostic level");
                 assertTrue(records.get(0).getMessage().contains("ParseException"));
                 assertTrue(records.get(1).getMessage().contains("CommandException"));
@@ -528,26 +495,56 @@ public class CommandSubmissionTest {
             } finally {
                 logger.removeHandler(handler);
                 logger.setLevel(previousLevel);
-                logger.setUseParentHandlers(usedParentHandlers);
+                logger.setUseParentHandlers(wasUsingParentHandlers);
             }
             return null;
         });
     }
 
+    private static void assertRejectedCommandRetries(CommandBoxFixture fixture, SubmissionMethod method,
+            RejectedCommand rejected, List<String> failures, Runnable assertUnchangedState) {
+        fixture.commandTextField.setText(rejected.input());
+        for (int attempt = 0; attempt < 2; attempt++) {
+            fixture.submit(method);
+            assertEquals(rejected.input(), fixture.commandTextField.getText());
+            assertEquals(rejected.expectedMessage(), failures.getLast());
+            assertEquals(1, errorClassCount(fixture.commandTextField));
+            assertSame(fixture.commandTextField, fixture.scene.getFocusOwner());
+            assertUnchangedState.run();
+        }
+    }
+
+    private static void assertClientStateUnchanged(ModelManager model, ReadOnlyAddressBook initialData, Person person) {
+        assertEquals(initialData, model.getAddressBook());
+        assertEquals(List.of(person), model.getFilteredPersonList());
+        assertSame(person, model.selectedPersonProperty().get());
+        assertEquals(TODAY, model.getToday());
+    }
+
     /**
-     * Exercises native input in a shown window, including typing again without refocusing after submission.
-     * Hosted macOS native desktop checks require explicit opt-in after their test worker aborted in CI.
+     * Exercises native submission and subsequent typing for successful and rejected commands.
      */
     private static void assertShownSubmission(SubmissionMethod method) throws Exception {
-        boolean isMacActionsRunner = "true".equals(System.getenv("GITHUB_ACTIONS"))
-                && "macOS".equals(System.getenv("RUNNER_OS"));
-        boolean isNativeUiEnabled = Boolean.parseBoolean(System.getenv("POLICYHARBOR_NATIVE_UI_TESTS"));
-        // Only native desktop checks are gated; the remaining JavaFX component tests still run on macOS.
-        assumeFalse(isMacActionsRunner && !isNativeUiEnabled,
-                "Native desktop tests are opt-in on macOS Actions after SIGABRT; "
-                        + "set POLICYHARBOR_NATIVE_UI_TESTS=true on a runner configured for native GUI input");
+        assumeNativeUiAvailable();
         List<String> executedTexts = new ArrayList<>();
-        CommandBoxFixture fixture = runOnFxThread(() -> new CommandBoxFixture(commandText -> {
+        CommandBoxFixture fixture = createNativeSubmissionFixture(executedTexts);
+        Stage stage = callOnFxThread(() -> showCommandWindow(fixture.scene));
+        try {
+            Robot robot = callOnFxThread(Robot::new);
+            focusNativeInput(stage, fixture, robot);
+            List<String> expectedTexts = new ArrayList<>();
+            for (String input : List.of("list", "parse", "command", "save")) {
+                submitNativeCommand(fixture, robot, method, input);
+                expectedTexts.add(input);
+                assertNativeSubmission(fixture, robot, executedTexts, expectedTexts, input);
+            }
+        } finally {
+            runOnFxThread(stage::close);
+        }
+    }
+
+    private static CommandBoxFixture createNativeSubmissionFixture(List<String> executedTexts) throws Exception {
+        return callOnFxThread(() -> new CommandBoxFixture(commandText -> {
             executedTexts.add(commandText);
             switch (commandText) {
                 case "parse":
@@ -560,66 +557,56 @@ public class CommandSubmissionTest {
                     return new CommandResult("Submitted.");
             }
         }));
-        Stage stage = runOnFxThread(() -> showCommandWindow(fixture.scene));
-        try {
-            Robot robot = runOnFxThread(Robot::new);
-            awaitFxCondition(stage::isFocused, "The test window must receive native keyboard input");
-            AtomicBoolean inputClicked = new AtomicBoolean();
-            runOnFxThread(() -> {
-                fixture.commandTextField.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> inputClicked.set(true));
-                clickControl(robot, fixture.commandTextField);
-                return null;
-            });
-            awaitFxCondition(inputClicked::get, "The initial native click must reach the test input");
-            awaitFxCondition(fixture.commandTextField::isFocused, "The test input must receive native focus");
-            List<String> expectedTexts = new ArrayList<>();
-            for (String input : List.of("list", "parse", "command", "save")) {
-                runOnFxThread(() -> {
-                    fixture.commandTextField.setText(input);
-                    fixture.commandTextField.positionCaret(input.length());
-                    fixture.commandTextField.requestFocus();
-                    return null;
-                });
-                awaitFxCondition(fixture.commandTextField::isFocused, "The input must be focused before submission");
-                if (method == SubmissionMethod.RUN_KEYBOARD) {
-                    runOnFxThread(() -> {
-                        robot.keyType(KeyCode.TAB);
-                        return null;
-                    });
-                    awaitFxCondition(fixture.runButton::isFocused, "Tab must reach Run before submitting " + input);
-                }
-                runOnFxThread(() -> {
-                    if (method == SubmissionMethod.RUN_ACTION) {
-                        clickControl(robot, fixture.runButton);
-                    } else {
-                        robot.keyType(method == SubmissionMethod.ENTER ? KeyCode.ENTER : KeyCode.SPACE);
-                    }
-                    return null;
-                });
-                expectedTexts.add(input);
-                int expectedCount = expectedTexts.size();
-                awaitFxCondition(() -> executedTexts.size() >= expectedCount, "Native input must submit the command");
-                awaitFxCondition(fixture.commandTextField::isFocused, "Submission must restore actual input focus");
-                String retainedText = input.equals("list") ? "" : input;
-                runOnFxThread(() -> {
-                    assertEquals(expectedTexts, executedTexts, "Each interaction must submit exactly once");
-                    assertEquals(retainedText, fixture.commandTextField.getText());
-                    assertEquals(input.equals("list") ? 0 : 1, errorClassCount(fixture.commandTextField));
-                    return null;
-                });
-                assertCanTypeAfterSubmission(fixture.commandTextField, robot, retainedText);
-                runOnFxThread(() -> {
-                    assertEquals(expectedTexts, executedTexts, "Typing must not cause another submission");
-                    assertEquals(0, errorClassCount(fixture.commandTextField), "Typing must clear the error style");
-                    return null;
-                });
-            }
-        } finally {
-            runOnFxThread(() -> {
-                stage.close();
-                return null;
-            });
+    }
+
+    private static void focusNativeInput(Stage stage, CommandBoxFixture fixture, Robot robot) throws Exception {
+        awaitFxCondition(stage::isFocused, "The test window must receive native keyboard input");
+        AtomicBoolean wasInputClicked = new AtomicBoolean();
+        runOnFxThread(() -> {
+            fixture.commandTextField.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> wasInputClicked.set(true));
+            clickControl(robot, fixture.commandTextField);
+        });
+        awaitFxCondition(wasInputClicked::get, "The initial native click must reach the test input");
+        awaitFxCondition(fixture.commandTextField::isFocused, "The test input must receive native focus");
+    }
+
+    private static void submitNativeCommand(CommandBoxFixture fixture, Robot robot, SubmissionMethod method,
+            String input) throws Exception {
+        runOnFxThread(() -> {
+            fixture.commandTextField.setText(input);
+            fixture.commandTextField.positionCaret(input.length());
+            fixture.commandTextField.requestFocus();
+        });
+        awaitFxCondition(fixture.commandTextField::isFocused, "The input must be focused before submission");
+        if (method == SubmissionMethod.RUN_KEYBOARD) {
+            runOnFxThread(() -> robot.keyType(KeyCode.TAB));
+            awaitFxCondition(fixture.runButton::isFocused, "Tab must reach Run before submitting " + input);
         }
+        runOnFxThread(() -> {
+            if (method == SubmissionMethod.RUN_ACTION) {
+                clickControl(robot, fixture.runButton);
+            } else {
+                robot.keyType(method == SubmissionMethod.ENTER ? KeyCode.ENTER : KeyCode.SPACE);
+            }
+        });
+    }
+
+    private static void assertNativeSubmission(CommandBoxFixture fixture, Robot robot, List<String> executedTexts,
+            List<String> expectedTexts, String input) throws Exception {
+        int expectedCount = expectedTexts.size();
+        awaitFxCondition(() -> executedTexts.size() >= expectedCount, "Native input must submit the command");
+        awaitFxCondition(fixture.commandTextField::isFocused, "Submission must restore actual input focus");
+        String retainedText = input.equals("list") ? "" : input;
+        runOnFxThread(() -> {
+            assertEquals(expectedTexts, executedTexts, "Each interaction must submit exactly once");
+            assertEquals(retainedText, fixture.commandTextField.getText());
+            assertEquals(input.equals("list") ? 0 : 1, errorClassCount(fixture.commandTextField));
+        });
+        assertCanTypeAfterSubmission(fixture.commandTextField, robot, retainedText);
+        runOnFxThread(() -> {
+            assertEquals(expectedTexts, executedTexts, "Typing must not cause another submission");
+            assertEquals(0, errorClassCount(fixture.commandTextField), "Typing must clear the error style");
+        });
     }
 
     /**
@@ -653,7 +640,7 @@ public class CommandSubmissionTest {
      */
     private static void assertCanTypeAfterSubmission(TextField commandTextField, Robot robot, String retainedText)
             throws Exception {
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             KeyCode shortcut = System.getProperty("os.name").startsWith("Mac") ? KeyCode.META : KeyCode.CONTROL;
             robot.keyPress(shortcut);
             robot.keyType(KeyCode.A);
@@ -662,7 +649,7 @@ public class CommandSubmissionTest {
         });
         awaitFxCondition(() -> commandTextField.getSelectedText().equals(retainedText),
                 "The native select-all shortcut must reach the input after submission");
-        runOnFxThread(() -> {
+        callOnFxThread(() -> {
             robot.keyType(KeyCode.X);
             return null;
         });
@@ -676,12 +663,12 @@ public class CommandSubmissionTest {
     private static void awaitFxCondition(Callable<Boolean> condition, String message) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (System.nanoTime() < deadline) {
-            if (runOnFxThread(condition)) {
+            if (callOnFxThread(condition)) {
                 return;
             }
             TimeUnit.MILLISECONDS.sleep(20);
         }
-        assertTrue(runOnFxThread(condition), message);
+        assertTrue(callOnFxThread(condition), message);
     }
 
     private static long errorClassCount(TextField commandTextField) {
@@ -743,6 +730,8 @@ public class CommandSubmissionTest {
         RUN_KEYBOARD
     }
 
+    private record RejectedCommand(String input, String expectedMessage) {}
+
     /**
      * Loads the real command controls into a scene for submission and logical focus checks.
      */
@@ -777,14 +766,5 @@ public class CommandSubmissionTest {
                     throw new AssertionError("Unknown submission method");
             }
         }
-    }
-
-    /**
-     * Runs a check on the JavaFX application thread and propagates failures to JUnit.
-     */
-    private static <T> T runOnFxThread(Callable<T> action) throws Exception {
-        FutureTask<T> task = new FutureTask<>(action);
-        Platform.runLater(task);
-        return task.get(10, TimeUnit.SECONDS);
     }
 }

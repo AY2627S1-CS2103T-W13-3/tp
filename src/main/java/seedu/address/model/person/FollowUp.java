@@ -86,7 +86,9 @@ public final class FollowUp {
         return date.getYear() >= 1 && date.getYear() <= 9999;
     }
 
-    /** Validates single-line Unicode text without changing its spelling or joining sequences. */
+    /**
+     * Validates single-line Unicode text without changing its spelling or joining sequences.
+     */
     private static boolean isValidDescription(String text) {
         int codePointCount = 0;
         boolean hasVisibleContent = false;
@@ -105,7 +107,9 @@ public final class FollowUp {
         return hasVisibleContent;
     }
 
-    /** Marks and format characters may accompany visible text but cannot form a note by themselves. */
+    /**
+     * Marks and format characters may accompany visible text but cannot form a note by themselves.
+     */
     private static boolean isVisibleDescriptionCharacter(int codePoint) {
         if (Character.isWhitespace(codePoint) || Character.isSpaceChar(codePoint)) {
             return false;

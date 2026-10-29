@@ -3,7 +3,9 @@ package seedu.address.logic.parser;
 import seedu.address.commons.core.index.Index;
 import seedu.address.logic.parser.exceptions.ParseException;
 
-/** Contains parsing helpers specific to the follow-up command grammar. */
+/**
+ * Contains parsing helpers specific to the follow-up command grammar.
+ */
 public final class FollowUpParserUtil {
 
     private FollowUpParserUtil() {}

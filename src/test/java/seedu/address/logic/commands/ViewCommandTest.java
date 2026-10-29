@@ -147,25 +147,25 @@ public class ViewCommandTest {
                 command.toString());
     }
 
-    private Model createModel(boolean blocked) {
+    private Model createModel(boolean isDataLoadingBlocked) {
         AddressBook addressBook = new AddressBook();
-        if (!blocked) {
+        if (!isDataLoadingBlocked) {
             addressBook.addPerson(first);
             addressBook.addPerson(second);
         }
-        return new ModelManager(addressBook, new UserPrefs(), TODAY, blocked);
+        return new ModelManager(addressBook, new UserPrefs(), TODAY, isDataLoadingBlocked);
     }
 
     private void assertView(Model model, int index, Person expected) throws Exception {
         List<Person> displayed = List.copyOf(model.getFilteredPersonList());
         List<Person> stored = List.copyOf(model.getAddressBook().getPersonList());
-        boolean pending = model.showingFollowUpsProperty().get();
+        boolean isShowingFollowUps = model.showingFollowUpsProperty().get();
         assertEquals("Showing client ID " + index + ": Rachel Lim",
                 new ViewCommand(new ClientId(index)).execute(model).getFeedbackToUser());
         assertSame(expected, model.selectedPersonProperty().get());
         assertEquals(displayed, model.getFilteredPersonList());
         assertEquals(stored, model.getAddressBook().getPersonList());
-        assertEquals(pending, model.showingFollowUpsProperty().get());
+        assertEquals(isShowingFollowUps, model.showingFollowUpsProperty().get());
         assertEquals(TODAY, model.getToday());
         assertFalse(model.hasUnsavedChanges());
     }

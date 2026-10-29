@@ -7,9 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static seedu.address.testutil.JavaFxTestUtil.assumeNativeUiAvailable;
+import static seedu.address.testutil.JavaFxTestUtil.callOnFxThread;
+import static seedu.address.testutil.JavaFxTestUtil.runOnFxThread;
 
-import java.awt.GraphicsEnvironment;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -21,9 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -45,23 +44,13 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import seedu.address.testutil.JavaFxTestUtil;
 
 public class ResultDisplayTest {
 
     @BeforeAll
     public static void initializeToolkit() throws Exception {
-        assumeFalse(GraphicsEnvironment.isHeadless(), "JavaFX control tests require a graphical session");
-        FutureTask<Void> startup = new FutureTask<>(() -> {
-            Platform.setImplicitExit(false);
-            return null;
-        });
-        try {
-            Platform.startup(startup);
-        } catch (IllegalStateException alreadyInitialized) {
-            // Other component tests may already own the shared JavaFX runtime.
-            Platform.runLater(startup);
-        }
-        startup.get(10, TimeUnit.SECONDS);
+        JavaFxTestUtil.initializeToolkit();
     }
 
     @Test
@@ -210,13 +199,7 @@ public class ResultDisplayTest {
 
     @Test
     public void setFeedback_repeatedUpdates_preservesCommandFocusAndInput() throws Exception {
-        boolean isMacActionsRunner = "true".equals(System.getenv("GITHUB_ACTIONS"))
-                && "macOS".equals(System.getenv("RUNNER_OS"));
-        boolean isNativeUiEnabled = Boolean.parseBoolean(System.getenv("POLICYHARBOR_NATIVE_UI_TESTS"));
-        // Match CommandSubmissionTest's native opt-in; scene-level coverage still runs everywhere.
-        assumeFalse(isMacActionsRunner && !isNativeUiEnabled,
-                "Native desktop tests are opt-in on macOS Actions after SIGABRT; "
-                        + "set POLICYHARBOR_NATIVE_UI_TESTS=true on a runner configured for native GUI input");
+        assumeNativeUiAvailable();
         FocusFixture fixture = callOnFxThread(() -> {
             ResultDisplay display = new ResultDisplay();
             TextField command = new TextField("list");
@@ -507,18 +490,6 @@ public class ResultDisplayTest {
         } catch (MalformedURLException exception) {
             throw new AssertionError("Invalid in-memory FXML fixture URL", exception);
         }
-    }
-
-    private static void runOnFxThread(Runnable action) throws Exception {
-        FutureTask<Void> task = new FutureTask<>(action, null);
-        Platform.runLater(task);
-        task.get(10, TimeUnit.SECONDS);
-    }
-
-    private static <T> T callOnFxThread(Callable<T> action) throws Exception {
-        FutureTask<T> task = new FutureTask<>(action);
-        Platform.runLater(task);
-        return task.get(10, TimeUnit.SECONDS);
     }
 
     private record FocusFixture(Stage stage, Scene scene, TextField command, ResultDisplay display) {

@@ -90,7 +90,9 @@ public class AddressBookParser {
         };
     }
 
-    /** Rejects extra arguments without changing global validation precedence. */
+    /**
+     * Rejects extra arguments without changing global validation precedence.
+     */
     private static void requireNoArguments(String arguments, String usage) throws ParseException {
         if (!trimOrdinarySpaces(arguments).isEmpty()) {
             throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, usage));

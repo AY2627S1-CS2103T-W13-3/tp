@@ -38,14 +38,15 @@ public class AddressBookParserTest {
 
     @Test
     public void parseCommand_view_routesInNormalAndBlockedSessions() throws Exception {
-        for (boolean blocked : List.of(false, true)) {
-            assertEquals(new ViewCommand(new ClientId(1)), parser.parseCommand(" view 0001 ", blocked));
+        for (boolean isDataLoadingBlocked : List.of(false, true)) {
+            assertEquals(new ViewCommand(new ClientId(1)), parser.parseCommand(" view 0001 ", isDataLoadingBlocked));
             assertThrows(ParseException.class,
                     String.format(MESSAGE_INVALID_COMMAND_FORMAT, ViewCommand.MESSAGE_USAGE), () ->
-                    parser.parseCommand("view 0 extra", blocked));
+                    parser.parseCommand("view 0 extra", isDataLoadingBlocked));
             assertThrows(ParseException.class, ClientIdParserUtil.MESSAGE_INVALID_CLIENT_ID, () ->
-                    parser.parseCommand("view 0", blocked));
-            assertThrows(ParseException.class, "Unknown command.", () -> parser.parseCommand("VIEW 1", blocked));
+                    parser.parseCommand("view 0", isDataLoadingBlocked));
+            assertThrows(ParseException.class, "Unknown command.", () ->
+                    parser.parseCommand("VIEW 1", isDataLoadingBlocked));
         }
     }
 
@@ -101,18 +102,19 @@ public class AddressBookParserTest {
 
     @Test
     public void parseCommand_find_validatesGloballyBeforeParsingInNormalAndBlockedSessions() throws Exception {
-        for (boolean blocked : List.of(false, true)) {
+        for (boolean isDataLoadingBlocked : List.of(false, true)) {
             assertEquals(new FindCommand(new ClientContainsKeywordsPredicate(List.of("Alice", "Bob"))),
-                    parser.parseCommand(" find   Alice  Bob ", blocked));
+                    parser.parseCommand(" find   Alice  Bob ", isDataLoadingBlocked));
             assertThrows(ParseException.class,
                     String.format(MESSAGE_INVALID_COMMAND_FORMAT, FindCommand.MESSAGE_USAGE), () ->
-                    parser.parseCommand("find   ", blocked));
-            assertThrows(ParseException.class, "Unknown command.", () -> parser.parseCommand("FIND Alice", blocked));
+                    parser.parseCommand("find   ", isDataLoadingBlocked));
+            assertThrows(ParseException.class, "Unknown command.", () ->
+                    parser.parseCommand("FIND Alice", isDataLoadingBlocked));
             for (String character : List.of("\t", "\n", "\r", "\u0000", "\u007f", "\u0085",
                     "\u2028", "\u2029")) {
                 assertThrows(ParseException.class,
                         "Use one command line and ordinary spaces. Control characters are not allowed.", () ->
-                        parser.parseCommand("find " + character, blocked));
+                        parser.parseCommand("find " + character, isDataLoadingBlocked));
             }
         }
     }
@@ -146,14 +148,14 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_noArgumentCommands_rejectsExtraArguments() {
         for (String command : List.of("list", "followups")) {
-            for (boolean blocked : List.of(false, true)) {
+            for (boolean isDataLoadingBlocked : List.of(false, true)) {
                 for (String suffix : List.of(" words", " 123", " n/Rachel", " list", " \u00a0")) {
                     String usage = "Usage: " + command + " (no arguments)";
                     assertThrows(ParseException.class, String.format(MESSAGE_INVALID_COMMAND_FORMAT, usage), () ->
-                            parser.parseCommand(" " + command + suffix + " ", blocked));
+                            parser.parseCommand(" " + command + suffix + " ", isDataLoadingBlocked));
                 }
                 assertThrows(ParseException.class, MESSAGE_INVALID_CHARACTERS, () ->
-                        parser.parseCommand(command + " words\n", blocked));
+                        parser.parseCommand(command + " words\n", isDataLoadingBlocked));
             }
         }
     }
@@ -176,10 +178,10 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_supportedAndUnsupportedRoutes_invalidCharactersTakeGlobalPriority() {
         for (String commandWord : List.of("edit", "clear", "help", "exit")) {
-            for (boolean blocked : List.of(false, true)) {
+            for (boolean isDataLoadingBlocked : List.of(false, true)) {
                 assertThrows(ParseException.class,
                         "Use one command line and ordinary spaces. Control characters are not allowed.", () ->
-                        parser.parseCommand(commandWord + "\t", blocked));
+                        parser.parseCommand(commandWord + "\t", isDataLoadingBlocked));
             }
         }
     }
@@ -207,10 +209,10 @@ public class AddressBookParserTest {
     }
 
     private void assertUnsupportedRoute(String commandWord) {
-        for (boolean blocked : List.of(false, true)) {
+        for (boolean isDataLoadingBlocked : List.of(false, true)) {
             for (String suffix : List.of("", " 1", " malformed extra")) {
                 assertThrows(ParseException.class, "Unknown command.", () ->
-                        parser.parseCommand(" " + commandWord + suffix + " ", blocked));
+                        parser.parseCommand(" " + commandWord + suffix + " ", isDataLoadingBlocked));
             }
         }
     }

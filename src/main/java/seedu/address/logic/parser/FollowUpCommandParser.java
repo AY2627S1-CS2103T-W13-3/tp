@@ -11,7 +11,9 @@ import seedu.address.logic.commands.SetFollowUpCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.ClientId;
 
-/** Parses the record, replace, and clear forms of the follow-up command. */
+/**
+ * Parses the record, replace, and clear forms of the follow-up command.
+ */
 public final class FollowUpCommandParser implements Parser<Command> {
     public static final String COMMAND_WORD = "followup";
 
@@ -27,7 +29,7 @@ public final class FollowUpCommandParser implements Parser<Command> {
             return new ClearFollowUpCommand(ClientIdParserUtil.parseClientId(preamble.split(" +")[0]));
         }
         if (!hasDate || !hasDescription || !preamble.matches("[^ ]+")) {
-            throw invalidFormat();
+            throw createInvalidFormatException();
         }
 
         arguments.verifyNoDuplicatePrefixesFor(PREFIX_FOLLOW_UP_DATE, PREFIX_FOLLOW_UP_DESCRIPTION);
@@ -40,7 +42,7 @@ public final class FollowUpCommandParser implements Parser<Command> {
         return preamble.matches("[^ ]+ +clear");
     }
 
-    private static ParseException invalidFormat() {
+    private static ParseException createInvalidFormatException() {
         return new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, MESSAGE_USAGE));
     }
 }

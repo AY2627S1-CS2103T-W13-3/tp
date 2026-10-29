@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -33,6 +31,7 @@ import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.Storage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.LogCapturingHandler;
 
 /** Verifies private diagnostics across real preference and client startup recovery. */
 public class LoadingDiagnosticPrivacyTest {
@@ -45,13 +44,13 @@ public class LoadingDiagnosticPrivacyTest {
     public Path testFolder;
 
     private Logger baseLogger;
-    private CapturingHandler handler;
+    private LogCapturingHandler handler;
 
     @BeforeEach
     public void setUp() {
         // Capture the shared parent so downstream loggers cannot bypass the privacy assertions.
         baseLogger = LogsCenter.getLogger(LoadingDiagnosticPrivacyTest.class).getParent();
-        handler = new CapturingHandler();
+        handler = new LogCapturingHandler();
         baseLogger.addHandler(handler);
     }
 
@@ -140,36 +139,19 @@ public class LoadingDiagnosticPrivacyTest {
     }
 
     private void assertWarning(String loggerName, Path file) {
-        assertTrue(handler.records.stream().anyMatch(record -> record.getLoggerName().endsWith("." + loggerName)
+        assertTrue(handler.getRecords().stream().anyMatch(record -> record.getLoggerName().endsWith("." + loggerName)
                 && record.getLevel().equals(Level.WARNING) && record.getMessage().contains(file.toString())),
                 "Expected a useful path warning from " + loggerName);
     }
 
     private void assertPrivateDiagnostics() {
-        for (LogRecord record : handler.records) {
+        for (LogRecord record : handler.getRecords()) {
             assertNull(record.getThrown(), "Startup diagnostics must not attach untrusted exception details");
             for (String privateValue : PRIVATE_VALUES) {
                 assertFalse(record.getMessage().contains(privateValue), "Log message exposes client contents");
                 assertFalse(new SimpleFormatter().format(record).contains(privateValue),
                         "Formatted startup diagnostic exposes client contents");
             }
-        }
-    }
-
-    private static class CapturingHandler extends Handler {
-        private final List<LogRecord> records = new ArrayList<>();
-
-        @Override
-        public void publish(LogRecord record) {
-            records.add(record);
-        }
-
-        @Override
-        public void flush() {
-        }
-
-        @Override
-        public void close() {
         }
     }
 }

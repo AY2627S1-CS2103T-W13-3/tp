@@ -10,6 +10,7 @@ import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.ClientContainsKeywordsPredicate;
 import seedu.address.model.person.ClientSearchPredicate;
 import seedu.address.model.person.ClientSearchPredicate.Field;
+import seedu.address.model.person.Phone;
 import seedu.address.model.tag.Tag;
 
 /**
@@ -32,18 +33,18 @@ public class FindCommandParser implements Parser<FindCommand> {
                     String.format(MESSAGE_INVALID_COMMAND_FORMAT, FindCommand.MESSAGE_USAGE));
         }
 
-        Field field = explicitFieldAtStart(trimmedArgs);
+        Field field = getExplicitFieldAtStart(trimmedArgs);
         if (field != null) {
             String query = trimOrdinarySpaces(trimmedArgs.substring(2));
             if (query.isEmpty() || containsAnotherExplicitField(query)) {
-                throw invalidSearchFormat();
+                throw createInvalidSearchFormatException();
             }
             validateQuery(field, query);
             return new FindCommand(new ClientSearchPredicate(field, query));
         }
 
         if (containsExplicitFieldAfterText(trimmedArgs)) {
-            throw invalidSearchFormat();
+            throw createInvalidSearchFormatException();
         }
 
         String[] keywords = trimmedArgs.split(" +");
@@ -51,7 +52,7 @@ public class FindCommandParser implements Parser<FindCommand> {
         return new FindCommand(new ClientContainsKeywordsPredicate(List.of(keywords)));
     }
 
-    private Field explicitFieldAtStart(String args) {
+    private Field getExplicitFieldAtStart(String args) {
         if (args.startsWith("n/")) {
             return Field.NAME;
         } else if (args.startsWith("p/")) {
@@ -77,40 +78,21 @@ public class FindCommandParser implements Parser<FindCommand> {
     }
 
     private boolean isReservedPrefix(String args, int index) {
+        assert index >= 0 && index < args.length() - 1 : "A prefix must have two available characters.";
         char prefix = args.charAt(index);
         return args.charAt(index + 1) == '/' && (prefix == 'n' || prefix == 'p' || prefix == 't');
     }
 
     private void validateQuery(Field field, String query) throws ParseException {
-        if (field == Field.PHONE && !isValidPhoneQuery(query)) {
-            throw invalidSearchFormat();
+        if (field == Field.PHONE && !Phone.isValidPhoneQuery(query)) {
+            throw createInvalidSearchFormatException();
         }
         if (field == Field.TAG && !Tag.isValidTagName(query)) {
-            throw invalidSearchFormat();
+            throw createInvalidSearchFormatException();
         }
     }
 
-    private boolean isValidPhoneQuery(String query) {
-        boolean previousWasDigit = false;
-        boolean hasDigit = false;
-        for (int i = 0; i < query.length(); i++) {
-            char character = query.charAt(i);
-            if (character >= '0' && character <= '9') {
-                previousWasDigit = true;
-                hasDigit = true;
-            } else if (i == 0 && character == '+') {
-                previousWasDigit = false;
-            } else if ((character == ' ' || character == '-') && previousWasDigit
-                    && i + 1 < query.length() && query.charAt(i + 1) >= '0' && query.charAt(i + 1) <= '9') {
-                previousWasDigit = false;
-            } else {
-                return false;
-            }
-        }
-        return hasDigit && previousWasDigit;
-    }
-
-    private ParseException invalidSearchFormat() {
+    private ParseException createInvalidSearchFormatException() {
         return new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, FindCommand.MESSAGE_USAGE));
     }
 

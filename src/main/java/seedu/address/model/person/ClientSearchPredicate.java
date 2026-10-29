@@ -7,9 +7,13 @@ import java.util.function.Predicate;
 
 import seedu.address.commons.util.ToStringBuilder;
 
-/** Matches a client using one explicit name, phone, or tag search. */
+/**
+ * Matches a client using one explicit name, phone, or tag search.
+ */
 public class ClientSearchPredicate implements Predicate<Person> {
-    /** Identifies the contact field used by an explicit client search. */
+    /**
+     * Identifies the contact field used by an explicit client search.
+     */
     public enum Field {
         NAME, PHONE, TAG
     }
@@ -17,7 +21,9 @@ public class ClientSearchPredicate implements Predicate<Person> {
     private final Field field;
     private final String query;
 
-    /** Creates a predicate for one validated explicit search field and query. */
+    /**
+     * Creates a predicate for one validated explicit search field and query.
+     */
     public ClientSearchPredicate(Field field, String query) {
         requireNonNull(field);
         requireNonNull(query);
@@ -30,7 +36,7 @@ public class ClientSearchPredicate implements Predicate<Person> {
         requireNonNull(person);
         return switch (field) {
             case NAME -> containsNameIgnoreCase(person.getName().fullName, query);
-            case PHONE -> phoneDigits(person.getPhone().value).contains(phoneDigits(query));
+            case PHONE -> Phone.extractDigits(person.getPhone().value).contains(Phone.extractDigits(query));
             case TAG -> person.getTags().stream().anyMatch(tag -> tag.tagName.equalsIgnoreCase(query));
         };
     }
@@ -63,10 +69,6 @@ public class ClientSearchPredicate implements Predicate<Person> {
             }
         }
         return collapsed.toString();
-    }
-
-    private static String phoneDigits(String value) {
-        return value.replace("+", "").replace(" ", "").replace("-", "");
     }
 
     @Override
