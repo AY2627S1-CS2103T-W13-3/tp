@@ -196,7 +196,7 @@ The address validator still checks complete UTF-16 surrogate pairs, and stored v
 
 `LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, invalid-ID and save failures preserve live data, list mode/order, selection and date; successful read-only commands do not save.
 
-Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, index boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, permanent-ID targeting across pending/search filters, follow-up targeting and injected save failures. Parser tests cover syntax separately from global ID resolution.
+Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, permanent-ID boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, permanent-ID targeting across pending/search filters, follow-up targeting and injected save failures. Parser tests cover syntax separately from global ID resolution.
 
 ### Saved client loading
 
@@ -257,7 +257,7 @@ A saved record uses the following JSON shape. Tags are strings, not objects; omi
 
 `ViewCommandParser` trims outer ordinary spaces (U+0020) and requires exactly one token. Missing or additional tokens produce `Invalid command format!` followed by a newline and `Usage: view ID`, before ID syntax validation. It delegates to `ClientIdParserUtil.parseClientId`, accepting ASCII digits with leading zeroes and a numeric value in `1..2147483647`. Invalid IDs produce `Client ID must be a positive integer from 1 to 2147483647.`.
 
-At execution, `ViewCommand` calls `ClientIdResolver.requireClient` against the full address book. An unknown ID produces `No client with ID ID.`. If the matching client is hidden by search or pending mode, `ViewCommand` switches to the full-list filter before selecting that canonical `Person`. Success returns `Showing client ID ID: NAME`. No command-result field, callback or UI event is added.
+At execution, `ViewCommand` calls `ClientIdResolver.requireClient` against the full address book. An unknown ID, such as 17, produces `No client with ID 17.`. If the matching client is hidden by search or pending mode, `ViewCommand` switches to the full-list filter before selecting that canonical `Person`. Success returns `Showing client ID 17: Rachel Lim` when Rachel has ID 17. No command-result field, callback or UI event is added.
 
 Permanent IDs are authoritative regardless of the currently displayed list. Viewing a visible client preserves the current mode; viewing a hidden one switches to the full list. Selection does not change stored client data or the dirty flag. Through the existing `LogicManager` execution path, the command selects on an isolated candidate; successful publication transfers selection and the sampled date without saving client data. A failed parse or range check publishes nothing. The command never samples a date itself.
 
@@ -681,7 +681,7 @@ Run these on each real OS and resolution/scaling combination available, and reco
 
 ### Save failures and automated boundaries
 
-`JsonAddressBookStorageTest` injects write/move failures. `ClientProfileWorkflowIntegrationTest` checks failed add/delete/action replacement/clearing without changing saved bytes, selection, list mode/order or date. `ClientRecordCommandsTest` covers additional duplicate and index partitions; `ClientProfileSelectionTest` covers canonical identity and equal-value publication.
+`JsonAddressBookStorageTest` injects write/move failures. `ClientProfileWorkflowIntegrationTest` checks failed add/delete/action replacement/clearing without changing saved bytes, selection, list mode/order or date. `ClientRecordCommandsTest` covers additional duplicate and permanent-ID partitions; `ClientProfileSelectionTest` covers canonical identity and equal-value publication.
 
 For an optional manual failure check, keep the app open and make only its test `data` directory unwritable. Attempt a mutation. Expect `Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.` with the previous data/list/profile retained. Restore directory permissions before continuing. Use disposable data; automated fault injection is the reproducible evidence where platform permissions differ.
 
