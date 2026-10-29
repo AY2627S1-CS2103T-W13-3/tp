@@ -110,7 +110,8 @@ public class EditClientWorkflowTest {
     @Test
     public void execute_failedMutations_preserveBytesIdentitiesViewAndSelection() throws Exception {
         for (String command : List.of("edit 17 n/New Name", "delete 17",
-                "followup 17 d/2026-10-01 m/New action", "followup 17 clear")) {
+                "followup 17 d/2026-10-01 m/New action", "followup 17 d/2026-10-20 m/保单更新",
+                "followup 17 clear")) {
             Model model = createModel();
             model.showPendingFollowUps();
             model.selectPerson(target);

@@ -43,9 +43,9 @@ public class JsonUtil {
     }
 
     private static <T> T deserializeObjectFromJsonFile(Path jsonFile, Class<T> classOfObjectToDeserialize,
-            boolean rejectDuplicateProperties, DeserializationFeature... features) throws IOException {
+            boolean shouldRejectDuplicateProperties, DeserializationFeature... features) throws IOException {
         return fromJsonString(FileUtil.readFromFile(jsonFile), classOfObjectToDeserialize,
-                rejectDuplicateProperties, features);
+                shouldRejectDuplicateProperties, features);
     }
 
     /**
@@ -66,8 +66,8 @@ public class JsonUtil {
      * Client data uses strict detection; ordinary preferences retain their legacy last-value behavior.
      */
     public static <T> Optional<T> readJsonFile(Path filePath, Class<T> classOfObjectToDeserialize,
-            boolean rejectDuplicateProperties) throws DataLoadingException {
-        return readJsonFile(filePath, classOfObjectToDeserialize, rejectDuplicateProperties,
+            boolean shouldRejectDuplicateProperties) throws DataLoadingException {
+        return readJsonFile(filePath, classOfObjectToDeserialize, shouldRejectDuplicateProperties,
                 new DeserializationFeature[0]);
     }
 
@@ -79,7 +79,7 @@ public class JsonUtil {
 
     /** Combines client-data duplicate-key checks with reader-specific validation. */
     public static <T> Optional<T> readJsonFile(Path filePath, Class<T> classOfObjectToDeserialize,
-            boolean rejectDuplicateProperties, DeserializationFeature... features) throws DataLoadingException {
+            boolean shouldRejectDuplicateProperties, DeserializationFeature... features) throws DataLoadingException {
         requireNonNull(filePath);
 
         // Only confirmed absence may bypass loading; an unknown access status must still be read.
@@ -92,7 +92,7 @@ public class JsonUtil {
 
         try {
             jsonFile = deserializeObjectFromJsonFile(filePath, classOfObjectToDeserialize,
-                    rejectDuplicateProperties, features);
+                    shouldRejectDuplicateProperties, features);
         } catch (IOException e) {
             // Jackson messages and causes can include client data, so keep them out of ordinary logs.
             logger.warning("Error reading JSON file " + filePath + " (invalid JSON/data format or I/O failure).");
@@ -131,9 +131,9 @@ public class JsonUtil {
     }
 
     /** Converts one JSON root, with optional duplicate-property rejection scoped to this parser. */
-    public static <T> T fromJsonString(String json, Class<T> instanceClass, boolean rejectDuplicateProperties)
+    public static <T> T fromJsonString(String json, Class<T> instanceClass, boolean shouldRejectDuplicateProperties)
             throws IOException {
-        return fromJsonString(json, instanceClass, rejectDuplicateProperties, new DeserializationFeature[0]);
+        return fromJsonString(json, instanceClass, shouldRejectDuplicateProperties, new DeserializationFeature[0]);
     }
 
     /** Converts one JSON root with specified reader-specific validation features. */
@@ -144,9 +144,9 @@ public class JsonUtil {
 
     /** Converts one JSON root using both duplicate-key and unknown-property validation when requested. */
     public static <T> T fromJsonString(String json, Class<T> instanceClass,
-            boolean rejectDuplicateProperties, DeserializationFeature... features) throws IOException {
+            boolean shouldRejectDuplicateProperties, DeserializationFeature... features) throws IOException {
         try (JsonParser parser = objectMapper.getFactory().createParser(json)) {
-            parser.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, rejectDuplicateProperties);
+            parser.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, shouldRejectDuplicateProperties);
             T value = objectMapper.readerFor(instanceClass).withFeatures(features).readValue(parser);
             if (parser.nextToken() != null) {
                 throw new IOException("Unexpected content after the JSON root.");

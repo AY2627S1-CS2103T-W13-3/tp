@@ -75,7 +75,7 @@ public class EditCommand extends Command {
         try {
             model.setPerson(personToEdit, editedPerson);
         } catch (DuplicatePersonException e) {
-            throw new CommandException(MESSAGE_DUPLICATE_PERSON);
+            throw new CommandException(MESSAGE_DUPLICATE_PERSON, e);
         }
         return new CommandResult(String.format(MESSAGE_EDIT_PERSON_SUCCESS, clientId, Messages.format(editedPerson)));
     }

@@ -28,45 +28,49 @@ public class Email {
      * Returns true if a given string is a valid email.
      * Scans once without recursive regex matching, including for long input.
      */
-    public static boolean isValidEmail(String test) {
-        requireNonNull(test);
-        int separator = test.indexOf('@');
-        if (separator <= 0 || separator == test.length() - 1) {
+    public static boolean isValidEmail(String email) {
+        requireNonNull(email);
+        int separator = email.indexOf('@');
+        if (separator <= 0 || separator == email.length() - 1) {
             return false;
         }
-        boolean previousAlphanumeric = false;
+        return isValidLocalPart(email, separator) && isValidDomain(email, separator + 1);
+    }
+
+    /** Validates the local part in place, preserving the supported punctuation grammar. */
+    private static boolean isValidLocalPart(String email, int separator) {
+        boolean wasPreviousCharacterAlphanumeric = false;
         for (int i = 0; i < separator; i++) {
-            char character = test.charAt(i);
-            boolean alphanumeric = isAsciiAlphanumeric(character);
-            if (!alphanumeric && (i == 0 || "+_.-".indexOf(character) < 0
-                    || test.charAt(i - 1) == '.' || character == '.' && !previousAlphanumeric)) {
+            char character = email.charAt(i);
+            boolean isAlphanumeric = isAsciiAlphanumeric(character);
+            if (!isAlphanumeric && (i == 0 || "+_.-".indexOf(character) < 0
+                    || email.charAt(i - 1) == '.' || character == '.' && !wasPreviousCharacterAlphanumeric)) {
                 return false;
             }
-            previousAlphanumeric = alphanumeric;
+            wasPreviousCharacterAlphanumeric = isAlphanumeric;
         }
-        if (!previousAlphanumeric) {
-            return false;
-        }
+        return wasPreviousCharacterAlphanumeric;
+    }
 
-        // Each domain label starts/ends with an alphanumeric character; hyphens may repeat inside labels.
-        // The last label also needs an adjacent alphanumeric pair, matching the existing grammar.
-        previousAlphanumeric = false;
+    /** Validates domain labels in place; the final label requires adjacent alphanumeric characters. */
+    private static boolean isValidDomain(String email, int domainStart) {
+        boolean wasPreviousCharacterAlphanumeric = false;
         boolean hasAdjacentPair = false;
-        for (int i = separator + 1; i < test.length(); i++) {
-            char character = test.charAt(i);
+        for (int i = domainStart; i < email.length(); i++) {
+            char character = email.charAt(i);
             if (isAsciiAlphanumeric(character)) {
-                hasAdjacentPair |= previousAlphanumeric;
-                previousAlphanumeric = true;
-            } else if (character == '-' && (previousAlphanumeric || test.charAt(i - 1) == '-')) {
-                previousAlphanumeric = false;
-            } else if (character == '.' && previousAlphanumeric) {
-                previousAlphanumeric = false;
+                hasAdjacentPair |= wasPreviousCharacterAlphanumeric;
+                wasPreviousCharacterAlphanumeric = true;
+            } else if (character == '-' && (wasPreviousCharacterAlphanumeric || email.charAt(i - 1) == '-')) {
+                wasPreviousCharacterAlphanumeric = false;
+            } else if (character == '.' && wasPreviousCharacterAlphanumeric) {
+                wasPreviousCharacterAlphanumeric = false;
                 hasAdjacentPair = false;
             } else {
                 return false;
             }
         }
-        return previousAlphanumeric && hasAdjacentPair;
+        return wasPreviousCharacterAlphanumeric && hasAdjacentPair;
     }
 
     private static boolean isAsciiAlphanumeric(char character) {

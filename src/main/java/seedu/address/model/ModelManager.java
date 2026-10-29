@@ -38,9 +38,9 @@ public class ModelManager implements Model {
     private final ReadOnlyObjectWrapper<LocalDate> today = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyBooleanWrapper showingFollowUps = new ReadOnlyBooleanWrapper(false);
     private final ReadOnlyObjectWrapper<Person> selectedPerson = new ReadOnlyObjectWrapper<>();
-    private final boolean dataLoadingBlocked;
+    private final boolean isDataLoadingBlocked;
     private Predicate<Person> activePredicate = PREDICATE_SHOW_ALL_PERSONS;
-    private boolean unsavedChanges;
+    private boolean hasUnsavedChanges;
 
     /**
      * Initializes a ModelManager with the given addressBook and userPrefs.
@@ -59,7 +59,7 @@ public class ModelManager implements Model {
         this.addressBook = new AddressBook(addressBook);
         this.userPrefs = new UserPrefs(userPrefs);
         this.today.set(today);
-        dataLoadingBlocked = isDataLoadingBlocked;
+        this.isDataLoadingBlocked = isDataLoadingBlocked;
         refreshDisplayedPersons();
     }
 
@@ -91,7 +91,7 @@ public class ModelManager implements Model {
     public void setAddressBook(ReadOnlyAddressBook addressBook) {
         Optional<ClientId> selectedId = getSelectedClientId();
         this.addressBook.resetData(addressBook);
-        unsavedChanges = true;
+        hasUnsavedChanges = true;
         refreshDisplayedPersons(resolveSelection(selectedId));
     }
 
@@ -109,14 +109,14 @@ public class ModelManager implements Model {
     @Override
     public void deletePerson(Person target) {
         addressBook.removePerson(target);
-        unsavedChanges = true;
+        hasUnsavedChanges = true;
         refreshDisplayedPersons();
     }
 
     @Override
     public void addPerson(Person person) {
         addressBook.addPerson(person);
-        unsavedChanges = true;
+        hasUnsavedChanges = true;
         refreshDisplayedPersons();
     }
 
@@ -125,7 +125,7 @@ public class ModelManager implements Model {
         requireAllNonNull(target, editedPerson);
         Optional<ClientId> selectedId = getSelectedClientId();
         addressBook.setPerson(target, editedPerson);
-        unsavedChanges = true;
+        hasUnsavedChanges = true;
         refreshDisplayedPersons(resolveSelection(selectedId));
     }
 
@@ -187,21 +187,20 @@ public class ModelManager implements Model {
     @Override
     public void selectPerson(Person person) {
         requireNonNull(person);
-        checkArgument(displayedPersons.stream().anyMatch(visible -> visible == person),
+        checkArgument(containsSameInstance(displayedPersons, person),
                 "Selected client must be a canonical member of the displayed list.");
         selectedPerson.set(person);
     }
 
     @Override
     public boolean isDataLoadingBlocked() {
-        return dataLoadingBlocked;
+        return isDataLoadingBlocked;
     }
 
     @Override
     public Model forkForCommand(LocalDate commandToday) {
-        ModelManager candidate = new ModelManager(addressBook, userPrefs, commandToday, dataLoadingBlocked);
-        candidate.activePredicate = activePredicate;
-        candidate.showingFollowUps.set(showingFollowUps.get());
+        ModelManager candidate = new ModelManager(addressBook, userPrefs, commandToday, isDataLoadingBlocked);
+        candidate.copyListModeFrom(this);
         // The aggregate copy retains IDs and counter while isolating its mutable ledger.
         candidate.refreshDisplayedPersons(candidate.resolveSelection(getSelectedClientId()));
         return candidate;
@@ -209,7 +208,7 @@ public class ModelManager implements Model {
 
     @Override
     public boolean hasUnsavedChanges() {
-        return unsavedChanges;
+        return hasUnsavedChanges;
     }
 
     @Override
@@ -221,10 +220,9 @@ public class ModelManager implements Model {
             addressBook.resetData(commandModel.addressBook);
         }
         userPrefs.setGuiSettings(commandModel.getGuiSettings());
-        activePredicate = commandModel.activePredicate;
-        showingFollowUps.set(commandModel.showingFollowUps.get());
+        copyListModeFrom(commandModel);
         today.set(commandModel.getToday());
-        unsavedChanges = false;
+        hasUnsavedChanges = false;
         // An equal-valued replacement may skip resetData. Bind to the actual committed instance.
         refreshDisplayedPersons(resolveSelection(selectedId));
         assert !hasUnsavedChanges() : "A published command must leave the live model clean.";
@@ -241,6 +239,16 @@ public class ModelManager implements Model {
      * Rebuilds the view, retaining the requested canonical selection only while it remains visible.
      */
     private void refreshDisplayedPersons(Person selection) {
+        List<Person> visible = createDisplayedSnapshot();
+        displayedPersons.setAll(visible);
+        selectedPerson.set(containsSameInstance(visible, selection) ? selection : null);
+        // Check settled state only, after both the displayed list and selection have been refreshed.
+        assert selectedPerson.get() == null || addressBook.getClientId(selectedPerson.get()).isPresent()
+                : "The selected client must have a canonical committed identity.";
+    }
+
+    /** Computes the derived order without publishing list or selection changes. */
+    private List<Person> createDisplayedSnapshot() {
         List<Person> visible = new ArrayList<>();
         for (Person person : addressBook.getPersonList()) {
             if (showingFollowUps.get() ? person.getFollowUp().isPresent() : activePredicate.test(person)) {
@@ -250,12 +258,18 @@ public class ModelManager implements Model {
         if (showingFollowUps.get()) {
             visible.sort(Comparator.comparing(person -> person.getFollowUp().orElseThrow().getDueDate()));
         }
-        displayedPersons.setAll(visible);
-        selectedPerson.set(visible.stream().anyMatch(person -> person == selection) ? selection : null);
-        // Check settled state only, after both the displayed list and selection have been refreshed.
-        assert selectedPerson.get() == null || addressBook.getPersonList().stream()
-                .anyMatch(person -> person == selectedPerson.get())
-                : "The selected client must be a canonical committed record.";
+        return visible;
+    }
+
+    /** Copies list mode only; the command date and canonical selection are reconciled separately. */
+    private void copyListModeFrom(ModelManager source) {
+        activePredicate = source.activePredicate;
+        showingFollowUps.set(source.showingFollowUps.get());
+    }
+
+    /** Tests canonical instance membership; Person value equality is not record identity. */
+    private static boolean containsSameInstance(List<Person> persons, Person target) {
+        return persons.stream().anyMatch(person -> person == target);
     }
 
     /** Returns permanent identity for the selected canonical client, without allocating an ID. */
@@ -285,7 +299,7 @@ public class ModelManager implements Model {
                 && showingFollowUps.get() == otherModelManager.showingFollowUps.get()
                 && getToday().equals(otherModelManager.getToday())
                 && Objects.equals(selectedPerson.get(), otherModelManager.selectedPerson.get())
-                && dataLoadingBlocked == otherModelManager.dataLoadingBlocked;
+                && isDataLoadingBlocked == otherModelManager.isDataLoadingBlocked;
     }
 
 }
