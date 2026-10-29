@@ -3,7 +3,7 @@ layout: page
 title: User Guide
 ---
 
-This guide describes the PolicyHarbor v1.5 client-management workflows. The published v1.4 JAR still uses displayed row indices and does not support the `edit` command. Use a v1.5-compatible build when following the permanent Client ID instructions below.
+PolicyHarbor v1.5 is a desktop client and follow-up manager for independent insurance agents. This guide covers permanent Client IDs, contact editing and the current search and follow-up workflows. Download the matching `PolicyHarbor.jar` from the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases).
 
 * Table of Contents
 {:toc}

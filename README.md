@@ -4,21 +4,22 @@
 
 **Clients. Follow-ups. Made simple.**
 
-PolicyHarbor v1.4 is a desktop client and follow-up manager for individual insurance agents who prefer typed commands. Keep client contact details and their next action together, then review what is overdue, due today or upcoming.
+PolicyHarbor v1.5 is a desktop client and follow-up manager for individual insurance agents who prefer typed commands. Keep client contact details and their next action together, then review what is overdue, due today or upcoming.
 
 ![PolicyHarbor showing pending follow-ups and a selected client profile](docs/images/Ui.png)
 
 ## What you can do
 
-- Add, list, search and delete clients, including distinct clients with the same name.
-- Open a complete client profile with `view INDEX`, including contact details, sorted tags and the pending action.
+- Add, list, edit and delete clients, including distinct clients with the same name.
+- Find clients by a name fragment, phone-number fragment or exact tag.
+- Open a complete client profile with `view ID`, including contact details, sorted tags and the pending action. Permanent Client IDs stay unchanged across searches, edits and follow-up sorting.
 - Record, replace or clear one dated follow-up per client.
 - Keep an all-client pending summary visible beside searches and the selected profile, grouped with `OVERDUE`, `DUE TODAY` and `UPCOMING` badges.
 - Save changes automatically to local JSON and reload them after restarting. Failed saves preserve the previous state; invalid saved files open a protected session.
 
 - Submit commands with Enter or Run and correct rejected input using explicit, scrollable error feedback.
 
-The MVP supports one pending action per client. Multiple actions, follow-up history, notifications and typed contact editing are outside v1.4.
+PolicyHarbor supports one pending action per client. Multiple actions, follow-up history and notifications are outside v1.5.
 
 ## Get started
 
