@@ -12,9 +12,6 @@ package Logic as LogicPackage {
         + execute(commandText: String): CommandResult
         + getFilteredPersonList(): ObservableList<Person>
         + getAllPersonList(): ObservableList<Person>
-        + todayProperty(): ReadOnlyObjectProperty<LocalDate>
-        + showingFollowUpsProperty(): ReadOnlyBooleanProperty
-        + selectedPersonProperty(): ReadOnlyObjectProperty<Person>
     }
     class LogicManager
     package "Parser Classes" as ParserClasses {
@@ -54,13 +51,15 @@ Command ..> CommandResult : <<create>>
 
 note top of Logic
     getAllPersonList(): full committed clients in insertion order.
-    getFilteredPersonList(): filtered / pending-ordered command list.
-    Both are stable, unmodifiable views; only the latter owns indices.
+    getFilteredPersonList(): filtered / pending-ordered display list.
+    Both are stable, unmodifiable views.
+    Commands resolve permanent Client IDs globally, not row positions.
 end note
 
 note as PublicationNote
     LogicManager executes against an isolated Model candidate.
     Saves dirty data before commitFrom publishes it.
+    Identity is retained; selection is reconciled by Client ID.
     A failed save does not publish the candidate.
 end note
 XYZCommand -[hidden]down-> PublicationNote
@@ -68,7 +67,7 @@ XYZCommand -[hidden]down-> PublicationNote
 note as CommandExamples
     XYZ is a placeholder for routed commands, e.g.
     AddCommand, ViewCommand, SetFollowUpCommand,
-    ClearFollowUpCommand and FollowUpsCommand.
+    ClearFollowUpCommand, EditCommand and FollowUpsCommand.
 end note
 PublicationNote -[hidden]down-> CommandExamples
 @enduml
