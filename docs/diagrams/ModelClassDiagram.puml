@@ -63,7 +63,7 @@ AddressBook *--> "1" UniquePersonList
 AddressBook *--> "1" ClientIdentityRegistry
 ClientIdentityRegistry --> "*" ClientId : assigns
 ClientIdentityRegistry --> "*" Person : canonical references
-UniquePersonList --> "~* all" Person
+UniquePersonList --> "*" Person
 Person --> "1" Name
 Person --> "1" Phone
 Person --> "1" Email

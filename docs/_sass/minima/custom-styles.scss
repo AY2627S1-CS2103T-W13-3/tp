@@ -32,3 +32,23 @@ h2, h3, h4, h5, h6 {
   }
 }
 
+
+// Preserve UML label sizes; narrow screens scroll each figure independently.
+.uml-diagram {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1rem 0;
+
+  img {
+    max-width: none;
+  }
+
+  figcaption {
+    font-size: 0.875rem;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #166800;
+    outline-offset: 2px;
+  }
+}

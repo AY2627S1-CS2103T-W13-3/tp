@@ -1,6 +1,7 @@
 @startuml
 !pragma layout smetana
 !include style.puml
+left to right direction
 skinparam arrowThickness 1.1
 skinparam arrowColor UI_COLOR_T4
 skinparam classBackgroundColor UI_COLOR
@@ -9,63 +10,41 @@ skinparam classAttributeFontColor #FFFFFF
 
 package UI <<Rectangle>>{
 Class "<<interface>>\nUi" as Ui
-Class "{abstract}\nUiPart" as UiPart
+abstract class UiPart
 Class UiManager
 Class MainWindow
 Class HelpWindow
 Class ResultDisplay
-Class ClientProfilePanel {
-  -clientIdLookup : Function
-  -renderedClientId : Optional<ClientId>
-}
-Class PersonListPanel {
-  -personTable : TableView<Person>
-  -clientIdLookup : Function
-  -today : ReadOnlyObjectProperty<LocalDate>
-  -showingFollowUps : ReadOnlyBooleanProperty
-  -selectedPerson : ReadOnlyObjectProperty<Person>
-}
-Class PendingFollowUpPanel {
-  -clientIdLookup : Function
-}
+Class ClientProfilePanel
+Class PersonListPanel
+Class PendingFollowUpPanel
 Class PendingFollowUpProjection
 Class StatusBarFooter
 Class CommandBox
 }
 
-' Show the ID presentation state without exposing unrelated UI implementation details.
-' Must follow the class declaration, or PlantUML reports a syntax error.
-show PersonListPanel fields
-show ClientProfilePanel fields
-show PendingFollowUpPanel fields
-
 package Model <<Rectangle>> {
-Class HiddenModel #FFFFFF
+Class Person MODEL_COLOR
 }
 
-package Logic <<Rectangle>> {
-interface "Logic" as LogicApi {
-  +getClientId(Person) : Optional<ClientId>
-}
-show LogicApi methods
+package "Logic" as LogicPackage <<Rectangle>> {
+interface "Logic" as LogicApi <<interface>> LOGIC_COLOR
 }
 
-Class HiddenOutside #FFFFFF
-HiddenOutside ..> Ui
 
-UiManager .left.|> Ui
-UiManager -down-> "1" MainWindow
-MainWindow *-down->  "1" CommandBox
-MainWindow *-down-> "1" ResultDisplay
-MainWindow *-down-> "1" PersonListPanel
-MainWindow *-down-> "1" StatusBarFooter
+UiManager ..|> Ui
+UiManager --> "1" MainWindow
+MainWindow *-->  "1" CommandBox
+MainWindow *--> "1" ResultDisplay
+MainWindow *--> "1" PersonListPanel
+MainWindow *--> "1" StatusBarFooter
 MainWindow *--> "1" ClientProfilePanel
 MainWindow --> "1" HelpWindow
 
 MainWindow *--> "1" PendingFollowUpPanel
 MainWindow *--> "1" PendingFollowUpProjection
 
-MainWindow -left-|> UiPart
+MainWindow --|> UiPart
 
 ResultDisplay --|> UiPart
 CommandBox --|> UiPart
@@ -75,17 +54,11 @@ ClientProfilePanel --|> UiPart
 StatusBarFooter --|> UiPart
 HelpWindow --|> UiPart
 
-PersonListPanel ..> Model
-PendingFollowUpProjection ..> Model
-PendingFollowUpPanel ..> Model
-ClientProfilePanel ..> Model
-UiManager -right-> Logic
-MainWindow -left-> LogicApi : ID lookup
+PersonListPanel ..> Person
+PendingFollowUpProjection ..> Person
+PendingFollowUpPanel ..> Person
+ClientProfilePanel ..> Person
+UiManager --> LogicApi
+MainWindow --> LogicApi
 
-PersonListPanel -[hidden]left- HelpWindow
-HelpWindow -[hidden]left- CommandBox
-CommandBox -[hidden]left- ResultDisplay
-ResultDisplay -[hidden]left- StatusBarFooter
-
-MainWindow -[hidden]-|> UiPart
 @enduml

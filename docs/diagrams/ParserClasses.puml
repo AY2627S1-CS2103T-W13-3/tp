@@ -1,81 +1,30 @@
 @startuml
+!pragma layout smetana
 !include style.puml
 skinparam arrowThickness 1.1
 skinparam arrowColor LOGIC_COLOR_T4
 skinparam classBackgroundColor LOGIC_COLOR
-skinparam nodesep 25
-skinparam ranksep 35
 
-title Parsing client search and record commands
+' Partial structure: returned concrete commands are shown in LogicClassDiagram.
+class AddressBookParser
+interface Parser <<interface>>
+class FollowUpCommandParser
+class ViewCommandParser
+class FindCommandParser
+class ClientIdParserUtil
+class ParserUtil
+class ClientContainsKeywordsPredicate
+class ClientSearchPredicate
 
-Class AddressBookParser
-Interface Parser <<interface>>
-Class FollowUpCommandParser
-Class ViewCommandParser
-Class FindCommandParser
-Class ClientIdParserUtil
-Class ParserUtil
-Class ArgumentTokenizer
-Class ArgumentMultimap
-Class CliSyntax
-Class Prefix
-
-abstract class Command
-Class SetFollowUpCommand
-Class ClearFollowUpCommand
-Class ViewCommand
-Class FindCommand
-Class FollowUpsCommand
-Class ClientContainsKeywordsPredicate
-Class ClientSearchPredicate
-
-' Keep the returned commands on one row, above the routing parsers.
-ClearFollowUpCommand -[hidden]right-> SetFollowUpCommand
-SetFollowUpCommand -[hidden]right-> FollowUpsCommand
-FollowUpsCommand -[hidden]right-> ViewCommand
-
-' The three shown parsers implement Parser; T extends Command.
-AddressBookParser .down.> FollowUpCommandParser : <<create>>\nfollowup: parse(args)
-AddressBookParser .down.> ViewCommandParser : <<create>>\nview: parse(args)
-AddressBookParser .down.> FindCommandParser : <<create>>\nfind: parse(args)
-FollowUpCommandParser .right.|> Parser : <Command>
-ViewCommandParser .left.|> Parser : <ViewCommand>
-FindCommandParser .right.|> Parser : <FindCommand>
-
-FollowUpCommandParser .up.> SetFollowUpCommand : <<create>>\nset / replace
-FollowUpCommandParser .up.> ClearFollowUpCommand : <<create>>\nclear
-ViewCommandParser .up.> ViewCommand : <<create>>
-FindCommandParser .up.> FindCommand : <<create>>
-AddressBookParser .up.> FollowUpsCommand : <<create>>\nfollowups (direct)
-SetFollowUpCommand -up-|> Command
-ClearFollowUpCommand -up-|> Command
-ViewCommand -up-|> Command
-FindCommand -up-|> Command
-FollowUpsCommand -up-|> Command
-
-FollowUpCommandParser .down.> ClientIdParserUtil : parseClientId()
-ViewCommandParser .down.> ClientIdParserUtil : parseClientId()
-ClientIdParserUtil .down.> ParserUtil : parseIndex()
-FindCommandParser .down.> ClientContainsKeywordsPredicate : <<create>>\nbare search
-FindCommandParser .down.> ClientSearchPredicate : <<create>>\nexplicit search
-FindCommand .down.> ClientContainsKeywordsPredicate : uses
-FindCommand .down.> ClientSearchPredicate : uses
-FollowUpCommandParser .down.> ArgumentTokenizer : tokenize()
-FollowUpCommandParser .down.> ArgumentMultimap : reads / checks\nduplicates
-ArgumentTokenizer .down.> ArgumentMultimap : <<create>>
-FollowUpCommandParser .down.> CliSyntax : d/, m/
-CliSyntax .down.> Prefix : <<create>>
-ArgumentTokenizer .down.> Prefix
-
-note left of AddressBookParser
-  parseCommand checks raw characters,
-  trims spaces, checks empty input
-  and splits command / arguments.
-  Failed-load gate blocks client mutations,
-  including add, edit, delete and followup.
-  view, find and followups still route.
-end note
-
-' Set form checks shape, duplicate prefixes, then index syntax; values stay raw.
-' Clear form requires no d/ or m/ and checks index syntax.
+AddressBookParser ..> FollowUpCommandParser : <<create>>
+AddressBookParser ..> ViewCommandParser : <<create>>
+AddressBookParser ..> FindCommandParser : <<create>>
+FollowUpCommandParser ..|> Parser
+ViewCommandParser ..|> Parser
+FindCommandParser ..|> Parser
+FollowUpCommandParser ..> ClientIdParserUtil : parseClientId()
+ViewCommandParser ..> ClientIdParserUtil : parseClientId()
+ClientIdParserUtil ..> ParserUtil : parseIndex()
+FindCommandParser ..> ClientContainsKeywordsPredicate : <<create>>
+FindCommandParser ..> ClientSearchPredicate : <<create>>
 @enduml

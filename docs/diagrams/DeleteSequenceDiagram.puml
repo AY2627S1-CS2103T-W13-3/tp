@@ -1,30 +1,27 @@
 @startuml
 !include style.puml
+skinparam ParticipantPadding 8
 participant ":LogicManager" as logic LOGIC_COLOR
-participant ":AddressBookParser" as parser LOGIC_COLOR
-participant ":DeleteCommandParser" as deleteParser LOGIC_COLOR
-participant "command:DeleteCommand" as command LOGIC_COLOR
+participant "command:\nDeleteCommand" as command LOGIC_COLOR
 participant "live:Model" as live MODEL_COLOR
-participant "candidate:Model" as candidate MODEL_COLOR
+participant "candidate:\nModel" as candidate MODEL_COLOR
 participant ":Storage" as storage STORAGE_COLOR
 [-> logic : execute("delete 1")
-logic -> parser : parseCommand("delete 1", blocked)
-parser -> deleteParser : parse(" 1")
-deleteParser --> parser : command
-parser --> logic : command
+note over logic : Parse command; sample today
 logic -> live : forkForCommand(today)
 live --> logic : candidate
 logic -> command : execute(candidate)
 command -> candidate : getAddressBook()
 candidate --> command : addressBook
-note over command : Resolve permanent Client ID 1\nagainst the full address book\n(including hidden clients)
+note over command
+Resolve Client ID 1 against
+all clients, including hidden ones.
+end note
 command -> candidate : deletePerson(person)
-command --> logic : result:CommandResult
+command --> logic : result
 logic -> candidate : hasUnsavedChanges()
 candidate --> logic : true
-logic -> candidate : getAddressBook()
-candidate --> logic : candidateData
-logic -> storage : saveAddressBook(candidateData)
+logic -> storage : saveAddressBook(...)
 alt Save succeeds
     storage --> logic
     logic -> live : commitFrom(candidate)
