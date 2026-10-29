@@ -156,7 +156,16 @@ public class ClientIdPresentationTest {
                 }
             }
             rows.clear();
+            tablePanel.getRoot().applyCss();
             tablePanel.getRoot().layout();
+            tablePanel.getRoot().layout();
+            for (var node : tablePanel.getRoot().lookupAll(".table-cell")) {
+                TableCell<?, ?> cell = (TableCell<?, ?>) node;
+                if (cell.getTableColumn() != null && cell.getTableColumn().getText().equals("Client ID")) {
+                    assertTrue(cell.getText() == null || cell.getText().isEmpty(),
+                            "Recycled empty cell must not retain a stale Client ID");
+                }
+            }
             ClientProfilePanel profile = new ClientProfilePanel(selected, today, empty::getClientId);
             new Scene(profile.getRoot(), 320, 250);
             profile.getRoot().applyCss();
