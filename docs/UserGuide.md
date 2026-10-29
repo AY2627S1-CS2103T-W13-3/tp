@@ -3,7 +3,7 @@ layout: page
 title: User Guide
 ---
 
-PolicyHarbor v1.4 is a desktop application for individual insurance agents to manage clients and their follow-ups. You enter commands in its command box and use the client list and profile panes to review the results.
+This guide describes the PolicyHarbor v1.5 client-management workflows. The published v1.4 JAR still uses displayed row indices and does not support the `edit` command. Use a v1.5-compatible build when following the permanent Client ID instructions below.
 
 * Table of Contents
 {:toc}
@@ -15,7 +15,7 @@ PolicyHarbor v1.4 is a desktop application for individual insurance agents to ma
 1. Ensure that Java `25` is installed on your computer.<br>
    **Mac users:** Ensure you have the precise JDK version prescribed [here](https://se-education.org/guides/tutorials/javaInstallationMac.html).
 
-1. Download the latest `PolicyHarbor.jar` from the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases).
+1. Download `PolicyHarbor.jar` from the v1.5 (when published) or a later release on the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases). Until then, use a JAR built from the current `master` source. **Do not use the v1.4 JAR with this guide:** its command targeting and supported features differ.
 
 1. Copy the file to the folder where you want PolicyHarbor to store its data.
 
@@ -393,7 +393,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 * **Window restoration:** PolicyHarbor restores the window on its saved screen when that screen is available. If the saved screen is unavailable, startup fits the window inside the primary screen's usable area. You do not need to delete `preferences.json` when disconnecting a secondary screen.
 * **If the workspace feels cramped on a small or highly scaled display:** maximize the window, then drag the main divider and the sidebar divider towards the area you are reading. The command box and feedback stay at the top of the window; the table and both right-hand panels scroll to show the rest.
-* **Help window:** use the Help menu or `F1` to open the Help window. If it is minimised, invoking Help again restores the same window instead of opening a duplicate.
+* **Help window:** use the Help menu or `F1` to open the Help window. If a minimised Help window does not reappear, restore it from your operating system's dock or taskbar.
 
 --------------------------------------------------------------------------------------------------------------------
 
