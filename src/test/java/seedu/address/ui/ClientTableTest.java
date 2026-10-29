@@ -21,12 +21,6 @@ public class ClientTableTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 12);
 
     @Test
-    public void toDisplayedIndex_rowIndex_isOneBased() {
-        assertEquals(1, PersonListPanel.toDisplayedIndex(0));
-        assertEquals(42, PersonListPanel.toDisplayedIndex(41));
-    }
-
-    @Test
     public void fxml_everyColumn_isUnsortable() throws IOException {
         String fxml;
         try (InputStream in = PersonListPanel.class.getResourceAsStream("/view/PersonListPanel.fxml")) {
@@ -37,7 +31,7 @@ public class ClientTableTest {
         while (column.find()) {
             columns++;
             assertEquals(true, column.group().contains("sortable=\"false\""),
-                    "Sorting would make # disagree with command indices: " + column.group());
+                    "Table ordering must remain model-owned: " + column.group());
         }
         assertEquals(6, columns);
     }

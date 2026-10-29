@@ -63,7 +63,7 @@ public class ErrorFeedbackLayoutTest {
     }
 
     @Test
-    public void invalidIndex_errorLabelAndCompleteMessage_fitInsideFeedbackViewport() throws Exception {
+    public void invalidClientId_errorLabelAndCompleteMessage_fitInsideFeedbackViewport() throws Exception {
         runOnFx(() -> {
             try (Dashboard dashboard = new Dashboard()) {
                 for (double[] size : LOGICAL_SIZES) {
@@ -73,6 +73,7 @@ public class ErrorFeedbackLayoutTest {
                     assertTrue(status.isVisible());
                     assertEquals("Error", status.getText());
                     TextArea feedback = dashboard.feedback();
+                    assertEquals("Client ID must be a positive integer from 1 to 2147483647.", feedback.getText());
                     assertFalse(feedback.getText().contains("\n"), "This regression needs a single text line");
                     Node text = feedback.lookup(".text");
                     Node viewport = feedback.lookup(".viewport");

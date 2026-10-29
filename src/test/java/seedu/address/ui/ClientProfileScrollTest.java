@@ -30,6 +30,7 @@ import seedu.address.model.AddressBook;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
@@ -100,7 +101,7 @@ public class ClientProfileScrollTest {
             fixture.scrollDown();
             double position = fixture.scroll.getVvalue();
             Person replacement = FIRST.withFollowUp(new FollowUp(TODAY, "Review life coverage"));
-            fixture.selected.set(replacement);
+            fixture.replace(replacement);
             fixture.layout();
             assertEquals(position, fixture.scroll.getVvalue(), 0.001);
             assertEquals("Review life coverage", fixture.label("followUpAction").getText());
@@ -110,10 +111,25 @@ public class ClientProfileScrollTest {
             assertEquals(position, fixture.scroll.getVvalue(), 0.001);
             assertEquals("OVERDUE", fixture.label("followUpStatus").getText());
 
-            fixture.selected.set(replacement);
-            fixture.selected.set(new PersonBuilder(replacement).build());
+            fixture.replace(replacement);
+            fixture.replace(new PersonBuilder(replacement).build());
             fixture.layout();
             assertEquals(position, fixture.scroll.getVvalue(), 0.001);
+        });
+    }
+
+    @Test
+    public void equalContactReplacementWithDifferentId_resetsScrollAndRendersNewIdentity() throws Exception {
+        onFx(() -> {
+            Fixture fixture = new Fixture(FIRST);
+            fixture.scrollDown();
+            Person equalCopy = new PersonBuilder(FIRST).build();
+            fixture.book.restorePersons(List.of(equalCopy), List.of(new ClientId(41)), 42);
+            fixture.selected.set(equalCopy);
+            fixture.layout();
+
+            fixture.assertAtTop();
+            assertEquals("Client ID 41", fixture.label("clientId").getText());
         });
     }
 
@@ -122,7 +138,7 @@ public class ClientProfileScrollTest {
         onFx(() -> {
             Fixture fixture = new Fixture(FIRST);
             fixture.scrollDown();
-            fixture.selected.set(FIRST.withoutFollowUp());
+            fixture.replace(FIRST.withoutFollowUp());
             fixture.layout();
 
             assertTrue(fixture.scroll.getVvalue() > fixture.scroll.getVmin());
@@ -152,35 +168,36 @@ public class ClientProfileScrollTest {
     public void realCommands_keepPositionOnReplacementAndFailure_resetOnDifferentView() throws Exception {
         onFx(() -> {
             AddressBook book = new AddressBook();
-            book.setPersons(List.of(FIRST, SECOND));
+            book.restorePersons(List.of(FIRST, SECOND), List.of(new ClientId(17), new ClientId(41)), 42);
             ModelManager model = new ModelManager(book, new UserPrefs(), TODAY, false);
             FailingStorage storage = new FailingStorage(folder);
             LogicManager logic = new LogicManager(model, storage,
                     Clock.fixed(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC));
             logic.execute("followups");
-            logic.execute("view 1");
-            ClientProfilePanel panel = new ClientProfilePanel(model.selectedPersonProperty(), model.todayProperty());
+            logic.execute("view 17");
+            ClientProfilePanel panel = new ClientProfilePanel(model.selectedPersonProperty(), model.todayProperty(),
+                    logic::getClientId);
             ScrollPane scroll = attach(panel);
             scroll.setVvalue(0.75);
             layout(scroll);
             double position = scroll.getVvalue();
 
-            logic.execute("view 1");
+            logic.execute("view 17");
             assertEquals(position, scroll.getVvalue(), 0.001);
-            logic.execute("followup 1 d/2026-10-29 m/Review life coverage");
+            logic.execute("followup 17 d/2026-10-29 m/Review life coverage");
             layout(scroll);
             assertNotSame(FIRST, model.selectedPersonProperty().get());
             assertEquals(position, scroll.getVvalue(), 0.001);
-            logic.execute("followup 2 d/2026-10-29 m/Review life coverage");
+            logic.execute("followup 41 d/2026-10-29 m/Review life coverage");
             layout(scroll);
             assertEquals(position, scroll.getVvalue(), 0.001);
 
             assertThrows(ParseException.class, () -> logic.execute("view 0"));
             storage.shouldFailSave = true;
-            assertThrows(CommandException.class, () -> logic.execute("followup 2 clear"));
+            assertThrows(CommandException.class, () -> logic.execute("followup 41 clear"));
             layout(scroll);
             assertEquals(position, scroll.getVvalue(), 0.001);
-            logic.execute("view 1");
+            logic.execute("view 41");
             layout(scroll);
             assertEquals(scroll.getVmin(), scroll.getVvalue(), 0.001);
         });
@@ -218,10 +235,17 @@ public class ClientProfileScrollTest {
         private final SimpleObjectProperty<Person> selected;
         private final SimpleObjectProperty<LocalDate> today = new SimpleObjectProperty<>(TODAY);
         private final ScrollPane scroll;
+        private final AddressBook book = new AddressBook();
 
         Fixture(Person initial) {
+            book.restorePersons(List.of(FIRST, SECOND), List.of(new ClientId(17), new ClientId(41)), 42);
             selected = new SimpleObjectProperty<>(initial);
-            scroll = attach(new ClientProfilePanel(selected, today));
+            scroll = attach(new ClientProfilePanel(selected, today, book::getClientId));
+        }
+
+        void replace(Person replacement) {
+            book.setPerson(selected.get(), replacement);
+            selected.set(replacement);
         }
 
         void layout() {

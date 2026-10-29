@@ -70,7 +70,7 @@ public class DashboardLayoutBoundaryTest {
     }
 
     @Test
-    public void table_thousandClients_lastIndexStaysReadable() throws Exception {
+    public void table_thousandClients_fullRangeIdStaysReadable() throws Exception {
         AddressBook clients = DisplayMatrixFixture.clients(TODAY);
         assertEquals(1000, clients.getPersonList().size());
         runOnFx(() -> {
@@ -85,11 +85,11 @@ public class DashboardLayoutBoundaryTest {
                     TableCell<?, ?> cell = dashboard.indexCell(999);
                     assertEquals("1000", ((Text) cell.lookup(".text")).getText(), "at " + size[0] + "x" + size[1]);
 
-                    Text fiveDigits = new Text("99999");
+                    Text fiveDigits = new Text("2147483647");
                     fiveDigits.setFont(cell.getFont());
                     double available = cell.getWidth() - cell.snappedLeftInset() - cell.snappedRightInset();
                     assertTrue(fiveDigits.getLayoutBounds().getWidth() <= available,
-                            "Five-digit index needs " + fiveDigits.getLayoutBounds().getWidth() + " of " + available);
+                            "Maximum Client ID needs " + fiveDigits.getLayoutBounds().getWidth() + " of " + available);
                 }
             }
         });

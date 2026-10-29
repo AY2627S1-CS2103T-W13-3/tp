@@ -4,6 +4,7 @@ import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 import javafx.beans.InvalidationListener;
@@ -22,13 +23,14 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
 import seedu.address.logic.commands.FollowUpsCommand;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
 
 /**
- * Table of the current authoritative numbered client list.
- * Row numbers are the command indices, so the table cannot be sorted. It only displays the model's
+ * Table of the current client list, labelled with permanent IDs supplied through Logic.
+ * The model owns the displayed order. The table only displays the model's
  * state: clicking or highlighting a row never changes the viewed client.
  */
 public class PersonListPanel extends UiPart<Region> {
@@ -39,6 +41,7 @@ public class PersonListPanel extends UiPart<Region> {
     private static final String FXML = "PersonListPanel.fxml";
     private static final double CELL_HORIZONTAL_PADDING = 12;
 
+    private final Function<Person, Optional<ClientId>> clientIdLookup;
     private final ReadOnlyObjectProperty<LocalDate> today;
     private final ReadOnlyBooleanProperty showingFollowUps;
     private final ReadOnlyObjectProperty<Person> selectedPerson;
@@ -46,7 +49,7 @@ public class PersonListPanel extends UiPart<Region> {
     @FXML
     private TableView<Person> personTable;
     @FXML
-    private TableColumn<Person, Person> indexColumn;
+    private TableColumn<Person, Person> clientIdColumn;
     @FXML
     private TableColumn<Person, Person> nameColumn;
     @FXML
@@ -64,9 +67,11 @@ public class PersonListPanel extends UiPart<Region> {
      */
     public PersonListPanel(ObservableList<Person> personList, ReadOnlyObjectProperty<LocalDate> today,
                            ReadOnlyBooleanProperty showingFollowUps,
-                           ReadOnlyObjectProperty<Person> selectedPerson) {
+                           ReadOnlyObjectProperty<Person> selectedPerson,
+                           Function<Person, Optional<ClientId>> clientIdLookup) {
         super(FXML);
-        requireAllNonNull(personList, today, showingFollowUps, selectedPerson);
+        requireAllNonNull(personList, today, showingFollowUps, selectedPerson, clientIdLookup);
+        this.clientIdLookup = clientIdLookup;
         this.today = today;
         this.showingFollowUps = showingFollowUps;
         this.selectedPerson = selectedPerson;
@@ -77,14 +82,14 @@ public class PersonListPanel extends UiPart<Region> {
         personTable.setPlaceholder(emptyListLabel);
         personTable.setRowFactory(table -> new ClientRow());
 
-        indexColumn.setCellFactory(column -> new IndexCell());
+        clientIdColumn.setCellFactory(column -> new ClientIdCell());
         nameColumn.setCellFactory(column -> new NameCell());
         phoneColumn.setCellFactory(column -> new TextCell(row -> row.phone()));
         emailColumn.setCellFactory(column -> new TextCell(row -> row.email()));
         dueColumn.setCellFactory(column -> new TextCell(row -> row.dueDate()));
         statusColumn.setCellFactory(column -> new StatusCell());
         for (TableColumn<Person, Person> column
-                : List.of(indexColumn, nameColumn, phoneColumn, emailColumn, dueColumn, statusColumn)) {
+                : List.of(clientIdColumn, nameColumn, phoneColumn, emailColumn, dueColumn, statusColumn)) {
             column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
         }
         dueColumn.visibleProperty().bind(showingFollowUps);
@@ -122,12 +127,6 @@ public class PersonListPanel extends UiPart<Region> {
      */
     static boolean isViewed(Person rowPerson, Person selectedPerson) {
         return rowPerson != null && rowPerson == selectedPerson;
-    }
-
-    /** Returns the 1-based command index shown for the table row at {@code rowIndex}. */
-    static int toDisplayedIndex(int rowIndex) {
-        assert rowIndex >= 0 : "Only filled rows have a command index";
-        return rowIndex + 1;
     }
 
     /**
@@ -198,10 +197,11 @@ public class PersonListPanel extends UiPart<Region> {
         }
     }
 
-    private class IndexCell extends ClientCell {
+    private class ClientIdCell extends ClientCell {
         @Override
         void render(Person person, RowDisplay row) {
-            setText(String.valueOf(toDisplayedIndex(getIndex())));
+            setGraphic(null);
+            setText(clientIdLookup.apply(person).map(ClientId::toString).orElse(""));
         }
     }
 

@@ -20,6 +20,7 @@
       <Label styleClass="profile-eyebrow" text="CLIENT PROFILE" />
       <Label fx:id="noSelectionMessage" styleClass="profile-empty" text="No client selected." wrapText="true" />
       <VBox fx:id="profileDetails" spacing="18" fillWidth="true">
+        <Label fx:id="clientId" styleClass="profile-field-label" wrapText="true" maxWidth="Infinity" />
         <Label fx:id="name" styleClass="profile-name" wrapText="true" maxWidth="Infinity" />
         <VBox spacing="12" styleClass="profile-section">
           <Label styleClass="profile-section-title" text="CONTACT" />

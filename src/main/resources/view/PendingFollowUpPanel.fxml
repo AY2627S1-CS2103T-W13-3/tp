@@ -17,7 +17,7 @@
         <Insets top="20" right="20" bottom="20" left="20" />
       </padding>
       <Label styleClass="pending-panel-title" text="PENDING FOLLOW-UPS" wrapText="true" />
-      <Label styleClass="pending-panel-note" text="Summary of all clients · use the numbered table for commands"
+      <Label styleClass="pending-panel-note" text="Summary of all clients · use Client IDs with view, edit, delete and followup"
              wrapText="true" maxWidth="Infinity" />
       <Label fx:id="emptyMessage" styleClass="pending-empty" text="No pending follow-ups." wrapText="true" />
       <VBox fx:id="overdueGroup" spacing="8">

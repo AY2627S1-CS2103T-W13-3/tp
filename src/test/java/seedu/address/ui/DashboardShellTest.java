@@ -84,9 +84,9 @@ public class DashboardShellTest {
         labels.assertLabels("Pending clients", "3 shown");
         labels.logic.execute("followup 1 clear");
         labels.assertLabels("Pending clients", "2 shown");
-        labels.logic.execute("delete 1");
+        labels.logic.execute("delete 2");
         labels.assertLabels("Pending clients", "1 shown");
-        labels.logic.execute("followup 1 clear");
+        labels.logic.execute("followup 3 clear");
         labels.assertLabels("Pending clients", "0 shown");
         labels.logic.execute("list");
         labels.assertLabels("Clients", "2 shown");

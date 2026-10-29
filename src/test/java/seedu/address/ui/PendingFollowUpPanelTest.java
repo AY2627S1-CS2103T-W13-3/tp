@@ -30,6 +30,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
+import seedu.address.model.AddressBook;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.PersonBuilder;
@@ -147,7 +148,8 @@ public class PendingFollowUpPanelTest {
             ObservableList<Person> pending = FXCollections.observableArrayList(due, later);
             SimpleObjectProperty<LocalDate> today = new SimpleObjectProperty<>(TODAY);
             SimpleObjectProperty<Person> selected = new SimpleObjectProperty<>(due);
-            PendingFollowUpPanel panel = new PendingFollowUpPanel(pending, today, selected);
+            PendingFollowUpPanel panel = new PendingFollowUpPanel(pending, today, selected,
+                    new AddressBook()::getClientId);
             VBox dueCards = (VBox) findById(panel.getRoot(), "dueTodayCards");
             VBox upcomingCards = (VBox) findById(panel.getRoot(), "upcomingCards");
             VBox overdueCards = (VBox) findById(panel.getRoot(), "overdueCards");
@@ -213,7 +215,7 @@ public class PendingFollowUpPanelTest {
             ObservableList<Person> pending = FXCollections.observableArrayList(original);
             SimpleObjectProperty<Person> selected = new SimpleObjectProperty<>(original);
             PendingFollowUpPanel panel = new PendingFollowUpPanel(pending,
-                    new SimpleObjectProperty<>(TODAY), selected);
+                    new SimpleObjectProperty<>(TODAY), selected, new AddressBook()::getClientId);
             VBox cards = (VBox) findById(panel.getRoot(), "dueTodayCards");
 
             pending.set(0, replacement);
@@ -262,7 +264,8 @@ public class PendingFollowUpPanelTest {
                         yield () -> selected.set(null);
                     }
                 };
-                PendingFollowUpPanel panel = new PendingFollowUpPanel(pending, today, selected);
+                PendingFollowUpPanel panel = new PendingFollowUpPanel(pending, today, selected,
+                    new AddressBook()::getClientId);
                 panelReference.set(panel);
                 VBox dueCards = (VBox) findById(panel.getRoot(), "dueTodayCards");
                 Node originalCard = dueCards.getChildren().getFirst();

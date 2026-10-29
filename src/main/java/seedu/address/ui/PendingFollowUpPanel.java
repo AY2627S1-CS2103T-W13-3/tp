@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectProperty;
@@ -17,18 +19,20 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.FollowUpStatus;
 import seedu.address.model.person.Person;
 
 /**
- * Read-only, unnumbered summary of every client's pending follow-up. The input
- * list supplies due-date order; command indices remain in the separate table.
+ * Read-only summary of every client's pending follow-up, labelled with permanent Client IDs.
+ * The input list supplies due-date order independently of the filtered table.
  */
 public class PendingFollowUpPanel extends UiPart<Region> {
 
     private static final String FXML = "PendingFollowUpPanel.fxml";
 
+    private final Function<Person, Optional<ClientId>> clientIdLookup;
     private final ObservableList<Person> pendingPersons;
     private final ReadOnlyObjectProperty<LocalDate> today;
     private final ReadOnlyObjectProperty<Person> selectedPerson;
@@ -60,8 +64,9 @@ public class PendingFollowUpPanel extends UiPart<Region> {
      */
     public PendingFollowUpPanel(ObservableList<Person> pendingPersons,
             ReadOnlyObjectProperty<LocalDate> today,
-            ReadOnlyObjectProperty<Person> selectedPerson) {
+            ReadOnlyObjectProperty<Person> selectedPerson, Function<Person, Optional<ClientId>> clientIdLookup) {
         super(FXML);
+        this.clientIdLookup = requireNonNull(clientIdLookup);
         this.pendingPersons = requireNonNull(pendingPersons);
         this.today = requireNonNull(today);
         this.selectedPerson = requireNonNull(selectedPerson);
@@ -141,7 +146,12 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         Label status = new Label(card.status());
         status.getStyleClass().addAll("pending-card-status", card.statusStyleClass());
 
-        VBox container = new VBox(6, name, viewing, date, action, status);
+        Label clientId = new Label(clientIdLookup.apply(card.person()).map(id -> "Client ID " + id).orElse(""));
+        clientId.getStyleClass().add("pending-card-id");
+        clientId.setWrapText(true);
+        clientId.setMaxWidth(Double.MAX_VALUE);
+
+        VBox container = new VBox(6, name, viewing, date, action, status, clientId);
         container.getStyleClass().add("pending-card");
         if (card.isViewing()) {
             container.getStyleClass().add("pending-card-viewing");
@@ -216,7 +226,7 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         }
     }
 
-    /** Full text and identity marker for one unnumbered card. */
+    /** Full text and identity marker for one pending card. */
     record PendingCard(Person person, String name, String date, String action, String status,
                        String statusStyleClass, boolean isViewing) {
     }
