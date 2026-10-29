@@ -92,4 +92,22 @@ public class NameTest {
         }
     }
 
+    @Test
+    public void constructor_invisibleFillersOnly_rejectsBlankName() {
+        for (String blank : new String[] {"\u115f", "\u1160", "\u3164", "\uffa0",
+            " \u115f \u1160\u3164\uffa0 "}) {
+            assertFalse(Name.isValidName(blank));
+            assertThrows(IllegalArgumentException.class, () -> new Name(blank));
+        }
+    }
+
+    @Test
+    public void constructor_fillersWithVisibleLetters_preservesMultilingualName() {
+        for (String visible : new String[] {"김민수", "\u115f\u1161", "김\u3164민수",
+            "A\u115f", "\u1160José", "\uffa0陈小明", "\u31641"}) {
+            assertTrue(Name.isValidName(visible));
+            assertEquals(visible, new Name(visible).fullName);
+        }
+    }
+
 }
