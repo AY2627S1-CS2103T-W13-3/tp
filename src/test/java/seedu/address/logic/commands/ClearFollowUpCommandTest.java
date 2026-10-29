@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.commands.FollowUpCommandTestUtil.assertFailureUnchanged;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.BENSON;
 
@@ -13,11 +14,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import seedu.address.logic.commands.exceptions.CommandException;
-import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
-import seedu.address.model.ModelManager;
-import seedu.address.model.UserPrefs;
 import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
@@ -80,7 +77,7 @@ public class ClearFollowUpCommandTest {
     }
 
     @Test
-    public void execute_invalidDisplayedIndex_failsBeforePresenceCheck() {
+    public void execute_unknownClientId_failsBeforePresenceCheck() {
         Model model = modelWith(ALICE_PENDING, BENSON);
         model.showPendingFollowUps();
         assertFailureUnchanged(new ClearFollowUpCommand(new ClientId(3)), model,
@@ -110,13 +107,13 @@ public class ClearFollowUpCommandTest {
     }
 
     @Test
-    public void constructor_nullIndex_throwsNullPointerException() {
+    public void constructor_nullClientId_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> new ClearFollowUpCommand(null));
         assertThrows(NullPointerException.class, () -> new ClearFollowUpCommand(FIRST).execute(null));
     }
 
     @Test
-    public void equals_comparesIndex() {
+    public void equals_comparesClientId() {
         ClearFollowUpCommand command = new ClearFollowUpCommand(FIRST);
         assertEquals(command, command);
         assertEquals(command, new ClearFollowUpCommand(FIRST));
@@ -132,25 +129,6 @@ public class ClearFollowUpCommandTest {
     }
 
     private static Model modelWith(Person... persons) {
-        AddressBook data = new AddressBook();
-        for (Person person : persons) {
-            data.addPerson(person);
-        }
-        return new ModelManager(data, new UserPrefs(), TODAY, false);
-    }
-
-    private static void assertFailureUnchanged(Command command, Model model, String message) {
-        List<Person> before = List.copyOf(model.getAddressBook().getPersonList());
-        List<Person> displayed = List.copyOf(model.getFilteredPersonList());
-        boolean pending = model.showingFollowUpsProperty().get();
-        boolean dirty = model.hasUnsavedChanges();
-        LocalDate today = model.getToday();
-        CommandException error = assertThrows(CommandException.class, () -> command.execute(model));
-        assertEquals(message, error.getMessage());
-        assertEquals(before, model.getAddressBook().getPersonList());
-        assertEquals(displayed, model.getFilteredPersonList());
-        assertEquals(pending, model.showingFollowUpsProperty().get());
-        assertEquals(today, model.getToday());
-        assertEquals(dirty, model.hasUnsavedChanges());
+        return FollowUpCommandTestUtil.createModel(TODAY, persons);
     }
 }

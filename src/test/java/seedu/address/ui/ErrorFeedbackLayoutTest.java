@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -40,6 +39,8 @@ import seedu.address.model.UserPrefs;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.FxTestSupport;
+import seedu.address.testutil.FxTestSupport.ThrowingRunnable;
 
 /** Checks dashboard feedback geometry and dynamic scrolling without using the system clipboard. */
 public class ErrorFeedbackLayoutTest {
@@ -53,16 +54,7 @@ public class ErrorFeedbackLayoutTest {
 
     @BeforeAll
     public static void initializeToolkit() throws Exception {
-        FutureTask<Void> initialize = new FutureTask<>(() -> {
-            Platform.setImplicitExit(false);
-            return null;
-        });
-        try {
-            Platform.startup(initialize);
-        } catch (IllegalStateException alreadyStarted) {
-            Platform.runLater(initialize);
-        }
-        initialize.get(10, TimeUnit.SECONDS);
+        FxTestSupport.initializeToolkit();
     }
 
     @Test
@@ -338,20 +330,10 @@ public class ErrorFeedbackLayoutTest {
     }
 
     private static void runOnFx(ThrowingRunnable action) throws Exception {
-        callOnFx(() -> {
-            action.run();
-            return null;
-        });
+        FxTestSupport.runOnFx(action, 30);
     }
 
     private static <T> T callOnFx(Callable<T> action) throws Exception {
-        FutureTask<T> task = new FutureTask<>(action);
-        Platform.runLater(task);
-        return task.get(30, TimeUnit.SECONDS);
-    }
-
-    @FunctionalInterface
-    private interface ThrowingRunnable {
-        void run() throws Exception;
+        return FxTestSupport.callOnFx(action, 30);
     }
 }

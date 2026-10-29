@@ -12,14 +12,11 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -37,6 +34,7 @@ import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.Storage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.FxTestSupport;
 import seedu.address.ui.UiManager;
 
 /** Exercises the real failed-data startup path through the composed dashboard. */
@@ -46,16 +44,7 @@ public class DashboardStartupIntegrationTest {
 
     @BeforeAll
     public static void initializeToolkit() throws Exception {
-        FutureTask<Void> initialize = new FutureTask<>(() -> {
-            Platform.setImplicitExit(false);
-            return null;
-        });
-        try {
-            Platform.startup(initialize);
-        } catch (IllegalStateException alreadyStarted) {
-            Platform.runLater(initialize);
-        }
-        initialize.get(10, TimeUnit.SECONDS);
+        FxTestSupport.initializeToolkit();
     }
 
     @Test
@@ -70,7 +59,7 @@ public class DashboardStartupIntegrationTest {
         LogicManager logic = new LogicManager(model, storage,
                 Clock.fixed(Instant.parse("2026-10-21T00:00:00Z"), ZoneOffset.UTC));
 
-        FutureTask<Void> check = new FutureTask<>(() -> {
+        FxTestSupport.runOnFx(() -> {
             Stage stage = new Stage();
             try {
                 new UiManager(logic, data).start(stage);
@@ -97,10 +86,7 @@ public class DashboardStartupIntegrationTest {
             } finally {
                 stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
             }
-            return null;
-        });
-        Platform.runLater(check);
-        check.get(20, TimeUnit.SECONDS);
+        }, 20);
         assertTrue(model.isDataLoadingBlocked());
         assertTrue(logic.getAllPersonList().isEmpty());
         assertArrayEquals(original, Files.readAllBytes(data));
