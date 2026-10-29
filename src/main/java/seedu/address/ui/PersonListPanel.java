@@ -13,6 +13,7 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -21,7 +22,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-import javafx.util.Callback;
 import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
@@ -45,6 +45,8 @@ public class PersonListPanel extends UiPart<Region> {
     private final ReadOnlyObjectProperty<LocalDate> today;
     private final ReadOnlyBooleanProperty showingFollowUps;
     private final ReadOnlyObjectProperty<Person> selectedPerson;
+
+    private Node rowViewport;
 
     @FXML
     private TableView<Person> personTable;
@@ -95,14 +97,17 @@ public class PersonListPanel extends UiPart<Region> {
         dueColumn.visibleProperty().bind(showingFollowUps);
         statusColumn.visibleProperty().bind(showingFollowUps);
 
-        Callback<TableView.ResizeFeatures, Boolean> fittedResizePolicy = personTable.getColumnResizePolicy();
-        InvalidationListener fitColumns = observable -> {
-            double minColumnsWidth = personTable.getVisibleLeafColumns().stream()
-                    .mapToDouble(TableColumn::getMinWidth).sum();
-            // Constrained resizing clips columns it cannot shrink; unconstrained shows a horizontal scrollbar.
-            personTable.setColumnResizePolicy(personTable.getWidth() < minColumnsWidth
-                    ? TableView.UNCONSTRAINED_RESIZE_POLICY : fittedResizePolicy);
-        };
+        InvalidationListener fitColumns = observable -> updateColumnResizePolicy();
+        personTable.skinProperty().addListener((observable, oldSkin, newSkin) -> {
+            if (rowViewport != null) {
+                rowViewport.layoutBoundsProperty().removeListener(fitColumns);
+            }
+            rowViewport = personTable.lookup(".clipped-container");
+            if (rowViewport != null) {
+                rowViewport.layoutBoundsProperty().addListener(fitColumns);
+            }
+            updateColumnResizePolicy();
+        });
         personTable.widthProperty().addListener(fitColumns);
         personTable.getVisibleLeafColumns().addListener(fitColumns);
 
@@ -114,6 +119,20 @@ public class PersonListPanel extends UiPart<Region> {
         today.addListener(refresh);
         showingFollowUps.addListener(refresh);
         selectedPerson.addListener(refresh);
+    }
+
+    /** Fits columns to the laid-out row viewport, excluding insets and the vertical scrollbar. */
+    private void updateColumnResizePolicy() {
+        double availableWidth = rowViewport == null
+                ? personTable.getWidth() - personTable.getInsets().getLeft() - personTable.getInsets().getRight()
+                : rowViewport.getLayoutBounds().getWidth();
+        if (availableWidth <= 0) {
+            return;
+        }
+        double minimumWidth = personTable.getVisibleLeafColumns().stream()
+                .mapToDouble(TableColumn::getMinWidth).sum();
+        personTable.setColumnResizePolicy(availableWidth < minimumWidth
+                ? TableView.UNCONSTRAINED_RESIZE_POLICY : TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
     /** Returns the placeholder text for the active displayed-list mode. */
