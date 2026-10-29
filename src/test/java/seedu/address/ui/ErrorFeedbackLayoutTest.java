@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 import javafx.application.Platform;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
+import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -38,7 +40,7 @@ import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
 
-/** Checks feedback text inside the composed dashboard, without showing windows or using the system clipboard. */
+/** Checks dashboard feedback geometry and dynamic scrolling without using the system clipboard. */
 public class ErrorFeedbackLayoutTest {
     // Default window, minimum window, and 1280x720 at 150% in logical scene pixels.
     private static final double[][] LOGICAL_SIZES = {{1000, 720}, {640, 600}, {853, 480}};
@@ -115,14 +117,19 @@ public class ErrorFeedbackLayoutTest {
     public void overflowingError_scrollsToCompleteLastLineAndReturnsToCompactSuccess() throws Exception {
         // Explicit lines guarantee overflow regardless of platform fonts or usage-message wrapping.
         String message = "Additional error details.\n".repeat(40) + "Last line: retry the command.";
-        Dashboard dashboard = callOnFx(() -> new Dashboard(message));
+        Dashboard dashboard = callOnFx(() -> {
+            Dashboard shown = new Dashboard(message);
+            shown.showForLayoutPulses();
+            return shown;
+        });
         try {
             for (double[] size : LOGICAL_SIZES) {
                 runOnFx(() -> {
                     dashboard.resize(size);
                     dashboard.submit(ERROR_COMMAND);
                 });
-                // TextAreaSkin queues scroll/layout work; allow it to run between the user actions.
+                // Dynamic skin layout requires a real scene pulse, not only a queued FX action.
+                dashboard.awaitLayoutPulse();
                 double errorHeight = callOnFx(() -> {
                     dashboard.layout();
                     TextArea feedback = dashboard.feedback();
@@ -143,6 +150,7 @@ public class ErrorFeedbackLayoutTest {
                     feedback.setScrollTop(text.getLayoutBounds().getHeight());
                     return height;
                 });
+                dashboard.awaitLayoutPulse();
                 runOnFx(() -> {
                     dashboard.layout();
                     TextArea feedback = dashboard.feedback();
@@ -152,6 +160,7 @@ public class ErrorFeedbackLayoutTest {
                     dashboard.assertCommandFocus();
                     dashboard.submit("list");
                 });
+                dashboard.awaitLayoutPulse();
                 runOnFx(() -> {
                     dashboard.layout();
                     TextArea feedback = dashboard.feedback();
@@ -219,6 +228,30 @@ public class ErrorFeedbackLayoutTest {
             window = new MainWindow(new Stage(), logic, data);
             window.fillInnerParts();
             root = (Region) window.getRoot().getScene().getRoot();
+        }
+
+        void showForLayoutPulses() {
+            // Keep logical fixture sizes independent of the OS window's minimum dimensions.
+            Group container = new Group();
+            container.setAutoSizeChildren(false);
+            root.getScene().setRoot(container);
+            container.getChildren().add(root);
+            window.getRoot().show();
+        }
+
+        void awaitLayoutPulse() throws Exception {
+            CountDownLatch pulse = new CountDownLatch(1);
+            Runnable listener = pulse::countDown;
+            runOnFx(() -> {
+                root.getScene().addPostLayoutPulseListener(listener);
+                root.requestLayout();
+                Platform.requestNextPulse();
+            });
+            try {
+                assertTrue(pulse.await(10, TimeUnit.SECONDS), "JavaFX layout pulse must complete");
+            } finally {
+                runOnFx(() -> root.getScene().removePostLayoutPulseListener(listener));
+            }
         }
 
         void resize(double[] size) {
