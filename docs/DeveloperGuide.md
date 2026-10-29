@@ -181,7 +181,9 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 
 ### Client command parsing and publication
 
-`AddCommandParser` retains the existing tokenizer. It checks required prefixes and preamble before repeated required prefixes, then validates name, phone, email, address and tags in that order. Unrecognized prefixes remain part of the current field value. The model's check for duplicates across all client records follows parsing, even when the client is hidden by a filter. Successful addition resets the view to the full insertion-order list.
+`AddCommandParser` retains the existing tokenizer. It checks required prefixes and preamble before repeated required prefixes, then validates name, phone, email, address and tags in that order. Unrecognized prefixes remain part of the current field value. The model's check for duplicates across all client records follows parsing, even when the client is hidden by a filter. `AddCommand` adds through `Model`, then looks up the new canonical client's `ClientId` in the owning address book for its success feedback. It translates only `ClientIdExhaustedException` into a normal command error; ID allocation remains an aggregate responsibility. The command does not assign IDs itself.
+
+Addition preserves the active full, search or pending mode and its predicate. A new client appears in search results only when it matches, and a client without a follow-up remains hidden in pending mode. Existing selection is retained when its client remains visible. `LogicManager` saves the dirty candidate before publication, so a failed save does not publish the new client or consume a live ID.
 
 `DeleteCommandParser` checks for exactly one ordinary-space-separated token before calling `ParserUtil.parseIndex`. The shared helper accepts ASCII digits, trims outer U+0020, removes leading zeroes before bounded conversion and rejects values outside `1..2147483647` without leaking `NumberFormatException`. `FollowUpParserUtil` and `ViewCommandParser` use the same helper. Delete resolves an index against `Model.getFilteredPersonList`, retaining the active mode and deleting the full record with its action.
 
@@ -249,7 +251,7 @@ A saved record uses the following JSON shape. Tags are strings, not objects; omi
 
 ### View parsing, client search and supported command routing
 
-`ViewCommand`, `ViewCommandParser`, `FindCommand` and `AddressBookParser` use the shared index helper and model selection API. `Logic.selectedPersonProperty()` delegates to the live model, allowing the workspace and profile to observe the same selection.
+`ViewCommand` and `ViewCommandParser` use the shared client-targeting API and model selection API. `FindCommandParser` constructs either the existing bare-search predicate or an explicit `ClientSearchPredicate`; `FindCommand` applies either predicate through the model's full-list filter. `Logic.selectedPersonProperty()` delegates to the live model, allowing the workspace and profile to observe the same selection.
 
 #### View execution and error precedence
 
@@ -259,17 +261,21 @@ At execution, `ViewCommand` obtains `Model.getFilteredPersonList()` and checks t
 
 The current list is authoritative in full, search and pending modes. Selection does not change data, order, mode or the dirty flag. Through the existing `LogicManager` execution path, the command selects on an isolated candidate; successful publication transfers selection and the sampled date without saving client data. A failed parse or range check publishes nothing. The command never samples a date itself.
 
-#### Name and phone search behavior
+#### Bare and explicit client search
 
-`FindCommandParser` reports the exact usage `Usage: find KEYWORD [MORE_KEYWORDS]...` for empty arguments. After global validation, it trims only outer U+0020 and splits keywords on runs of ordinary spaces. Quotes and punctuation remain literal tokens. `ClientContainsKeywordsPredicate` copies the keywords and composes the existing `NameContainsKeywordsPredicate` with exact full-phone matching. Name matching remains whole-word and case-insensitive; a client matches if any keyword matches either field. Phone keywords must contain at least three ASCII digits and no formatting. They are converted to `Phone` values and compared through `Phone.hasSameDigitsAs`, preserving leading zeroes and rejecting partial numbers. This comparison ignores a stored phone's display formatting (a leading `+`, ordinary spaces and hyphens); phone input validation remains unchanged. Numeric keywords remain eligible for name matching, and separate tokens are never concatenated. Email, address and tags are not searched.
+`FindCommandParser` trims only outer U+0020 after global input validation. Bare input is split on ordinary-space runs and continues to construct `ClientContainsKeywordsPredicate`, preserving its case-insensitive whole-name-word OR exact-full-phone behavior. Phone keywords retain leading zeroes and match formatted stored numbers by complete digits; partial phone matching is reserved for the explicit phone form. Quotes and punctuation remain literal, numeric keywords may also match name words, and separate tokens are never concatenated.
 
-`FindCommand` applies that predicate to the full dataset with `updateFilteredPersonList`, leaving pending mode and restoring insertion-order results. Each client appears once regardless of repeated keywords. It uses the existing shared count message, `%1$d client(s) listed!`. The model retains selection only if its exact record remains visible; search does not explicitly select any record or mark data dirty.
+The explicit forms accept one `n/`, `p/` or `t/` field. The parser rejects empty values, multiple or mixed explicit fields, and bare text before an explicit field. `p/` accepts at least one ASCII digit with only the existing phone display characters; it does not apply the full phone's three-digit minimum. `t/` reuses `Tag` validation. Known explicit prefixes are reserved inside explicit queries.
+
+`ClientSearchPredicate` implements explicit matching: NFC-normalized, case-insensitive name substrings with ordinary-space runs collapsed; phone-digit substrings with `+`, spaces and hyphens ignored; and exact case-insensitive tag matching. `FindCommand` accepts `Predicate<Person>` so both the existing bare predicate and the new explicit predicate flow through the same command.
+
+`FindCommand` applies the selected predicate to all clients through `updateFilteredPersonList`, including clients hidden by pending mode or a prior search. Insertion order is preserved and a client appears once. The shared `%1$d client(s) listed!` message is retained. Search does not save client data or explicitly select a record; the model retains selection only if the canonical client remains visible.
 
 #### Dispatcher and loading protection
 
-`AddressBookParser` rejects C0/C1 controls and U+2028/U+2029 on raw input, trims ordinary spaces, and rejects an empty line with `Enter a command.`. Command words are case-sensitive. Its supported routes are `add`, `delete`, `view`, `find`, `list`, `followup` and `followups`.
+`AddressBookParser` rejects C0/C1 controls and U+2028/U+2029 on raw input, trims ordinary spaces, and rejects an empty line with `Enter a command.`. Command words are case-sensitive. Its supported routes are `add`, `delete`, `edit`, `view`, `find`, `list`, `followup` and `followups`.
 
-The mutation gate contains only `add`, `delete` and singular `followup`. In a failed-load session these routes report the existing changes-blocked diagnostic before command-specific parsing. Queries remain available, including normal view argument validation and the range error against an empty displayed list. Typed `edit`, standalone `clear`, `help` and `exit` reach the unknown-command result, `Unknown command.`, in both normal and blocked sessions. Global raw-character errors still have priority. `followup INDEX clear` remains a supported mutation.
+The mutation gate contains `add`, `delete`, `edit` and singular `followup`. In a failed-load session these routes report the existing changes-blocked diagnostic before command-specific parsing. Queries remain available, including normal view argument validation and the range error against an empty displayed list. Standalone `clear`, `help` and `exit` reach the unknown-command result, `Unknown command.`, in both normal and blocked sessions. Global raw-character errors still have priority. `followup INDEX clear` remains a supported mutation.
 
 Legacy command classes, their direct unit tests, the GUI Help menu and the window close handler remain available for their separate uses; removal applies to typed dispatch. Compatibility tests assert parse rejection for unsupported routes and retain failed-save/file-preservation checks for supported mutations.
 
@@ -277,9 +283,9 @@ Legacy command classes, their direct unit tests, the GUI Help menu and the windo
 
 `ViewCommandParserTest` covers shape-before-syntax precedence, ASCII index boundaries and long leading-zero runs. `ViewCommandTest` uses date `2026-10-12` and two permitted same-name clients to verify exact displayed-record selection in full/search/pending modes, unchanged list/data/mode, failure preservation, and selection/date publication through Logic without a storage write.
 
-`FindCommandParserTest`, `FindCommandTest` and `AddressBookParserTest` cover literal usage/result text, ordinary-space splitting, whole-word OR matching, insertion order, repeated keywords, all-data search after filtering/pending mode, selection reconciliation and global validation. Dispatcher tests reject all four unsupported routes in normal and blocked sessions and retain singular follow-up clearing. `LogicManagerTest` and `FollowUpWorkflowIntegrationTest` provide compatibility evidence for blocked-session rejection and preservation of state and saved bytes.
+`FindCommandParserTest`, `FindCommandTest` and `AddressBookParserTest` cover literal usage/result text, ordinary-space splitting, whole-word OR matching, insertion order, repeated keywords, all-data search after filtering/pending mode, selection reconciliation and global validation. `ClientSearchPredicateTest` covers normalized/caseless partial names, collapsed spaces, formatted phone substrings and exact tags. `ClientSearchWorkflowTest` checks explicit searches after pending mode, hidden matches, selection reconciliation and unchanged client data. Dispatcher tests reject unsupported routes in normal and blocked sessions and retain singular follow-up clearing. `LogicManagerTest` and `FollowUpWorkflowIntegrationTest` provide compatibility evidence for blocked-session rejection and preservation of state and saved bytes.
 
-`ClientContainsKeywordsPredicateTest` covers exact phone matching, leading zeroes, numeric name words, unchanged name matching and excluded fields. `FindPhoneWorkflowIntegrationTest` exercises the real parser and Logic path with shared phone numbers, mixed name/phone keywords and pending/search transitions. It verifies insertion order, one result per client, selection reconciliation and unchanged client data and saved bytes, with storage configured to fail if search attempts a save.
+`ClientContainsKeywordsPredicateTest` covers exact phone matching, leading zeroes, numeric name words, unchanged name matching and excluded fields. `FindPhoneWorkflowIntegrationTest` exercises the real parser and Logic path with shared phone numbers, mixed name/phone keywords, explicit fields and pending/search transitions. It verifies insertion order, one result per client, selection reconciliation and unchanged client data and saved bytes, with storage configured to fail if search attempts a save. `ClientAddWorkflowTest` covers ID feedback, the last valid ID, exhaustion, duplicate rejection without counter consumption, permitted same-name clients, mode retention and add-after-delete/restart. `ClientWorkflowsIntegrationTest` covers failed-save retry with unchanged original bytes and a search-to-edit sequence that preserves ID and follow-up.
 
 Command tests alone do not certify rendered profile behavior. The workspace and profile sections below describe the integrated UI and its separate checks.
 
@@ -587,11 +593,12 @@ Start fresh with Rachel and Amanda from the basic workflow.
 | `find 001` | `1 client(s) listed!`, Rachel; the full phone number retains its leading zeroes. |
 | `find 01`, `find 0001`, `find 0 01` | Each returns `0 client(s) listed!`; phone matching is exact and separate tokens are not joined. |
 | `find 001 AMANDA Lim 001` | `2 client(s) listed!`, Rachel then Amanda, each once. |
-| `find` | `Invalid command format!` then `Usage: find KEYWORD [MORE_KEYWORDS]...`. |
+| `find` | `Invalid command format!` then the combined bare/explicit search usage. |
+| `find n/rac`, `find p/9123`, `find t/renewal` | Partial name, formatted phone digits and exact tag searches return matching clients once in insertion order. |
 | `view 0 extra`, `delete 0 extra` | Format error and the corresponding usage, before index syntax. |
 | `view 0`, `view 2147483648`, `delete 0` | `Index must be a positive integer from 1 to 2147483647.` |
 | `view 2147483647` | `The client index provided is invalid.` |
-| `edit 1 n/Changed`, `clear`, `help`, `exit` | `Unknown command.`; no client data changes and the window stays open. |
+| `clear`, `help`, `exit` | `Unknown command.`; no client data changes and the window stays open. |
 | `add n/RACHEL  LIM p/001 e/new@example.com a/Blk 9` | Duplicate error despite name case/spacing differences. |
 | `add n/Rachel Lim p/003 e/RACHEL@EXAMPLE.COM a/Blk 9` | Duplicate error because email matching ignores case. |
 | `add n/Rachel Lim p/003 e/other@example.com a/Blk 9` | Allowed: both phone and email differ. |
