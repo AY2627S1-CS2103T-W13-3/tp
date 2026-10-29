@@ -275,6 +275,8 @@ The explicit forms accept one `n/`, `p/` or `t/` field. The parser rejects empty
 
 `AddressBookParser` rejects C0/C1 controls and U+2028/U+2029 on raw input, trims ordinary spaces, and rejects an empty line with `Enter a command.`. Command words are case-sensitive. Its supported routes are `add`, `delete`, `edit`, `view`, `find`, `list`, `followup` and `followups`.
 
+The no-argument routes `list` and `followups` reject non-empty arguments with `Invalid command format!` followed by their command-specific usage. Outer ordinary spaces remain accepted. Rejection occurs before command execution, preserving the displayed filter, pending mode, selection, sampled date and saved client data. Global character validation retains priority, including in protected loading sessions. Free-text fields and search keywords in other commands retain their existing grammar.
+
 The mutation gate contains `add`, `delete`, `edit` and singular `followup`. In a failed-load session these routes report the existing changes-blocked diagnostic before command-specific parsing. Queries remain available, including normal view argument validation and the range error against an empty displayed list. Standalone `clear`, `help` and `exit` reach the unknown-command result, `Unknown command.`, in both normal and blocked sessions. Global raw-character errors still have priority. `followup INDEX clear` remains a supported mutation.
 
 Legacy command classes, their direct unit tests, the GUI Help menu and the window close handler remain available for their separate uses; removal applies to typed dispatch. Compatibility tests assert parse rejection for unsupported routes and retain failed-save/file-preservation checks for supported mutations.

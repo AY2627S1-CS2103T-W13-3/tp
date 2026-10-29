@@ -10,6 +10,7 @@ import seedu.address.model.Model;
 public final class FollowUpsCommand extends Command {
 
     public static final String COMMAND_WORD = "followups";
+    public static final String MESSAGE_USAGE = "Usage: followups (no arguments)";
     public static final String MESSAGE_PENDING = "Pending follow-ups";
     public static final String MESSAGE_NO_PENDING = "There are no pending follow-ups.";
 
