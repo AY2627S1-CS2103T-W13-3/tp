@@ -173,7 +173,7 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 * `setPerson` resolves the target by full value equality, excludes only that full-list slot and checks the replacement against every other record before updating. Matching the old target does not bypass those checks.
 * Follow-up-only replacements retain the contact fields and remain valid. Two same-name clients can coexist and be replaced or deleted independently.
 
-`AddressBook` delegates to this collection path. Model mutations, command candidates and storage loading reuse the same rejection rule. No persistent client ID is introduced; selection tracks canonical immutable record instances.
+`AddressBook` delegates to this collection path. Model mutations, command candidates and storage loading reuse the same rejection rule. `AddressBook` maintains permanent `ClientId` values and a monotonic allocation counter independently of `Person` contact equality. `ModelManager` retains selection by resolving the selected ID back to the canonical immutable record after mutations and publication.
 
 **Alternatives considered:** name-only rejection prevents legitimate same-name clients. Redefining `Person.equals`/`hashCode` around duplicate rejection would violate equality's transitivity. Both are unsuitable. `Person.isSamePerson` retains exact stored-name matching for legacy callers; it is neither the duplicate predicate nor a stable record-identity key. `equals`/`hashCode` still include all stored fields and follow-up.
 
@@ -185,7 +185,7 @@ The relation is symmetric but **not transitive**. For a common name, record A `(
 
 Addition preserves the active full, search or pending mode and its predicate. A new client appears in search results only when it matches, and a client without a follow-up remains hidden in pending mode. Existing selection is retained when its client remains visible. `LogicManager` saves the dirty candidate before publication, so a failed save does not publish the new client or consume a live ID.
 
-`DeleteCommandParser` checks for exactly one ordinary-space-separated token before calling `ParserUtil.parseIndex`. The shared helper accepts ASCII digits, trims outer U+0020, removes leading zeroes before bounded conversion and rejects values outside `1..2147483647` without leaking `NumberFormatException`. `FollowUpParserUtil` and `ViewCommandParser` use the same helper. Delete resolves an index against `Model.getFilteredPersonList`, retaining the active mode and deleting the full record with its action.
+`DeleteCommandParser` checks for exactly one ordinary-space-separated ID token before calling `ClientIdParserUtil.parseClientId`, which uses bounded ASCII-digit parsing and accepts leading zeroes. `ViewCommandParser` and `FollowUpCommandParser` also use permanent IDs. `ClientIdResolver.requireClient` resolves each ID against the complete address book, including clients hidden by the current search or pending view. Delete retains the active list mode and removes the identified record and its follow-up.
 
 `StringUtil.trimOrdinarySpaces` is shared by command parsers, contact/follow-up validation and saved-person/tag adapters.
 It scans the two outer boundaries for U+0020 instead of retrying a trailing-space regular expression at each internal space.
@@ -194,9 +194,9 @@ The address validator still checks complete UTF-16 surrogate pairs, and stored v
 `LongWhitespaceCommandTest` exercises a long valid name through add, save/load and search, plus rejection of an overlength follow-up without changing saved bytes.
 `StringUtilTest` checks the short-input contract, including empty/blank text, internal spaces, tabs, non-breaking spaces and Unicode text. Its large-string timing regression measures only the pure trim call; workflow correctness tests do not impose a disk-I/O deadline.
 
-`LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, index and save failures preserve live data, list mode/order, selection and date; successful read-only commands do not save.
+`LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, invalid-ID and save failures preserve live data, list mode/order, selection and date; successful read-only commands do not save.
 
-Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, index boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, pending/filter indices, follow-up targeting and injected save failures. Parser tests cover syntax separately from command displayed-range checks.
+Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, index boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, permanent-ID targeting across pending/search filters, follow-up targeting and injected save failures. Parser tests cover syntax separately from global ID resolution.
 
 ### Saved client loading
 
@@ -255,11 +255,11 @@ A saved record uses the following JSON shape. Tags are strings, not objects; omi
 
 #### View execution and error precedence
 
-`ViewCommandParser` trims outer ordinary spaces (U+0020) and requires exactly one token. Missing or additional tokens produce `Invalid command format!` followed by a newline and `Usage: view INDEX`, before any index syntax check. It then calls `ParserUtil.parseIndex`, accepting ASCII digits with arbitrarily many leading zeroes and a numeric value in `1..2147483647`. Invalid syntax propagates the shared message unchanged: `Index must be a positive integer from 1 to 2147483647.`. It does not duplicate shared validation or wrap every parsing error as a usage error.
+`ViewCommandParser` trims outer ordinary spaces (U+0020) and requires exactly one token. Missing or additional tokens produce `Invalid command format!` followed by a newline and `Usage: view ID`, before ID syntax validation. It delegates to `ClientIdParserUtil.parseClientId`, accepting ASCII digits with leading zeroes and a numeric value in `1..2147483647`. Invalid IDs produce `Client ID must be a positive integer from 1 to 2147483647.`.
 
-At execution, `ViewCommand` obtains `Model.getFilteredPersonList()` and checks the target against its current size. An index beyond the displayed list produces `The client index provided is invalid.`. Otherwise it passes the exact displayed `Person` instance to `Model.selectPerson` and returns an ordinary `CommandResult` containing `Showing client: NAME`. The name is feedback, not a selection identity key. No command-result field, callback or UI event is added.
+At execution, `ViewCommand` calls `ClientIdResolver.requireClient` against the full address book. An unknown ID produces `No client with ID ID.`. If the matching client is hidden by search or pending mode, `ViewCommand` switches to the full-list filter before selecting that canonical `Person`. Success returns `Showing client ID ID: NAME`. No command-result field, callback or UI event is added.
 
-The current list is authoritative in full, search and pending modes. Selection does not change data, order, mode or the dirty flag. Through the existing `LogicManager` execution path, the command selects on an isolated candidate; successful publication transfers selection and the sampled date without saving client data. A failed parse or range check publishes nothing. The command never samples a date itself.
+Permanent IDs are authoritative regardless of the currently displayed list. Viewing a visible client preserves the current mode; viewing a hidden one switches to the full list. Selection does not change stored client data or the dirty flag. Through the existing `LogicManager` execution path, the command selects on an isolated candidate; successful publication transfers selection and the sampled date without saving client data. A failed parse or range check publishes nothing. The command never samples a date itself.
 
 #### Bare and explicit client search
 
@@ -275,13 +275,13 @@ The explicit forms accept one `n/`, `p/` or `t/` field. The parser rejects empty
 
 `AddressBookParser` rejects C0/C1 controls and U+2028/U+2029 on raw input, trims ordinary spaces, and rejects an empty line with `Enter a command.`. Command words are case-sensitive. Its supported routes are `add`, `delete`, `edit`, `view`, `find`, `list`, `followup` and `followups`.
 
-The mutation gate contains `add`, `delete`, `edit` and singular `followup`. In a failed-load session these routes report the existing changes-blocked diagnostic before command-specific parsing. Queries remain available, including normal view argument validation and the range error against an empty displayed list. Standalone `clear`, `help` and `exit` reach the unknown-command result, `Unknown command.`, in both normal and blocked sessions. Global raw-character errors still have priority. `followup INDEX clear` remains a supported mutation.
+The mutation gate contains `add`, `delete`, `edit` and singular `followup`. In a failed-load session these routes report the existing changes-blocked diagnostic before command-specific parsing. Queries remain available, including normal view argument validation and the range error against an empty displayed list. Standalone `clear`, `help` and `exit` reach the unknown-command result, `Unknown command.`, in both normal and blocked sessions. Global raw-character errors still have priority. `followup ID clear` remains a supported mutation.
 
 Legacy command classes, their direct unit tests, the GUI Help menu and the window close handler remain available for their separate uses; removal applies to typed dispatch. Compatibility tests assert parse rejection for unsupported routes and retain failed-save/file-preservation checks for supported mutations.
 
 #### Automated evidence
 
-`ViewCommandParserTest` covers shape-before-syntax precedence, ASCII index boundaries and long leading-zero runs. `ViewCommandTest` uses date `2026-10-12` and two permitted same-name clients to verify exact displayed-record selection in full/search/pending modes, unchanged list/data/mode, failure preservation, and selection/date publication through Logic without a storage write.
+`ViewCommandParserTest` covers shape-before-syntax precedence, permanent-ID boundaries and long leading-zero runs. `ViewCommandTest` covers permanent-ID resolution, selection in full/search/pending modes, hidden-target full-list restoration, failure preservation and selection/date publication without a storage write.
 
 `FindCommandParserTest`, `FindCommandTest` and `AddressBookParserTest` cover literal usage/result text, ordinary-space splitting, whole-word OR matching, insertion order, repeated keywords, all-data search after filtering/pending mode, selection reconciliation and global validation. `ClientSearchPredicateTest` covers normalized/caseless partial names, collapsed spaces, formatted phone substrings and exact tags. `ClientSearchWorkflowTest` checks explicit searches after pending mode, hidden matches, selection reconciliation and unchanged client data. Dispatcher tests reject unsupported routes in normal and blocked sessions and retain singular follow-up clearing. `LogicManagerTest` and `FollowUpWorkflowIntegrationTest` provide compatibility evidence for blocked-session rejection and preservation of state and saved bytes.
 
@@ -295,13 +295,13 @@ Command tests alone do not certify rendered profile behavior. The workspace and 
 
 `Model.selectedPersonProperty()` returns one stable `ReadOnlyObjectProperty<Person>`. Its nullable value is the selected canonical record, with `null` meaning no selection. `Model.selectPerson(Person)` accepts a non-null object that is actually present in the current displayed list. An equal-valued copy is not a canonical member. Selection changes view state without marking client data dirty; the property does not expose a writable UI setter.
 
-Selection follows the exact record, never its name, duplicate relation or displayed index. Immutable `Person` instances can be shared between model copies. When `setPerson(target, replacement)` replaces the selected record, the model tracks the replacement and retains it as the selection only if it remains visible. Filtering out or deleting the selected record clears selection. Clearing its follow-up retains selection in full/search mode but clears it in pending mode, where the record is no longer visible. Returning to the full list does not recreate a cleared selection. Addition reveals the full list without selecting the new record. Constructors start with no selection, including when data loading is blocked; selection is not stored in JSON or preferences.
+Selection follows the exact record, never its name, duplicate relation or displayed index. Immutable `Person` instances can be shared between model copies. When `setPerson(target, replacement)` replaces the selected record, the model tracks the replacement and retains it as the selection only if it remains visible. Filtering out or deleting the selected record clears selection. Clearing its follow-up retains selection in full/search mode but clears it in pending mode, where the record is no longer visible. Returning to the full list does not recreate a cleared selection. Addition preserves the current list mode and does not select the new record. Constructors start with no selection, including when data loading is blocked; selection is not stored in JSON or preferences.
 
 #### Candidate copying and selection publication
 
 `forkForCommand(today)` copies selection along with data and view state into a clean candidate. The candidate has its own observable list and properties, so selecting, replacing, filtering or deleting a record there does not change the live model. Discarding the candidate preserves live selection and the published date. Selection-only operations remain clean; an accepted data replacement remains dirty even when its stored values are unchanged.
 
-After the caller has successfully saved any dirty candidate, `commitFrom(candidate)` publishes its data, mode, date and selection while retaining the live observable objects. It maps the selected candidate record's full-list position to the corresponding committed live record. This position is used only within that publication; it is not a persistent ID or a displayed row number.
+After the caller has successfully saved any dirty candidate, `commitFrom(candidate)` publishes its data, mode, date and selection while retaining the live observable objects. It resolves the candidate's selected permanent `ClientId` back to the matching canonical committed record. This mapping does not depend on either full-list positions or displayed row positions.
 
 This mapping matters for an identical follow-up replacement. The candidate may contain a new `Person` object with equal values, while publication skips resetting the live client data when it has equal values. Publishing the candidate object directly would leave selection pointing outside the live list. Mapping to the committed live record retains a canonical visible selection whether the data was reset or retained.
 
@@ -320,15 +320,15 @@ These tests establish the model boundary. `ClientProfileWorkflowIntegrationTest`
 
 ### Integrated dashboard and data ownership
 
-`MainWindow.fillInnerParts()` composes the command bar, feedback strip, numbered table, profile and grouped pending panel. Repeated initialization is rejected to prevent duplicate controls and subscriptions. The horizontal workspace divider and the vertical sidebar divider allocate space without changing the data or selection. Component FXML loads scoped styles; `Dashboard.css` owns host geometry and branding.
+`MainWindow.fillInnerParts()` composes the command bar, feedback strip, permanent-ID client table, profile and grouped pending panel. Repeated initialization is rejected to prevent duplicate controls and subscriptions. The horizontal workspace divider and the vertical sidebar divider allocate space without changing the data or selection. Component FXML loads scoped styles; `Dashboard.css` owns host geometry and branding.
 
-The left `PersonListPanel` receives only `logic.getFilteredPersonList()`. Its unsortable `TableView` uses continuous one-based command indices and variable-height cells that wrap names/contact values. Due/status columns are visible in pending mode. `createRowDisplay` derives text from immutable values and the published date. Recycled rows clear old graphics and status badges; `isViewed` uses reference identity. Table selection never writes model selection. At widths below the visible columns' minimum total, the resize policy permits horizontal scrolling instead of hiding the last columns.
+The left `PersonListPanel` receives only `logic.getFilteredPersonList()`. Its unsortable `TableView` uses the `logic::getClientId` lookup to display stable IDs and variable-height cells that wrap names/contact values. Due/status columns are visible in pending mode. `createRowDisplay` derives text from immutable values and the published date. Recycled rows clear old graphics and status badges; `isViewed` uses reference identity. Table selection never writes model selection. At widths below the visible columns' minimum total, the resize policy permits horizontal scrolling instead of hiding the last columns.
 
-The `#` column has a fixed 56-pixel width (equal minimum, preferred and maximum widths; not resizable). Index cells render plain `Labeled` text, which JavaFX clips with an ellipsis rather than wrapping. With the earlier 36–40 pixel width, row 1000 rendered as `1...` at the 1280x720/150% logical size, so the index a command needs was unreadable. The fixed width fits five-digit indices in the table font; widen it if supported lists can exceed 99,999 clients.
+The `Client ID` column displays the aggregate's permanent ID rather than a row number. `PersonListPanel.ClientIdCell` obtains it from the `clientIdLookup` function; a client keeps the same label across sorting and filtering. The displayed IDs can have gaps after deletion. Verify long IDs at supported resolutions in the v1.5 display matrix.
 
 `Logic.getAllPersonList()` exposes the stable, unmodifiable complete committed feed independently of search/pending filters. `MainWindow` constructs one `PendingFollowUpProjection` from it. The projection keeps clients with a follow-up, sorts them stably by due date and retains the canonical `Person` references. It never reads the filtered command list or samples a clock. Candidate execution and failed saves cannot publish tentative records into this feed.
 
-`PendingFollowUpPanel` observes the projection, `todayProperty()` and `selectedPersonProperty()`. It groups actions by status using the published date, retaining due-date order within groups. It displays full names, dates and action text without command indices. Its selection listener observes invalidation so an equal-valued replacement still updates the identity-based marker. Empty groups are unmanaged and the empty summary is explicit.
+`PendingFollowUpPanel` observes the projection, `todayProperty()` and `selectedPersonProperty()`. It groups actions by status using the published date, retaining due-date order within groups. It displays full names, dates and action text without using row positions as command targets. Its selection listener observes invalidation so an equal-valued replacement still updates the identity-based marker. Empty groups are unmanaged and the empty summary is explicit.
 
 On window close or programmatic hiding, `MainWindow` disposes the panel and closes the projection. Both operations are idempotent and their callbacks guard against already-queued notifications after disposal. No independent timer or second client store is introduced.
 
@@ -359,7 +359,7 @@ The saved-data warning is a separate persistent label controlled by `logic.isDat
 
 `ClientProfilePanel` observes Logic's selected-client and published-date properties. It renders the immutable record without selecting, saving or sampling the device clock. Contact values and action text wrap in a scrollable card; lowercase tags are sorted chips, with `No tags` for an empty set. No selection clears the fields and shows `No client selected.`; no action shows `Follow-up: None`. Status derives from `FollowUp.getStatus(today)`.
 
-`DashboardIntegrationTest` drives the real window, Logic, model and temporary JSON storage. It verifies global-summary independence from filtering, command indices after reordering, canonical profile retention, clear/delete, date-driven groups, failed-save byte/view preservation, error recovery, cleanup and logical layout sizes. A missing-screen test exercises the real window constructor without discarding preferences. `DashboardStartupIntegrationTest` loads malformed JSON through MainApp and checks that query success and rejected mutations cannot dismiss the persistent warning or populate the protected views. Component suites cover cell recycling, long values, feedback accessibility and command submission separately. JavaFX layout tests establish logical geometry; the final OS scaling matrix still requires manual evidence.
+`DashboardIntegrationTest` drives the real window, Logic, model and temporary JSON storage. It verifies global-summary independence from filtering, permanent client IDs after reordering, canonical profile retention, clear/delete, date-driven groups, failed-save byte/view preservation, error recovery, cleanup and logical layout sizes. A missing-screen test exercises the real window constructor without discarding preferences. `DashboardStartupIntegrationTest` loads malformed JSON through MainApp and checks that query success and rejected mutations cannot dismiss the persistent warning or populate the protected views. Component suites cover cell recycling, long values, feedback accessibility and command submission separately. JavaFX layout tests establish logical geometry; the final OS scaling matrix still requires manual evidence.
 
 ### Follow-up state and date handling
 
@@ -369,7 +369,7 @@ Descriptions preserve Unicode spelling without normalization and retain internal
 At least one code point must provide visible content: Unicode spaces, format characters, combining marks, Hangul fillers (U+115F/U+1160/U+3164/U+FFA0) and Braille blank (U+2800) do not qualify by themselves. Format characters and marks remain valid within notes containing visible text or symbols, preserving script shaping and joined emoji. This is a text-validation rule; actual glyph support depends on the platform's fonts.
 `JsonAdaptedFollowUp` reuses this domain validation when loading saved notes. The parser's global control-character gate and reserved `d/`/`m/` prefix handling remain unchanged.
 
-`FollowUpCommandParser` recognizes either `followup INDEX clear` or one date and one description prefix. Commands resolve the index against the current displayed list before validating a new date/action. New and replacement actions accept past dates for overdue carry-over work, using the same strict calendar, year (`0001`–`9999`) and description validation as stored actions. Date errors precede description errors; a valid past date with an invalid description reports the description error.
+`FollowUpCommandParser` recognizes either `followup ID clear` or one date and one description prefix. Commands resolve the permanent Client ID against the complete address book before validating a new date/action. New and replacement actions accept past dates for overdue carry-over work, using the same strict calendar, year (`0001`–`9999`) and description validation as stored actions. Date errors precede description errors; a valid past date with an invalid description reports the description error.
 
 `ArgumentTokenizer` recognizes `d/` and `m/` anywhere they immediately follow an ordinary space (U+0020), including inside a description. It does not interpret quotation marks or provide prefix escaping. Repeating either prefix therefore fails duplicate-prefix validation before command execution; an existing action stays unchanged. For example, `m/Confirm d/m/y format` repeats `d/`, while `m/Confirm day/month/year format` and `m/Check ref:d/m/y` preserve the intended descriptions.
 
@@ -463,43 +463,43 @@ The actor is an individual insurance agent and the system is PolicyHarbor. Each 
 **UC01 — Retrieve a client profile**
 
 1. The agent lists all clients or searches their names or phone numbers.
-2. The system displays matching clients with current row numbers.
-3. The agent enters `view INDEX`.
+2. The system displays matching clients and their permanent Client IDs.
+3. The agent enters `view ID`.
 4. The system opens that client's complete profile without changing saved data.
 
-Extension: invalid syntax or a missing displayed index produces an error and preserves the current profile.
+Extension: invalid syntax or an unknown Client ID produces an error and preserves the current profile.
 
 **UC02 — Add a client**
 
 1. The agent submits `add` with contact details and optional tags.
 2. The system validates the fields and checks the full dataset for duplicates.
-3. The system saves the new record, then displays the full list and success feedback.
+3. The system saves the new record, retains the active list mode and displays success feedback including the allocated Client ID.
 
 Extensions: invalid/duplicate data produces an error without changes. A save failure preserves the previous data and view. The agent can correct and resubmit the retained command text.
 
 **UC03 — Delete a client**
 
 1. The agent identifies the client in the displayed list.
-2. The agent enters `delete INDEX`; opening a profile first is optional.
+2. The agent enters `delete ID`; opening a profile first is optional.
 3. The system saves the removal of the client and their follow-up, then refreshes the current list. If that client was viewed, the profile closes.
 
-Extensions: an invalid index or save failure leaves the original state intact.
+Extensions: an invalid or unknown Client ID or save failure leaves the original state intact.
 
 **UC04 — Record or replace a follow-up**
 
-1. The agent enters `followup INDEX d/DATE m/DESCRIPTION` for a displayed client.
-2. The system validates the index, date and description.
+1. The agent enters `followup ID d/DATE m/DESCRIPTION` for a client, whether currently visible or hidden.
+2. The system validates the ID, date and description.
 3. The system saves the action and updates the list/profile, reordering pending rows when necessary.
 
 Extensions: invalid input or saving failure preserves the previous action and view. Only one action is stored, so an accepted replacement overwrites the earlier action.
 
 **UC05 — Clear a follow-up**
 
-1. The agent enters `followup INDEX clear` for a displayed client.
+1. The agent enters `followup ID clear` for a client, whether currently visible or hidden.
 2. The system saves removal of the pending action.
 3. In pending mode the client leaves the list and their open profile closes; in full/search mode the client remains and their profile shows no action.
 
-Extensions: an absent action, invalid index or save failure produces an error and preserves the original state.
+Extensions: an absent action, invalid or unknown Client ID, or save failure produces an error and preserves the original state.
 
 ### Non-Functional Requirements
 
@@ -532,7 +532,7 @@ Extensions: an absent action, invalid index or save failure produces an error an
 * **Client record**: The contact details stored for a client or prospective client
 * **Follow up**: The next action an agent plans to take for a client, with a due date and description
 * **Pending**: A follow-up that has been recorded and not yet cleared. It stays pending after its due date passes
-* **Index**: The row number of a client in the list currently displayed.
+* **Client ID**: A permanent positive integer assigned by the address book. IDs do not change after filtering or reordering, and are not reused after deletion.
 * **Overdue**: A pending follow-up whose due date is before today
 * **Due today**: A pending follow-up whose due date is today
 * **Upcoming**: A pending follow-up whose due date is after today
@@ -555,8 +555,8 @@ Test the packaged JAR in a fresh writable folder with Java 25 (the prescribed Zu
    ```
 
    Expect Rachel's contact fields, `Tags: [active] [health]` and `Follow-up: None` in the profile. Only Rachel's row is marked `VIEWING`.
-3. Record Rachel's action for today + 2 days and Amanda's for today + 1 day using `followup INDEX d/DATE m/ACTION`. Use actual `YYYY-MM-DD` dates.
-4. Enter `followups`, then `view 1`. Expect Amanda before Rachel, the correct profile, and continuous numbering. Replace Amanda's action with today's date to verify the `DUE TODAY` badge.
+3. Record Rachel's action (ID 1) for today + 2 days and Amanda's (ID 2) for today + 1 day using `followup ID d/DATE m/ACTION`. Use actual `YYYY-MM-DD` dates.
+4. Enter `followups`, then `view 2`. Expect Amanda before Rachel with unchanged IDs, and Amanda's profile open. Replace Amanda's action with today's date to verify the `DUE TODAY` badge.
 5. Close/relaunch from the same folder. Expect all contacts/actions in full insertion order and no profile selection. Resize/move the window, close/relaunch and verify window preferences.
 
 ### Concurrent launches and restart
@@ -566,13 +566,13 @@ Test the packaged JAR in a fresh writable folder with Java 25 (the prescribed Zu
 3. Close the first window and launch again from the same folder. Expect the client and follow-up to load, even though `.policyharbor.lock` remains. Repeat after terminating the owner process.
 4. Launch the JAR from a separate disposable folder while the first is open. Expect an independent empty dataset. Do not delete or replace an active folder's lock marker.
 
-### Profile transitions and displayed indices
+### Profile transitions and permanent Client IDs
 
 From the two-client dataset above:
 
 | Action | Expected result |
 | --- | --- |
-| `followups`, `view 1`, then replace row 1's action with a date later than Rachel's | Amanda moves after Rachel; her profile and `VIEWING` marker follow the record. |
+| `followups`, `view 2`, then replace Amanda's action with a date later than Rachel's | Amanda moves after Rachel; her ID stays 2 and her profile and `VIEWING` marker follow the record. |
 | `followup 2 clear` after that reorder | Amanda leaves pending mode and her profile closes. |
 | `list`, `view 2` | Amanda can be viewed again and shows `Follow-up: None`. |
 | `find Rachel` | Only Rachel remains; Amanda's profile closes. |
@@ -580,7 +580,7 @@ From the two-client dataset above:
 | `view 1`, then `delete 2` | Rachel remains viewed; deleting her neighbor does not change selection. |
 | `delete 1` | Rachel and her action disappear and the profile clears. |
 
-For same-name targeting, start fresh and add two Rachel Lim clients with different phone/email values. View/delete each displayed row and verify that only its record is affected.
+For same-name targeting, start fresh and add two Rachel Lim clients with different phone/email values. View/delete each client by the permanent ID shown in the table and verify that only the intended record is affected. Repeat after filtering or reordering.
 
 ### Search and validation
 
@@ -595,9 +595,9 @@ Start fresh with Rachel and Amanda from the basic workflow.
 | `find 001 AMANDA Lim 001` | `2 client(s) listed!`, Rachel then Amanda, each once. |
 | `find` | `Invalid command format!` then the combined bare/explicit search usage. |
 | `find n/rac`, `find p/9123`, `find t/renewal` | Partial name, formatted phone digits and exact tag searches return matching clients once in insertion order. |
-| `view 0 extra`, `delete 0 extra` | Format error and the corresponding usage, before index syntax. |
-| `view 0`, `view 2147483648`, `delete 0` | `Index must be a positive integer from 1 to 2147483647.` |
-| `view 2147483647` | `The client index provided is invalid.` |
+| `view 0 extra`, `delete 0 extra` | Format error and the corresponding `Usage: ... ID`, before ID syntax. |
+| `view 0`, `view 2147483648`, `delete 0` | `Client ID must be a positive integer from 1 to 2147483647.` |
+| `view 2147483647` | `No client with ID 2147483647.` (when that ID is absent) |
 | `clear`, `help`, `exit` | `Unknown command.`; no client data changes and the window stays open. |
 | `add n/RACHEL  LIM p/001 e/new@example.com a/Blk 9` | Duplicate error despite name case/spacing differences. |
 | `add n/Rachel Lim p/003 e/RACHEL@EXAMPLE.COM a/Blk 9` | Duplicate error because email matching ignores case. |
@@ -617,7 +617,7 @@ Start in a fresh folder and add Rachel and Amanda using only the two `add` comma
 | `followup 1 d/2099-12-15 m/"Confirm d/m/y format"` | The duplicate-field diagnostic ending in `d/`; quotation marks do not escape the internal prefix. |
 | `followup 1 d/2099-12-15 m/"Confirm m/y format"` | The duplicate-field diagnostic ending in `m/`. |
 
-After each rejection, confirm Rachel still has `Call about renewal` due on `2099-12-14` (or the substituted date), with the same displayed list and selected profile. Then enter `followup 1 d/2099-12-15 m/Confirm day/month/year format`; expect `Follow-up for Rachel Lim updated to 2099-12-15.` and the complete replacement description. Finally, `followup 1 d/2099-12-15 m/Check ref:d/m/y` must also succeed: an embedded `d/` without a preceding ordinary space is description text. Use the substituted date in these commands and expected results if necessary.
+After each rejection, confirm Rachel still has `Call about renewal` due on `2099-12-14` (or the substituted date), with the same displayed list and selected profile. Then enter `followup 1 d/2099-12-15 m/Confirm day/month/year format`; expect `Follow-up for client ID 1: Rachel Lim updated to 2099-12-15.` and the complete replacement description. Finally, `followup 1 d/2099-12-15 m/Check ref:d/m/y` must also succeed: an embedded `d/` without a preceding ordinary space is description text. Use the substituted date in these commands and expected results if necessary.
 
 ### Loading protection and saved-data compatibility
 
@@ -626,7 +626,7 @@ Close the app before editing its JSON; back up the file first.
 1. Make one saved follow-up date earlier than today, retaining a valid ISO date and action. Restart and enter `followups`. Expect that action to load as `OVERDUE`.
 2. Remove a record's optional `followUp` or `tags` field and restart. Expect no action/no tags for that client; legacy contact-only records load.
 3. In a separate folder, corrupt the JSON or put an invalid/duplicate client in it. Restart. Expect an empty list and a persistent saved-data warning.
-4. Enter `list`, `find Rachel` and `view 1`. Queries remain available; a valid view index gives the displayed-range error. The warning stays visible.
+4. Enter `list`, `find Rachel` and `view 1`. Queries remain available; an unknown permanent Client ID gives `No client with ID 1.`. The warning stays visible.
 5. Try `add`, `delete` or `followup`. Expect the changes-blocked diagnostic before command-specific parsing. Confirm the invalid file's bytes are unchanged.
 6. Close the app, restore the valid backup and relaunch. Expect normal writable operation.
 
@@ -664,8 +664,8 @@ Help window and data-file footer (automated tests cover only the URL constant an
 
 Use a disposable folder and fictional clients. Add at least three clients and assign actions for yesterday, today and a future date; use the automated fixed-date fixtures for additional date-boundary scenarios.
 
-1. Run `list`, then `view 1`. Enter `find` with another client's name. Only the numbered table is filtered; the global pending summary retains all actions. The profile clears when its client leaves the command list.
-2. Run `followups` and select a client with `view INDEX`. Replace their action with another valid date. The table renumbers in due-date order while the profile and VIEWING markers follow the same record. Clear the action in pending mode; that row and summary card disappear and selection clears.
+1. Run `list`, then `view 1`. Enter `find` with another client's name. Only the client table is filtered; the global pending summary retains all actions. The profile clears when its client leaves the command list.
+2. Run `followups` and select a client using their permanent ID with `view ID`. Replace their action with another valid date. The table reorders by due date without changing Client IDs while the profile and VIEWING markers follow the same record. Clear the action in pending mode; that row and summary card disappear and selection clears.
 3. Submit an invalid command using Enter and then Run. Each activation produces one result, keeps the exact input and restores typing focus. Correct it to `list`; the Error label and input clear. Select/copy a long multiline error and scroll to its final line.
 4. Narrow the main divider and resize the window. Verify horizontal table scrolling, independently scrollable profile/summary and the vertical sidebar divider. At logical sizes corresponding to 1920x1080 at 100%/125% and 1280x720 at 150%, keep command submission, feedback and both views accessible. Record which real OS/scaling combinations were exercised in the [release GUI verification record](Testing.md#v14-release-gui-verification-record); untested combinations remain pending.
 5. Close and restart the packaged JAR in the same folder. Clients/actions persist; session selection resets. Repeat with `java -ea -jar PolicyHarbor.jar` and confirm ordinary validation still works.
@@ -675,7 +675,7 @@ Use a disposable folder and fictional clients. Add at least three clients and as
 Run these on each real OS and resolution/scaling combination available, and record the results in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md).
 
 1. Run `DisplayMatrixFixture` from the IDE with a fresh folder as its program argument. Copy the JAR there and launch it from a terminal in that folder.
-2. Enter `list` and scroll to the end of the table. Row `1000` must be fully readable, without an ellipsis. Enter `view 1000`; expect `Showing client: Client 1000`.
+2. Enter `list` and scroll to the end of the table. The Client ID of the thousandth fixture client must be fully readable, without an ellipsis. Enter `view 1000`; expect `Showing client ID 1000: Client 1000`.
 3. Enter `view 1`. The long name, email and address must wrap inside the profile without an ellipsis, and the profile must scroll to the follow-up section.
 4. Scroll the pending summary to its last upcoming card, then drag the sidebar divider both ways. Both panels must stay usable, and the command box and feedback must stay visible.
 
