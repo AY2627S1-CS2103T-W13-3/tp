@@ -9,7 +9,7 @@ title: Developer Guide
 
 PolicyHarbor helps individual insurance agents manage contact records and one pending next action per client. This guide is for developers: start with component responsibilities, then follow the identity, command-publication and persistence invariants before changing the product. Exact command syntax is in the [User Guide](UserGuide.html).
 
-**Version baseline:** this guide describes the verified release-candidate implementation at [`01ef0f17`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/01ef0f17bf9631bbe50c95e2f47b5592244f3574), including the v1.5 changes being prepared for v1.6. At this audit the latest published JAR is v1.4, and the candidate still displays that title/version label. This is not documentation of that older binary. Before publishing v1.6, align the final tag, uploaded JAR, guides and testing record; repeat packaged checks if the implementation changes.
+**Version baseline:** this guide describes the verified v1.5 release-candidate implementation at [`01ef0f17`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/01ef0f17bf9631bbe50c95e2f47b5592244f3574). At this audit the latest published JAR is v1.4, and the candidate still displays that title/version label. This is not documentation of that older binary. Before publishing v1.5, align the final tag, uploaded JAR, guides and testing record; repeat packaged checks if the implementation changes.
 
 ## **Acknowledgements**
 
