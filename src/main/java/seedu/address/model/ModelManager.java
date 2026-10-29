@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 
@@ -20,6 +21,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.Person;
 
 /**
@@ -87,9 +89,10 @@ public class ModelManager implements Model {
 
     @Override
     public void setAddressBook(ReadOnlyAddressBook addressBook) {
+        Optional<ClientId> selectedId = getSelectedClientId();
         this.addressBook.resetData(addressBook);
         unsavedChanges = true;
-        refreshDisplayedPersons();
+        refreshDisplayedPersons(resolveSelection(selectedId));
     }
 
     @Override
@@ -114,19 +117,16 @@ public class ModelManager implements Model {
     public void addPerson(Person person) {
         addressBook.addPerson(person);
         unsavedChanges = true;
-        updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
+        refreshDisplayedPersons();
     }
 
     @Override
     public void setPerson(Person target, Person editedPerson) {
         requireAllNonNull(target, editedPerson);
-        // Collection target lookup accepts equal values; track the canonical slot it will replace.
-        int targetIndex = addressBook.getPersonList().indexOf(target);
-        boolean isSelectedTarget = targetIndex >= 0
-                && addressBook.getPersonList().get(targetIndex) == selectedPerson.get();
+        Optional<ClientId> selectedId = getSelectedClientId();
         addressBook.setPerson(target, editedPerson);
         unsavedChanges = true;
-        refreshDisplayedPersons(isSelectedTarget ? editedPerson : selectedPerson.get());
+        refreshDisplayedPersons(resolveSelection(selectedId));
     }
 
     //=========== Filtered Person List Accessors =============================================================
@@ -202,8 +202,8 @@ public class ModelManager implements Model {
         ModelManager candidate = new ModelManager(addressBook, userPrefs, commandToday, dataLoadingBlocked);
         candidate.activePredicate = activePredicate;
         candidate.showingFollowUps.set(showingFollowUps.get());
-        // Person values are immutable and copied by reference into the candidate's full list.
-        candidate.refreshDisplayedPersons(selectedPerson.get());
+        // The aggregate copy retains IDs and counter while isolating its mutable ledger.
+        candidate.refreshDisplayedPersons(candidate.resolveSelection(getSelectedClientId()));
         return candidate;
     }
 
@@ -216,7 +216,7 @@ public class ModelManager implements Model {
     public void commitFrom(Model candidate) {
         // Candidates originate from forkForCommand; their data is already validated.
         ModelManager commandModel = (ModelManager) requireNonNull(candidate);
-        int selectedIndex = commandModel.getSelectedPersonIndex();
+        Optional<ClientId> selectedId = commandModel.getSelectedClientId();
         if (!addressBook.equals(commandModel.addressBook)) {
             addressBook.resetData(commandModel.addressBook);
         }
@@ -226,8 +226,7 @@ public class ModelManager implements Model {
         today.set(commandModel.getToday());
         unsavedChanges = false;
         // An equal-valued replacement may skip resetData. Bind to the actual committed instance.
-        Person committedSelection = selectedIndex < 0 ? null : addressBook.getPersonList().get(selectedIndex);
-        refreshDisplayedPersons(committedSelection);
+        refreshDisplayedPersons(resolveSelection(selectedId));
         assert !hasUnsavedChanges() : "A published command must leave the live model clean.";
     }
 
@@ -259,17 +258,14 @@ public class ModelManager implements Model {
                 : "The selected client must be a canonical committed record.";
     }
 
-    /**
-     * Returns the selected record's full-list position for one candidate publication, or -1.
-     */
-    private int getSelectedPersonIndex() {
-        List<Person> persons = addressBook.getPersonList();
-        for (int i = 0; i < persons.size(); i++) {
-            if (persons.get(i) == selectedPerson.get()) {
-                return i;
-            }
-        }
-        return -1;
+    /** Returns permanent identity for the selected canonical client, without allocating an ID. */
+    private Optional<ClientId> getSelectedClientId() {
+        return selectedPerson.get() == null ? Optional.empty() : addressBook.getClientId(selectedPerson.get());
+    }
+
+    /** Rebinds a selection to this aggregate's canonical instance; visibility is checked on refresh. */
+    private Person resolveSelection(Optional<ClientId> selectedId) {
+        return selectedId.flatMap(addressBook::getPersonById).orElse(null);
     }
 
     @Override
