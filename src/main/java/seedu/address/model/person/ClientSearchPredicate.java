@@ -9,6 +9,7 @@ import seedu.address.commons.util.ToStringBuilder;
 
 /** Matches a client using one explicit name, phone, or tag search. */
 public class ClientSearchPredicate implements Predicate<Person> {
+    /** Identifies the contact field used by an explicit client search. */
     public enum Field {
         NAME, PHONE, TAG
     }

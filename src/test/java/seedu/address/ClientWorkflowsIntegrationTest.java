@@ -133,9 +133,6 @@ class ClientWorkflowsIntegrationTest {
     }
 
     private static class MemoryStorage implements Storage {
-        private boolean failNextSave;
-        private int saveAttempts;
-
         @Override
         public Path getUserPrefsFilePath() {
             return Path.of("test-prefs.json");
@@ -163,11 +160,7 @@ class ClientWorkflowsIntegrationTest {
 
         @Override
         public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
-            saveAttempts++;
-            if (failNextSave) {
-                failNextSave = false;
-                throw new IOException("Injected save failure");
-            }
+            // This workflow checks model publication rather than disk failure.
         }
     }
 }

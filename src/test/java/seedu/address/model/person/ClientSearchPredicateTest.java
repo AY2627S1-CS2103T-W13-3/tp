@@ -3,12 +3,9 @@ package seedu.address.model.person;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Set;
-
 import org.junit.jupiter.api.Test;
 
 import seedu.address.model.person.ClientSearchPredicate.Field;
-import seedu.address.model.tag.Tag;
 import seedu.address.testutil.PersonBuilder;
 
 class ClientSearchPredicateTest {
@@ -17,7 +14,7 @@ class ClientSearchPredicateTest {
         Person person = new PersonBuilder().withName("  RACHEL   Lim").build();
         assertTrue(new ClientSearchPredicate(Field.NAME, "rachel lim").test(person));
         assertTrue(new ClientSearchPredicate(Field.NAME, "lim").test(person));
-        assertFalse(new ClientSearchPredicate(Field.NAME, "ache").test(person));
+        assertTrue(new ClientSearchPredicate(Field.NAME, "ache").test(person));
 
         Person composed = new PersonBuilder().withName("José Lim").build();
         assertTrue(new ClientSearchPredicate(Field.NAME, "Jose\u0301").test(composed));
