@@ -5,7 +5,7 @@ title: User Guide
 
 PolicyHarbor helps independent insurance agents in Singapore keep client contacts and their next follow-up together. Find a client, review their details, update their contact information and record the next conversation, using typed commands in a desktop workspace.
 
-**Build covered:** this guide describes the current release candidate being prepared for v1.6, with permanent Client IDs, contact editing and name/phone/tag search. The candidate's title bar still says v1.4. A matching v1.6 JAR has not yet been published on the [releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases). Until then, obtain from the team a candidate JAR built from [the verified source revision `01ef0f17`](https://github.com/AY2627S1-CS2103T-W13-3/tp/commit/01ef0f17bf9631bbe50c95e2f47b5592244f3574). The published v1.4 JAR uses different command targeting and does not match this guide.
+**Build covered:** this guide describes the current release candidate being prepared for v1.5, with permanent Client IDs, contact editing and name/phone/tag search. The candidate's title bar still says v1.4. A matching v1.5 JAR has not yet been published on the [releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases). Until then, obtain from the team a candidate JAR built from [the verified source revision `01ef0f17`](https://github.com/AY2627S1-CS2103T-W13-3/tp/commit/01ef0f17bf9631bbe50c95e2f47b5592244f3574). The published v1.4 JAR uses different command targeting and does not match this guide.
 
 * Table of Contents
 {:toc}
