@@ -149,4 +149,3 @@ body:has(.ph-home) a:focus-visible { outline: 3px solid #16845b; outline-offset:
   .ph-home .ph-closing .ph-actions { align-items: stretch; flex-direction: column; gap: 22px; }
   .ph-home .ph-footer nav { gap: 14px 20px; }
 }
-
