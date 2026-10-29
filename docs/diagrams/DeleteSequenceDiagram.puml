@@ -15,9 +15,9 @@ parser --> logic : command
 logic -> live : forkForCommand(today)
 live --> logic : candidate
 logic -> command : execute(candidate)
-command -> candidate : getFilteredPersonList()
-candidate --> command : displayedPersons
-note over command : Resolve index 1 to the displayed record
+command -> candidate : getAddressBook()
+candidate --> command : addressBook
+note over command : Resolve permanent Client ID 1\nagainst the full address book\n(including hidden clients)
 command -> candidate : deletePerson(person)
 command --> logic : result:CommandResult
 logic -> candidate : hasUnsavedChanges()
