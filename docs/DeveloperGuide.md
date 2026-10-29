@@ -17,7 +17,6 @@ PolicyHarbor helps individual insurance agents manage contact records and one pe
 * The [AB3 Developer Guide](https://se-education.org/addressbook-level3/DeveloperGuide.html) and [User Guide](https://se-education.org/addressbook-level3/UserGuide.html) supplied documentation structure and retained architecture explanations. The architecture, component, class/parser and deletion diagrams under `docs/diagrams` derive from AB3 diagrams and have been adapted to PolicyHarbor's implemented relationships and execution flow. The project website retains the AB3 Jekyll/Minima foundation.
 * The homepage bundles a subset of [Newsreader, by the Newsreader Project Authors](https://github.com/productiontype/Newsreader), for headings in `docs/assets/landing/Newsreader.woff2`. Its SIL Open Font License 1.1 notice is retained in [`OFL.txt`](assets/landing/OFL.txt). The font is a reused asset, separate from the application implementation.
 * All team members used ChatGPT for general assistance during the project.
-* Somaaditya Samal used OpenAI Codex to audit his RepoSense-attributed code, refactor migration and panel lifecycle code, and improve related tests for issue #241.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -281,7 +280,7 @@ Profile scroll continuity is presentation state. `ClientProfilePanel` caches the
 
 `PersonListPanel` observes only `Logic.getFilteredPersonList()`, uses `Logic.getClientId` for labels and identity for the `VIEWING` marker, and enables due/status columns in pending mode. Rows clear recycled graphics. The table is unsortable by header; insufficient column width enables horizontal scrolling. Highlighting a row does not select a profile.
 
-`PendingFollowUpProjection` instead consumes `Logic.getAllPersonList()`, the complete unmodifiable committed feed. It retains canonical references and stably sorts actions by due date, independent of search/pending filters. `PendingFollowUpPanel` groups this projection using the published date and observes selected-client changes for markers. There is no second client store or panel clock. `MainWindow` closes the projection and disposes both `ClientProfilePanel` and `PendingFollowUpPanel` when hidden. Cleanup is idempotent and panel callbacks guard queued notifications. The profile renders its initial display before subscribing, so failed construction leaves no listeners attached. `ClientProfileLifecycleTest` covers window cleanup, disposal during notification and failed construction.
+`PendingFollowUpProjection` instead consumes `Logic.getAllPersonList()`, the complete unmodifiable committed feed. It retains canonical references and stably sorts actions by due date, independent of search/pending filters. `PendingFollowUpPanel` groups this projection using the published date and observes selected-client changes for markers. There is no second client store or panel clock. `MainWindow` closes/disposes the projection and panel when hidden; cleanup is idempotent and guards queued callbacks.
 
 ### Command submission and feedback
 
