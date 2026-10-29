@@ -50,7 +50,7 @@ public class FindPhoneWorkflowIntegrationTest {
 
     @BeforeEach
     public void setUp() throws IOException {
-        alice = new PersonBuilder().withName("Alice Lim").withPhone("00123456").build();
+        alice = new PersonBuilder().withName("Alice Lim").withPhone("00123456").withTags("renewal").build();
         bob = new PersonBuilder().withName("Bob Baker").withPhone("81234562")
                 .withFollowUp(new FollowUp(TODAY, "Call Bob")).build();
         carol = new PersonBuilder().withName("Carol Lim").withPhone("81234562").build();
@@ -92,6 +92,22 @@ public class FindPhoneWorkflowIntegrationTest {
             assertEquals("0 client(s) listed!", logic.execute("find " + keyword).getFeedbackToUser());
             assertEquals(List.of(), model.getFilteredPersonList());
         }
+        assertUnchangedClientData();
+    }
+
+    @Test
+    public void find_explicitFields_matchPartialNamePhoneAndExactTag() throws Exception {
+        assertEquals("1 client(s) listed!", logic.execute("find n/lice").getFeedbackToUser());
+        assertEquals(List.of(alice), model.getFilteredPersonList());
+
+        assertEquals("1 client(s) listed!", logic.execute("find p/0123").getFeedbackToUser());
+        assertEquals(List.of(alice), model.getFilteredPersonList());
+
+        assertEquals("1 client(s) listed!", logic.execute("find t/ReNeWaL").getFeedbackToUser());
+        assertEquals(List.of(alice), model.getFilteredPersonList());
+
+        assertEquals("0 client(s) listed!", logic.execute("find t/new").getFeedbackToUser());
+        assertEquals(List.of(), model.getFilteredPersonList());
         assertUnchangedClientData();
     }
 

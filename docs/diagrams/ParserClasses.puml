@@ -6,12 +6,13 @@ skinparam classBackgroundColor LOGIC_COLOR
 skinparam nodesep 25
 skinparam ranksep 35
 
-title Parsing follow-up and view commands
+title Parsing client search and record commands
 
 Class AddressBookParser
 Interface Parser <<interface>>
 Class FollowUpCommandParser
 Class ViewCommandParser
+Class FindCommandParser
 Class FollowUpParserUtil
 Class ParserUtil
 Class ArgumentTokenizer
@@ -23,31 +24,42 @@ abstract class Command
 Class SetFollowUpCommand
 Class ClearFollowUpCommand
 Class ViewCommand
+Class FindCommand
 Class FollowUpsCommand
+Class ClientContainsKeywordsPredicate
+Class ClientSearchPredicate
 
 ' Keep the returned commands on one row, above the routing parsers.
 ClearFollowUpCommand -[hidden]right-> SetFollowUpCommand
 SetFollowUpCommand -[hidden]right-> FollowUpsCommand
 FollowUpsCommand -[hidden]right-> ViewCommand
 
-' Only these two classes implement Parser; T extends Command.
+' The three shown parsers implement Parser; T extends Command.
 AddressBookParser .down.> FollowUpCommandParser : <<create>>\nfollowup: parse(args)
 AddressBookParser .down.> ViewCommandParser : <<create>>\nview: parse(args)
+AddressBookParser .down.> FindCommandParser : <<create>>\nfind: parse(args)
 FollowUpCommandParser .right.|> Parser : <Command>
 ViewCommandParser .left.|> Parser : <ViewCommand>
+FindCommandParser .right.|> Parser : <FindCommand>
 
 FollowUpCommandParser .up.> SetFollowUpCommand : <<create>>\nset / replace
 FollowUpCommandParser .up.> ClearFollowUpCommand : <<create>>\nclear
 ViewCommandParser .up.> ViewCommand : <<create>>
+FindCommandParser .up.> FindCommand : <<create>>
 AddressBookParser .up.> FollowUpsCommand : <<create>>\nfollowups (direct)
 SetFollowUpCommand -up-|> Command
 ClearFollowUpCommand -up-|> Command
 ViewCommand -up-|> Command
+FindCommand -up-|> Command
 FollowUpsCommand -up-|> Command
 
 FollowUpCommandParser .down.> FollowUpParserUtil : parseIndex()
 FollowUpParserUtil .down.> ParserUtil : parseIndex()
 ViewCommandParser .down.> ParserUtil : parseIndex()
+FindCommandParser .down.> ClientContainsKeywordsPredicate : <<create>>\nbare search
+FindCommandParser .down.> ClientSearchPredicate : <<create>>\nexplicit search
+FindCommand .down.> ClientContainsKeywordsPredicate : uses
+FindCommand .down.> ClientSearchPredicate : uses
 FollowUpCommandParser .down.> ArgumentTokenizer : tokenize()
 FollowUpCommandParser .down.> ArgumentMultimap : reads / checks\nduplicates
 ArgumentTokenizer .down.> ArgumentMultimap : <<create>>
@@ -59,9 +71,9 @@ note left of AddressBookParser
   parseCommand checks raw characters,
   trims spaces, checks empty input
   and splits command / arguments.
-  Failed-load gate blocks add, delete,
-  followup before argument parsing.
-  view and followups still route.
+  Failed-load gate blocks client mutations,
+  including add, edit, delete and followup.
+  view, find and followups still route.
 end note
 
 ' Set form checks shape, duplicate prefixes, then index syntax; values stay raw.

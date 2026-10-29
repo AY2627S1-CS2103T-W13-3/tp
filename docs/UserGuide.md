@@ -117,9 +117,9 @@ You can also reach **Run** with Tab and activate it with Space. After a rejected
 
 ### Supported commands
 
-Command words are case-sensitive. The supported words are `add`, `delete`, `view`, `find`, `list`, `followup` and `followups`.
+Command words are case-sensitive. The supported words are `add`, `delete`, `edit`, `view`, `find`, `list`, `followup` and `followups`.
 
-Typed `edit`, standalone `clear`, `help` and `exit` are unsupported and return exactly `Unknown command.`, even when saved data could not be loaded. Use `followup INDEX clear` to clear one client's follow-up; this remains supported. Close the application with the window's close button. The GUI Help menu and `F1` shortcut remain separate from typed commands.
+Standalone `clear`, `help` and `exit` are unsupported and return exactly `Unknown command.`, even when saved data could not be loaded. Use `followup INDEX clear` to clear one client's follow-up; this remains supported. Close the application with the window's close button. The GUI Help menu and `F1` shortcut remain separate from typed commands.
 
 Use one command line and ordinary spaces. Tabs, control characters and line separators are rejected before command recognition or argument validation. Blank input returns `Enter a command.`. For example, `VIEW 1` returns `Unknown command.` because `view` must be lowercase.
 
@@ -127,7 +127,7 @@ If pasted text contains a tab, control character or line separator, the whole pa
 
 ### Adding a client: `add`
 
-Adds a client with their contact details and optional tags. A successful add returns to the full client list in insertion order; the new client has no follow-up yet.
+Adds a client with their contact details and optional tags. A successful add keeps the current list mode and search filter; the new client has no follow-up yet. A matching client appears in search results, while a non-matching client stays hidden. An actionless client stays out of the pending list. The selected client remains selected if still visible.
 
 Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...`
 
@@ -162,11 +162,13 @@ Examples, entered into a list without these clients:
 * `add n/Rachel Lim p/002 e/other@example.com a/新加坡 🏠` adds a second Rachel because both contact details differ.
 * `add n/RACHEL  LIM p/001 e/new@example.com a/Another address` fails with `This client already exists in PolicyHarbor.` because the first Rachel has the same normalized name and phone.
 
-Success text includes the name, phone, email, address and sorted lowercase bracketed tags separated by spaces. Without tags, it ends in `Tags: None`. For example:
+Success text includes the new client's permanent ID, name, phone, email, address and sorted lowercase bracketed tags separated by spaces. Without tags, it ends in `Tags: None`. IDs identify clients rather than displayed rows, so gaps can remain after deletions. For example:
 
 ```text
-New client added: Rachel Lim; Phone: 001; Email: Rachel@example.com; Address: Blk 123; Tags: [active] [health]
+Client ID 1 added: Rachel Lim; Phone: 001; Email: Rachel@example.com; Address: Blk 123; Tags: [active] [health]
 ```
+
+If the client ID range is exhausted, the add is rejected with `No more clients can be added because the client ID limit has been reached.` The next ID is not consumed when a duplicate is rejected or a save fails.
 
 A missing required prefix or extra text before the first prefix produces:
 
@@ -213,32 +215,40 @@ On success, `view` opens the selected client's full profile in the right pane an
 
 [![Full client list with Rachel Lim's contact details and follow-up](images/ClientProfile.png)](images/ClientProfile.png)
 
-### Locating clients by name or phone: `find`
+### Finding clients: `find`
 
-Searches all clients' names and phone numbers, including clients hidden by a prior search or pending list, and displays matches in their original insertion order. It leaves pending mode and returns `COUNT client(s) listed!`, for example `2 client(s) listed!` or `0 client(s) listed!`.
+Searches all clients, including those hidden by a prior search or pending list, and displays matches in insertion order. Each client appears once. Search leaves pending mode and returns `COUNT client(s) listed!`, for example `2 client(s) listed!` or `0 client(s) listed!`.
 
-Format: `find KEYWORD [MORE_KEYWORDS]...`
+Use either the existing bare search or one explicit field:
 
-* Name matching is case-insensitive and uses whole words: `rachel` matches `Rachel`, but `Rach` does not.
-* Composed and decomposed Unicode spellings of the same word match, for example `José` and `José`.
-* Search for a phone using its full digits as one keyword, including leading zeroes: `00123456` matches that phone number, but `123456` and `0012` do not. Do not include `+` or hyphens in the search keyword.
-* A client matching any keyword appears once (an OR search). Keyword order and repeated keywords do not change the result order.
-* Email, address and tags are not searched. A numeric keyword can also match a whole word in a client's name.
-* Separate keywords with ordinary spaces. Multiple ordinary spaces are allowed. Quotes and punctuation are literal: `find "Rachel"` and `find Rachel,` do not match the name `Rachel Lim`.
-* Numbers separated by spaces are independent keywords: `find 8123 4562` does not join them into `81234562`.
+```text
+find KEYWORD [MORE_KEYWORDS]...
+find n/NAME_PART
+find p/PHONE_PART
+find t/TAG
+```
 
-For a dataset containing Rachel Lim and Amanda Lee, `find rachel AMANDA` returns both in insertion order. `find Lim` returns Rachel Lim; `find Rach` returns no matches unless another client has that exact name word.
+* Bare keywords retain the existing behavior: each keyword matches a complete name word or a complete phone number's digits. Matching is OR-based, so `find Rachel 81234567` returns clients matching either keyword. Repeated keywords do not duplicate results. Leading zeroes are significant; `find 00123456` matches the full number, while `find 0012` does not.
+* `find n/rac` matches a case-insensitive name substring, including partial words. Unicode composed and decomposed spellings match, and runs of ordinary spaces are collapsed. For example, `find n/rachel lim` matches `Rachel   Lim`.
+* `find p/9123` matches a phone-number digit substring. The search ignores a stored number's allowed display formatting (`+`, spaces and hyphens) and retains leading zeroes. A partial query may contain fewer than three digits.
+* `find t/renewal` matches the exact tag, ignoring case. It does not match a tag substring such as `new`.
+* Email and address are not searched. Bare numeric keywords may also match a whole name word. Quotes and punctuation remain literal within values.
+* Use exactly one explicit field. Do not combine explicit fields or put bare keywords before one; for example, `find n/Rachel p/9123` is invalid. Known `n/`, `p/` and `t/` prefixes are reserved in explicit queries.
 
-If Bob Baker's phone number is `81234562`, `find 81234562` finds Bob and any other clients with that full number or name word. `find Rachel 81234562` finds clients matching either keyword, each once.
+For a dataset containing Rachel Lim and Amanda Lee, `find rachel AMANDA` returns both in insertion order. `find Lim` matches the complete name word `Lim`; `find Rach` returns no matches in bare mode, while `find n/rach` finds Rachel.
 
-A missing keyword produces exactly these two lines:
+If Bob Baker's phone number is `81234562`, `find 81234562` finds Bob and any other clients with that full number or name word. `find p/234` matches the digit substring in Bob's phone.
+
+Empty values, repeated or mixed explicit fields, and text before an explicit field produce the usage error:
 
 ```text
 Invalid command format!
-Usage: find KEYWORD [MORE_KEYWORDS]...
+Usage: find KEYWORD [MORE_KEYWORDS]... | find n/NAME_PART | find p/PHONE_PART | find t/TAG
 ```
 
 Search does not change client data or save it. The selected client remains selected only while present in the results; searching them out clears selection. A later search does not automatically select them again.
+
+For example, search for Rachel with `find n/rac`, then use `view 17` and `edit 17 p/+65 9234 5678`. The ID continues to target Rachel even if a later filter hides her; editing preserves her ID and pending follow-up.
 
 ### Deleting a client: `delete`
 
@@ -376,10 +386,10 @@ Action | Format, Examples
 **Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]...` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **View** | `view INDEX`<br> e.g., `view 02`
-**Find** | `find KEYWORD [MORE_KEYWORDS]...`<br> e.g., `find James 81234562`
+**Find** | `find KEYWORD [MORE_KEYWORDS]...` or `find n/NAME_PART`, `find p/PHONE_PART`, `find t/TAG`<br> e.g., `find James 81234562`, `find n/jam`, `find p/8123`, `find t/renewal`
 **List** | `list`
 **Record or replace follow-up** | `followup INDEX d/DATE m/DESCRIPTION`
 **Clear follow-up** | `followup INDEX clear`
 **Pending follow-ups** | `followups`
 
-Typed `edit`, standalone `clear`, `help` and `exit` return `Unknown command.`. Use the window's close button to exit.
+Standalone `clear`, `help` and `exit` return `Unknown command.`. Use the window's close button to exit.

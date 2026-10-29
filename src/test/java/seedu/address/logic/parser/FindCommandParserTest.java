@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.model.person.ClientContainsKeywordsPredicate;
+import seedu.address.model.person.ClientSearchPredicate;
+import seedu.address.model.person.ClientSearchPredicate.Field;
 
 public class FindCommandParserTest {
 
@@ -16,8 +18,8 @@ public class FindCommandParserTest {
 
     @Test
     public void parse_emptyArg_throwsParseException() {
-        assertParseFailure(parser, "", "Invalid command format!\nUsage: find KEYWORD [MORE_KEYWORDS]...");
-        assertParseFailure(parser, "     ", "Invalid command format!\nUsage: find KEYWORD [MORE_KEYWORDS]...");
+        assertParseFailure(parser, "", "Invalid command format!\n" + FindCommand.MESSAGE_USAGE);
+        assertParseFailure(parser, "     ", "Invalid command format!\n" + FindCommand.MESSAGE_USAGE);
     }
 
     @Test
@@ -45,6 +47,25 @@ public class FindCommandParserTest {
         assertParseSuccess(parser, "\"Alice Bob\" Alice, Alice\u00a0Bob",
                 new FindCommand(new ClientContainsKeywordsPredicate(List.of("\"Alice", "Bob\"",
                         "Alice,", "Alice\u00a0Bob"))));
+    }
+
+    @Test
+    public void parse_explicitFields_buildsCorrespondingPredicates() {
+        assertParseSuccess(parser, "n/  RaChel   Lim  ",
+                new FindCommand(new ClientSearchPredicate(Field.NAME, "RaChel   Lim")));
+        assertParseSuccess(parser, "p/+65 9123-4567",
+                new FindCommand(new ClientSearchPredicate(Field.PHONE, "+65 9123-4567")));
+        assertParseSuccess(parser, "t/ReNeWaL",
+                new FindCommand(new ClientSearchPredicate(Field.TAG, "ReNeWaL")));
+    }
+
+    @Test
+    public void parse_invalidExplicitFields_throwsParseException() {
+        for (String input : List.of("n/", "p/---", "p/12x", "t/has space", "n/Rachel p/9123",
+                "p/9123 t/renewal", "Rachel n/rac", "t/renewal n/rac")) {
+            assertParseFailure(parser, input,
+                    "Invalid command format!\n" + FindCommand.MESSAGE_USAGE);
+        }
     }
 
 }

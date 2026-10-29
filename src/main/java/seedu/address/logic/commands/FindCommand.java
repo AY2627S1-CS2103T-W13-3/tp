@@ -2,24 +2,25 @@ package seedu.address.logic.commands;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.function.Predicate;
+
 import seedu.address.commons.util.ToStringBuilder;
 import seedu.address.logic.Messages;
 import seedu.address.model.Model;
-import seedu.address.model.person.ClientContainsKeywordsPredicate;
+import seedu.address.model.person.Person;
 
-/**
- * Finds clients by whole name words or exact full phone numbers, using OR matching across keywords.
- * Name matching is case insensitive, and results retain insertion order.
- */
+/** Finds clients by bare whole-name/full-phone keywords or an explicit name, phone, or tag query. */
 public class FindCommand extends Command {
 
     public static final String COMMAND_WORD = "find";
 
-    public static final String MESSAGE_USAGE = "Usage: find KEYWORD [MORE_KEYWORDS]...";
+    public static final String MESSAGE_USAGE = "Usage: find KEYWORD [MORE_KEYWORDS]... | find n/NAME_PART"
+            + " | find p/PHONE_PART | find t/TAG";
 
-    private final ClientContainsKeywordsPredicate predicate;
+    private final Predicate<Person> predicate;
 
-    public FindCommand(ClientContainsKeywordsPredicate predicate) {
+    public FindCommand(Predicate<Person> predicate) {
+        requireNonNull(predicate);
         this.predicate = predicate;
     }
 
