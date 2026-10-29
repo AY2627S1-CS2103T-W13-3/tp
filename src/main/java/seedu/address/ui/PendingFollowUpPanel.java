@@ -125,10 +125,7 @@ public class PendingFollowUpPanel extends UiPart<Region> {
     }
 
     private VBox createCard(PendingCard card) {
-        Label name = new Label(card.name());
-        name.getStyleClass().add("pending-card-name");
-        name.setWrapText(true);
-        name.setMaxWidth(Double.MAX_VALUE);
+        Label name = wrappingCardLabel(card.name(), "pending-card-name");
 
         Label viewing = new Label("VIEWING");
         viewing.getStyleClass().add("pending-viewing-marker");
@@ -138,18 +135,13 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         Label date = new Label("Due " + card.date());
         date.getStyleClass().add("pending-card-date");
 
-        Label action = new Label(card.action());
-        action.getStyleClass().add("pending-card-action");
-        action.setWrapText(true);
-        action.setMaxWidth(Double.MAX_VALUE);
+        Label action = wrappingCardLabel(card.action(), "pending-card-action");
 
         Label status = new Label(card.status());
         status.getStyleClass().addAll("pending-card-status", card.statusStyleClass());
 
-        Label clientId = new Label(clientIdLookup.apply(card.person()).map(id -> "Client ID " + id).orElse(""));
-        clientId.getStyleClass().add("pending-card-id");
-        clientId.setWrapText(true);
-        clientId.setMaxWidth(Double.MAX_VALUE);
+        Label clientId = wrappingCardLabel(
+                clientIdLookup.apply(card.person()).map(id -> "Client ID " + id).orElse(""), "pending-card-id");
 
         VBox container = new VBox(6, name, viewing, date, action, status, clientId);
         container.getStyleClass().add("pending-card");
@@ -158,6 +150,15 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         }
         renderedCards.put(card.person(), new CardNodes(container, viewing));
         return container;
+    }
+
+    /** Creates a card label that can wrap long names, descriptions and IDs. */
+    private static Label wrappingCardLabel(String text, String styleClass) {
+        Label label = new Label(text);
+        label.getStyleClass().add(styleClass);
+        label.setWrapText(true);
+        label.setMaxWidth(Double.MAX_VALUE);
+        return label;
     }
 
     private void updateSelection(Person newPerson) {
