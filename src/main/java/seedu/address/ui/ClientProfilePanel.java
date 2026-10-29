@@ -10,6 +10,7 @@ import java.util.function.Function;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -32,7 +33,12 @@ public class ClientProfilePanel extends UiPart<Region> {
             "profile-status-overdue", "profile-status-due-today", "profile-status-upcoming");
 
     private final Function<Person, Optional<ClientId>> clientIdLookup;
+    private final ReadOnlyObjectProperty<Person> selectedPerson;
+    private final ReadOnlyObjectProperty<LocalDate> today;
+    private final InvalidationListener selectionListener;
+    private final ChangeListener<LocalDate> dateListener;
     private Optional<ClientId> renderedClientId;
+    private boolean isDisposed;
 
     @FXML
     private Label noSelectionMessage;
@@ -68,24 +74,45 @@ public class ClientProfilePanel extends UiPart<Region> {
     public ClientProfilePanel(ReadOnlyObjectProperty<Person> selectedPerson,
             ReadOnlyObjectProperty<LocalDate> today, Function<Person, Optional<ClientId>> clientIdLookup) {
         super(FXML);
-        requireNonNull(selectedPerson);
-        requireNonNull(today);
+        this.selectedPerson = requireNonNull(selectedPerson);
+        this.today = requireNonNull(today);
         this.clientIdLookup = requireNonNull(clientIdLookup);
         renderedClientId = lookupId(selectedPerson.get());
-        // Cache the ID: the previous immutable record may already have left the aggregate.
-        selectedPerson.addListener((InvalidationListener) observable -> {
-            Person newPerson = selectedPerson.get();
-            Optional<ClientId> nextId = lookupId(newPerson);
-            boolean isSameClient = renderedClientId.isPresent() && renderedClientId.equals(nextId);
-            renderedClientId = nextId;
-            render(newPerson, today.get());
-            if (!isSameClient) {
-                ScrollPane scroll = (ScrollPane) getRoot();
-                scroll.setVvalue(scroll.getVmin());
-            }
-        });
-        today.addListener((observable, oldDate, newDate) -> render(selectedPerson.get(), newDate));
         render(selectedPerson.get(), today.get());
+        selectionListener = observable -> refreshSelection();
+        dateListener = (observable, oldDate, newDate) -> {
+            if (!isDisposed) {
+                render(selectedPerson.get(), newDate);
+            }
+        };
+        selectedPerson.addListener(selectionListener);
+        today.addListener(dateListener);
+    }
+
+    /** Releases external observers; callbacks already in progress also stop refreshing the panel. */
+    public void dispose() {
+        if (isDisposed) {
+            return;
+        }
+        isDisposed = true;
+        selectedPerson.removeListener(selectionListener);
+        today.removeListener(dateListener);
+    }
+
+    private void refreshSelection() {
+        if (isDisposed) {
+            return;
+        }
+        Person newPerson = selectedPerson.get();
+        Optional<ClientId> nextId = lookupId(newPerson);
+        // Cache the ID: the previous immutable record may already have left the aggregate.
+        boolean isSameClient = renderedClientId.isPresent() && renderedClientId.equals(nextId);
+        renderedClientId = nextId;
+        render(newPerson, today.get());
+        if (!isSameClient) {
+            ScrollPane scroll = (ScrollPane) getRoot();
+            scroll.setVvalue(scroll.getVmin());
+        }
     }
 
     private Optional<ClientId> lookupId(Person person) {

@@ -5,6 +5,7 @@ import static seedu.address.testutil.Assert.assertThrows;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import seedu.address.commons.exceptions.IllegalValueException;
 import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.AddressBook;
+import seedu.address.model.person.Name;
+import seedu.address.testutil.PersonBuilder;
 import seedu.address.testutil.TypicalPersons;
 
 public class JsonSerializableAddressBookTest {
@@ -101,6 +104,41 @@ public class JsonSerializableAddressBookTest {
                 .map(person -> book.getClientId(person).orElseThrow().getValue()).toList());
         String saved = JsonUtil.toJsonString(new JsonSerializableAddressBook(book));
         assertEquals(book, JsonUtil.fromJsonString(saved, JsonSerializableAddressBook.class).toModelType());
+    }
+
+    @Test
+    public void constructor_mutatedInputList_preservesLegacySnapshot() throws Exception {
+        var person = new PersonBuilder().build();
+        List<JsonAdaptedPerson> persons = new ArrayList<>(List.of(new JsonAdaptedPerson(person)));
+        JsonSerializableAddressBook stored = new JsonSerializableAddressBook(persons);
+        persons.clear();
+
+        AddressBook loaded = stored.toModelType();
+        assertEquals(List.of(person), loaded.getPersonList());
+        assertEquals(1, loaded.getClientId(loaded.getPersonList().getFirst()).orElseThrow().getValue());
+        assertEquals(2, loaded.getNextClientId());
+    }
+
+    @Test
+    public void toModelType_invalidContactAndMetadata_reportsContactBeforeIdentity() throws Exception {
+        String json = "{\"nextClientId\":0,\"persons\":[{\"clientId\":0,\"name\":\"^\",\"phone\":\"111\","
+                + "\"email\":\"ada@example.com\",\"address\":\"Home\"}]}";
+        JsonSerializableAddressBook stored = JsonUtil.fromJsonString(json, JsonSerializableAddressBook.class);
+        assertThrows(IllegalValueException.class, Name.MESSAGE_CONSTRAINTS, stored::toModelType);
+
+        JsonSerializableAddressBook validContact = JsonUtil.fromJsonString(json.replace("^", "Ada"),
+                JsonSerializableAddressBook.class);
+        assertThrows(IllegalValueException.class, "Next client ID must be an integer from 1 to 2147483648.",
+                validContact::toModelType);
+    }
+
+    @Test
+    public void toModelType_counterAtLowerBoundary_acceptsEmptyNewFormat() throws Exception {
+        JsonSerializableAddressBook stored = JsonUtil.fromJsonString("{\"nextClientId\":1,\"persons\":[]}",
+                JsonSerializableAddressBook.class);
+        AddressBook loaded = stored.toModelType();
+        assertEquals(List.of(), loaded.getPersonList());
+        assertEquals(1, loaded.getNextClientId());
     }
 
 }

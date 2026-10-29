@@ -14,7 +14,9 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 import seedu.address.commons.exceptions.IllegalValueException;
+import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.person.Address;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.Email;
 import seedu.address.model.person.Name;
 import seedu.address.model.person.Person;
@@ -163,11 +165,11 @@ public class JsonAdaptedPersonTest {
     @Test
     public void toModelType_identityMetadata_preservesContactConversionAndRejectsRawIdCoercion() throws Exception {
         JsonAdaptedPerson identified = new JsonAdaptedPerson(BENSON,
-                new seedu.address.model.person.ClientId(17));
+                new ClientId(17));
         assertEquals(BENSON, identified.toModelType());
         assertEquals(17, identified.toClientId().getValue());
         for (String invalid : List.of("\"17\"", "17.5", "true", "0", "2147483648")) {
-            JsonAdaptedPerson adapted = seedu.address.commons.util.JsonUtil.fromJsonString(
+            JsonAdaptedPerson adapted = JsonUtil.fromJsonString(
                     "{\"clientId\":" + invalid + "}", JsonAdaptedPerson.class);
             assertThrows(IllegalValueException.class, adapted::toClientId);
         }

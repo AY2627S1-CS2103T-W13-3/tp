@@ -55,6 +55,7 @@ public class MainWindow extends UiPart<Stage> {
     private HelpWindow helpWindow;
     private PendingFollowUpProjection pendingProjection;
     private PendingFollowUpPanel pendingPanel;
+    private ClientProfilePanel clientProfilePanel;
 
     @FXML
     private Label loadWarning;
@@ -158,7 +159,7 @@ public class MainWindow extends UiPart<Stage> {
                 logic.showingFollowUpsProperty(), logic.selectedPersonProperty(), logic::getClientId);
         personListPanelPlaceholder.getChildren().add(personListPanel.getRoot());
 
-        ClientProfilePanel clientProfilePanel = new ClientProfilePanel(logic.selectedPersonProperty(),
+        clientProfilePanel = new ClientProfilePanel(logic.selectedPersonProperty(),
                 logic.todayProperty(), logic::getClientId);
         clientProfilePlaceholder.getChildren().add(clientProfilePanel.getRoot());
 
@@ -278,6 +279,9 @@ public class MainWindow extends UiPart<Stage> {
 
     /** Releases the observers owned by this window, including when it is hidden programmatically. */
     private void disposeDashboard() {
+        if (clientProfilePanel != null) {
+            clientProfilePanel.dispose();
+        }
         if (pendingPanel != null) {
             pendingPanel.dispose();
         }

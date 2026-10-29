@@ -13,6 +13,7 @@ This guide describes the v1.5 implementation. It explains the component boundari
 
 * PolicyHarbor adapts [AddressBook Level 3](https://github.com/se-edu/addressbook-level3), retaining its Java/JavaFX architecture and test conventions.
 * All team members used ChatGPT for general assistance during the project.
+* Somaaditya Samal used OpenAI Codex to audit his RepoSense-attributed code, refactor migration and panel lifecycle code, and improve related tests for issue #241.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -402,7 +403,7 @@ The `Client ID` column displays the aggregate's permanent ID rather than a row n
 
 `PendingFollowUpPanel` observes the projection, `todayProperty()` and `selectedPersonProperty()`. It groups actions by status using the published date, retaining due-date order within groups. It displays full names, dates and action text without using row positions as command targets. Its selection listener observes invalidation so an equal-valued replacement still updates the identity-based marker. Empty groups are unmanaged and the empty summary is explicit.
 
-On window close or programmatic hiding, `MainWindow` disposes the panel and closes the projection. Both operations are idempotent and their callbacks guard against already-queued notifications after disposal. No independent timer or second client store is introduced.
+On window close or programmatic hiding, `MainWindow` disposes both `ClientProfilePanel` and `PendingFollowUpPanel` and closes the pending projection. These operations are idempotent; panel callbacks guard against already-queued notifications after disposal. The profile validates its initial display before subscribing, so a failed construction leaves no listeners attached. `ClientProfileLifecycleTest` covers window cleanup, disposal during notification and failed construction. No independent timer or second client store is introduced.
 
 #### Layout boundaries and acceptance tools
 

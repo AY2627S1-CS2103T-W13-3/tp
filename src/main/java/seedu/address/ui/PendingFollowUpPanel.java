@@ -41,7 +41,7 @@ public class PendingFollowUpPanel extends UiPart<Region> {
     private final InvalidationListener selectionListener;
     private final Map<Person, CardNodes> renderedCards = new IdentityHashMap<>();
     private Person renderedSelection;
-    private boolean disposed;
+    private boolean isDisposed;
 
     @FXML
     private Label emptyMessage;
@@ -78,7 +78,7 @@ public class PendingFollowUpPanel extends UiPart<Region> {
         dateListener = (observable, oldDate, newDate) -> refresh();
         // ChangeListener suppresses equal-valued replacements, but our marker follows identity.
         selectionListener = observable -> {
-            if (!disposed) {
+            if (!isDisposed) {
                 updateSelection(this.selectedPerson.get());
             }
         };
@@ -89,11 +89,11 @@ public class PendingFollowUpPanel extends UiPart<Region> {
 
     /** Stops observing external state when the dashboard removes this panel. */
     public void dispose() {
-        if (disposed) {
+        if (isDisposed) {
             return;
         }
         // A notification already in progress may still invoke a removed listener.
-        disposed = true;
+        isDisposed = true;
         pendingPersons.removeListener(pendingListener);
         today.removeListener(dateListener);
         selectedPerson.removeListener(selectionListener);
@@ -102,7 +102,7 @@ public class PendingFollowUpPanel extends UiPart<Region> {
     }
 
     private void refresh() {
-        if (!disposed) {
+        if (!isDisposed) {
             render(pendingPersons, today.get(), selectedPerson.get());
         }
     }

@@ -23,6 +23,7 @@ import seedu.address.model.person.exceptions.DuplicatePersonException;
 class JsonSerializableAddressBook {
 
     public static final String MESSAGE_DUPLICATE_PERSON = "Persons list contains duplicate person(s).";
+    private static final long MAX_NEXT_CLIENT_ID = (long) Integer.MAX_VALUE + 1;
 
     private final List<JsonAdaptedPerson> persons;
     private final JsonNode nextClientId;
@@ -63,33 +64,10 @@ class JsonSerializableAddressBook {
      * @throws IllegalValueException if there were any data constraints violated.
      */
     public AddressBook toModelType() throws IllegalValueException {
-        if (persons == null) {
-            throw new IllegalValueException("Persons list is missing.");
-        }
-        List<Person> modelPersons = new ArrayList<>();
-        for (JsonAdaptedPerson jsonAdaptedPerson : persons) {
-            if (jsonAdaptedPerson == null) {
-                throw new IllegalValueException("Persons list contains a missing person.");
-            }
-            modelPersons.add(jsonAdaptedPerson.toModelType());
-        }
-        // The shared migration contract treats all-absent/all-null metadata as legacy.
-        // Once all identity history is removed externally, this file cannot reveal its former IDs.
-        // Any remaining non-null metadata selects strict validation; never downgrade a partial file.
-        boolean hasMetadata = nextClientId != null && !nextClientId.isNull()
-                || persons.stream().anyMatch(JsonAdaptedPerson::hasClientId);
-        List<ClientId> ids = new ArrayList<>();
-        long counter = modelPersons.size() + 1L;
-        if (hasMetadata) {
-            counter = readCounter();
-            for (JsonAdaptedPerson person : persons) {
-                ids.add(person.toClientId());
-            }
-        } else {
-            for (int index = 0; index < modelPersons.size(); index++) {
-                ids.add(new ClientId(index + 1));
-            }
-        }
+        List<Person> modelPersons = readPersons();
+        boolean hasIdentityMetadata = hasIdentityMetadata();
+        long counter = hasIdentityMetadata ? readCounter() : modelPersons.size() + 1L;
+        List<ClientId> ids = readClientIds(hasIdentityMetadata);
         AddressBook addressBook = new AddressBook();
         try {
             addressBook.restorePersons(modelPersons, ids, counter);
@@ -101,9 +79,39 @@ class JsonSerializableAddressBook {
         return addressBook;
     }
 
+    private List<Person> readPersons() throws IllegalValueException {
+        if (persons == null) {
+            throw new IllegalValueException("Persons list is missing.");
+        }
+        List<Person> modelPersons = new ArrayList<>();
+        for (JsonAdaptedPerson jsonAdaptedPerson : persons) {
+            if (jsonAdaptedPerson == null) {
+                throw new IllegalValueException("Persons list contains a missing person.");
+            }
+            modelPersons.add(jsonAdaptedPerson.toModelType());
+        }
+        return modelPersons;
+    }
+
+    private boolean hasIdentityMetadata() {
+        // The shared migration contract treats all-absent/all-null metadata as legacy.
+        // Once all identity history is removed externally, this file cannot reveal its former IDs.
+        // Any remaining non-null metadata selects strict validation; never downgrade a partial file.
+        return nextClientId != null && !nextClientId.isNull()
+                || persons.stream().anyMatch(JsonAdaptedPerson::hasClientId);
+    }
+
+    private List<ClientId> readClientIds(boolean hasIdentityMetadata) throws IllegalValueException {
+        List<ClientId> ids = new ArrayList<>();
+        for (int index = 0; index < persons.size(); index++) {
+            ids.add(hasIdentityMetadata ? persons.get(index).toClientId() : new ClientId(index + 1));
+        }
+        return ids;
+    }
+
     private long readCounter() throws IllegalValueException {
         if (nextClientId == null || !nextClientId.isIntegralNumber() || !nextClientId.canConvertToLong()
-                || nextClientId.longValue() < 1 || nextClientId.longValue() > 2147483648L) {
+                || nextClientId.longValue() < 1 || nextClientId.longValue() > MAX_NEXT_CLIENT_ID) {
             throw new IllegalValueException("Next client ID must be an integer from 1 to 2147483648.");
         }
         return nextClientId.longValue();
