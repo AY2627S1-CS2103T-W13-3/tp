@@ -3,6 +3,9 @@ package seedu.address.logic.commands;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -198,6 +201,74 @@ public class ClientRecordCommandsTest {
         model.updateFilteredPersonList(new NameContainsKeywordsPredicate(List.of("Nobody")));
         assertRejectedWithoutChanges("add n/Rachel Lim p/001 e/new@example.com a/Another address",
                 CommandException.class, "This client already exists in PolicyHarbor.");
+    }
+
+    @Test
+    public void execute_editRefreshAndReload_preservesPermanentIds() throws Exception {
+        logic.execute("view 17");
+        logic.execute("edit 17 a/Updated address");
+        logic.execute("followups");
+        logic.execute("followup 17 d/2026-10-11 m/Updated action");
+        logic.execute("find Rachel");
+        logic.execute("list");
+
+        Person edited = model.getAddressBook().getPersonById(new ClientId(17)).orElseThrow();
+        assertEquals("Updated address", edited.getAddress().value);
+        assertEquals("Updated action", edited.getFollowUp().orElseThrow().getDescription());
+        assertSame(edited, model.selectedPersonProperty().get());
+        assertEquals(new ClientId(2), model.getAddressBook().getClientId(rachel).orElseThrow());
+        assertEquals(42L, model.getAddressBook().getNextClientId());
+        assertEquals(2, storage.saveCount);
+        byte[] savedBytes = Files.readAllBytes(storage.getAddressBookFilePath());
+
+        // Reload reconstructs Person values; reset must copy IDs instead of allocating from those references.
+        ModelManager restarted = new ModelManager(storage.readAddressBook().orElseThrow(),
+                new UserPrefs(), STARTUP_DATE, false);
+        model.setAddressBook(restarted.getAddressBook());
+        logic.execute("view 17");
+        Person reloaded = model.getAddressBook().getPersonById(new ClientId(17)).orElseThrow();
+        assertNotSame(edited, reloaded);
+        assertEquals(edited, reloaded);
+        assertSame(reloaded, model.selectedPersonProperty().get());
+        assertEquals(2, model.getAddressBook().getPersonList().size());
+        assertEquals("001", model.getAddressBook().getPersonById(new ClientId(2)).orElseThrow().getPhone().value);
+        assertEquals(42L, model.getAddressBook().getNextClientId());
+        assertEquals(2, storage.saveCount);
+        assertArrayEquals(savedBytes, Files.readAllBytes(storage.getAddressBookFilePath()));
+    }
+
+    @Test
+    public void execute_addAtIdLimit_reportsCommandErrorWithoutChangingData() throws Exception {
+        AddressBook lastAllocation = new AddressBook();
+        lastAllocation.restorePersons(List.of(rachel, otherRachel),
+                List.of(new ClientId(2), new ClientId(17)), Integer.MAX_VALUE);
+        model.setAddressBook(lastAllocation);
+        logic.execute(ADD_NEW);
+        assertEquals("John Tan", model.getAddressBook().getPersonById(new ClientId(Integer.MAX_VALUE))
+                .orElseThrow().getName().fullName);
+        assertEquals(2147483648L, model.getAddressBook().getNextClientId());
+        model.selectPerson(otherRachel);
+        model.showPendingFollowUps();
+        AddressBook before = new AddressBook(model.getAddressBook());
+        List<Person> rowsBefore = List.copyOf(model.getFilteredPersonList());
+        LocalDate todayBefore = model.getToday();
+        byte[] bytesBefore = Files.readAllBytes(storage.getAddressBookFilePath());
+        int savesBefore = storage.saveCount;
+
+        Exception error = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () ->
+                logic.execute("add n/Amanda Lee p/333 e/amanda@example.com a/Street"));
+
+        assertTrue(error.getMessage().contains("ID"));
+        assertEquals(before, model.getAddressBook());
+        assertEquals(rowsBefore, model.getFilteredPersonList());
+        assertSame(otherRachel, model.selectedPersonProperty().get());
+        assertTrue(model.showingFollowUpsProperty().get());
+        assertEquals(todayBefore, model.getToday());
+        assertEquals(savesBefore, storage.saveCount);
+        assertFalse(model.hasUnsavedChanges());
+        assertEquals(before, storage.readAddressBook().orElseThrow());
+        assertArrayEquals(bytesBefore, Files.readAllBytes(storage.getAddressBookFilePath()));
+        assertInstanceOf(CommandException.class, error);
     }
 
     private void assertRejectedWithoutChanges(String input, Class<? extends Throwable> exception, String message)

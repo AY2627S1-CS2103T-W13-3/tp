@@ -38,6 +38,11 @@ public class AddressBook implements ReadOnlyAddressBook {
      * {@code persons} must not contain duplicate persons.
      * Retained canonical references keep their IDs; new references receive fresh IDs.
      * Removing records, including every record, never lowers the allocation counter.
+     * This is an allocation-oriented bulk replacement, not a refresh or contact-edit API:
+     * reconstructed equal-valued records are new references and receive new IDs.
+     * Use {@link #setPerson(Person, Person)} for edits and {@link #resetData(ReadOnlyAddressBook)}
+     * for an identity-bearing snapshot. Storage restoration must use
+     * {@link #restorePersons(List, List, long)} with explicit identity metadata.
      */
     public void setPersons(List<Person> persons) {
         List<Person> replacement = List.copyOf(persons);
