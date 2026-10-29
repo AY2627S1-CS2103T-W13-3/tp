@@ -31,6 +31,7 @@ import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
@@ -61,8 +62,7 @@ public class AllClientFeedTest {
         second = new PersonBuilder().withName("Rachel Lim").withPhone("222")
                 .withEmail("second@example.com").withFollowUp(new FollowUp(TODAY, "Call second")).build();
         AddressBook book = new AddressBook();
-        book.addPerson(first);
-        book.addPerson(second);
+        book.restorePersons(List.of(first, second), List.of(new ClientId(2), new ClientId(17)), 42);
         model = new ModelManager(book, new UserPrefs(), TODAY, false);
         logic = new LogicManager(model, storage(false), CLOCK);
         feed = logic.getAllPersonList();
@@ -76,6 +76,8 @@ public class AllClientFeedTest {
         assertSame(model.getAddressBook().getPersonList(), feed);
         assertSame(first, feed.get(0));
         assertSame(second, feed.get(1));
+        assertEquals(new ClientId(2), model.getAddressBook().getClientId(first).orElseThrow());
+        assertEquals(new ClientId(17), model.getAddressBook().getClientId(second).orElseThrow());
         assertThrows(UnsupportedOperationException.class, () -> feed.add(first));
         assertThrows(UnsupportedOperationException.class, () -> feed.set(0, second));
         assertThrows(UnsupportedOperationException.class, () -> feed.remove(0));
@@ -86,7 +88,7 @@ public class AllClientFeedTest {
 
     @Test
     public void readOnlyCommands_keepFullInsertionOrderAndDoNotPublishData() throws Exception {
-        logic.execute("view 2");
+        logic.execute("view 17");
         assertSame(second, logic.selectedPersonProperty().get());
         logic.execute("followups");
         assertEquals(List.of(second, first), logic.getFilteredPersonList());
@@ -104,9 +106,9 @@ public class AllClientFeedTest {
 
     @Test
     public void committedMutations_publishFullRecordsAndRetainSelectedIdentity() throws Exception {
-        logic.execute("view 2");
+        logic.execute("view 17");
         logic.execute("followups");
-        logic.execute("followup 1 d/2026-10-22 m/Updated second");
+        logic.execute("followup 17 d/2026-10-22 m/Updated second");
         assertEquals(1, publications.size());
         Person replacement = feed.get(1);
         assertSame(first, feed.get(0));
@@ -115,7 +117,7 @@ public class AllClientFeedTest {
         assertEquals("222", replacement.getPhone().value);
         assertEquals("Updated second", replacement.getFollowUp().orElseThrow().getDescription());
 
-        logic.execute("followup 2 clear");
+        logic.execute("followup 17 clear");
         assertEquals(2, publications.size());
         assertTrue(feed.get(1).getFollowUp().isEmpty());
         assertNull(logic.selectedPersonProperty().get());
@@ -126,7 +128,7 @@ public class AllClientFeedTest {
         assertEquals(List.of("Rachel Lim", "Rachel Lim", "Amanda Lee"),
                 feed.stream().map(person -> person.getName().fullName).toList());
         logic.execute("find Amanda");
-        logic.execute("delete 1");
+        logic.execute("delete 42");
         assertEquals(4, publications.size());
         assertEquals(2, feed.size());
         assertSame(first, feed.get(0));
@@ -142,10 +144,11 @@ public class AllClientFeedTest {
         feed.addListener((ListChangeListener<Person>) change -> {
             ReadOnlyAddressBook savedBook = assertDoesNotThrow(() -> savedData.readAddressBook().orElseThrow());
             assertEquals(List.copyOf(feed), savedBook.getPersonList());
+            assertEquals(model.getAddressBook(), savedBook);
         });
 
-        logic.execute("followup 2 d/2026-10-22 m/Save before publishing");
-        logic.execute("delete 1");
+        logic.execute("followup 17 d/2026-10-22 m/Save before publishing");
+        logic.execute("delete 2");
 
         assertEquals(2, publications.size());
         assertEquals(1, feed.size());
@@ -153,12 +156,12 @@ public class AllClientFeedTest {
     }
 
     @Test
-    public void deleteSameNameClient_usesPendingIndexAndPreservesOtherRecord() throws Exception {
-        logic.execute("view 1");
+    public void deleteSameNameClient_usesPermanentIdAndPreservesOtherRecord() throws Exception {
+        logic.execute("view 2");
         logic.execute("followups");
         assertEquals(List.of(second, first), logic.getFilteredPersonList());
 
-        logic.execute("delete 1");
+        logic.execute("delete 17");
 
         assertEquals(List.of(first), feed);
         assertSame(first, feed.getFirst());
@@ -182,17 +185,20 @@ public class AllClientFeedTest {
         assertSame(feed, logic.getAllPersonList());
         assertEquals(List.of(replacement), feed);
         assertSame(replacement, feed.get(0));
+        assertEquals(new ClientId(17), model.getAddressBook().getClientId(replacement).orElseThrow());
+        assertEquals(42L, model.getAddressBook().getNextClientId());
+        assertTrue(model.getAddressBook().getPersonById(new ClientId(2)).isEmpty());
         assertEquals(List.of(List.of(replacement)), publications);
         assertFalse(model.hasUnsavedChanges());
     }
 
     @Test
     public void rejectedCommandsAndFailedSaves_doNotPublishCandidateData() throws Exception {
-        logic.execute("view 2");
+        logic.execute("view 17");
         logic.execute("followups");
         Logic failingLogic = new LogicManager(model, storage(true), CLOCK);
-        for (String command : List.of("delete 1", "followup 1 clear",
-                "followup 1 d/2026-10-22 m/Unsaved action",
+        for (String command : List.of("delete 17", "followup 17 clear",
+                "followup 17 d/2026-10-22 m/Unsaved action",
                 "add n/Amanda Lee p/333 e/amanda@example.com a/Street")) {
             CommandException error = assertThrows(CommandException.class, () -> failingLogic.execute(command));
             assertEquals(String.format(LogicManager.MESSAGE_SAVE_FAILED, testFolder.resolve("clients.json")),
@@ -200,9 +206,9 @@ public class AllClientFeedTest {
             assertUnpublished();
         }
         assertThrows(ParseException.class, () -> logic.execute("unknown"));
-        assertThrows(CommandException.class, () -> logic.execute("delete 3"));
+        assertThrows(CommandException.class, () -> logic.execute("delete 99"));
         CommandException invalidDescription = assertThrows(CommandException.class, () ->
-                logic.execute("followup 1 d/2026-10-18 m/"));
+                logic.execute("followup 17 d/2026-10-18 m/"));
         assertEquals(FollowUp.MESSAGE_INVALID_DESCRIPTION, invalidDescription.getMessage());
         assertThrows(CommandException.class, () ->
                 logic.execute("add n/Rachel Lim p/222 e/other@example.com a/Street"));
@@ -232,6 +238,9 @@ public class AllClientFeedTest {
         assertEquals(List.of(second, first), logic.getFilteredPersonList());
         assertTrue(logic.showingFollowUpsProperty().get());
         assertEquals(TODAY, logic.todayProperty().get());
+        assertEquals(new ClientId(2), model.getAddressBook().getClientId(first).orElseThrow());
+        assertEquals(new ClientId(17), model.getAddressBook().getClientId(second).orElseThrow());
+        assertEquals(42L, model.getAddressBook().getNextClientId());
         assertTrue(publications.isEmpty());
         assertFalse(model.hasUnsavedChanges());
     }
