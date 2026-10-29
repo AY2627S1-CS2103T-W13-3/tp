@@ -16,14 +16,13 @@ import java.util.logging.SimpleFormatter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import seedu.address.MainApp;
+import seedu.address.MainAppTestUtil;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.logic.LogicManager;
 import seedu.address.logic.Messages;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.Model;
-import seedu.address.model.ReadOnlyUserPrefs;
 import seedu.address.model.UserPrefs;
 
 /** Exercises the actual protected-startup boundary for corrupt identity metadata. */
@@ -98,10 +97,7 @@ public class ClientIdLoadingProtectionTest {
         JsonAddressBookStorage clients = new JsonAddressBookStorage(file);
         assertThrows(DataLoadingException.class, clients::readAddressBook);
         Storage storage = new StorageManager(clients, new JsonUserPrefsStorage(folder.resolve("prefs.json")));
-        // MainApp's package-private startup seam is outside this exclusively owned test package.
-        var startup = MainApp.class.getDeclaredMethod("initModelManager", Storage.class, ReadOnlyUserPrefs.class);
-        startup.setAccessible(true);
-        Model model = (Model) startup.invoke(new MainApp(), storage, new UserPrefs());
+        Model model = MainAppTestUtil.loadModel(storage, new UserPrefs());
         assertTrue(model.isDataLoadingBlocked());
         assertTrue(model.getAddressBook().getPersonList().isEmpty());
         LogicManager logic = new LogicManager(model, storage);

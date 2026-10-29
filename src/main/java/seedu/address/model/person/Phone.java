@@ -47,17 +47,17 @@ public class Phone {
     private static boolean hasValidFormat(String test, int minimumDigits) {
         requireNonNull(test);
         int digitCount = 0;
-        boolean previousWasDigit = false;
+        boolean wasPreviousDigit = false;
         for (int i = 0; i < test.length(); i++) {
             char character = test.charAt(i);
             if (character >= '0' && character <= '9') {
                 digitCount++;
-                previousWasDigit = true;
+                wasPreviousDigit = true;
             } else if (i == 0 && character == '+') {
-                previousWasDigit = false;
-            } else if ((character == ' ' || character == '-') && previousWasDigit
+                wasPreviousDigit = false;
+            } else if ((character == ' ' || character == '-') && wasPreviousDigit
                     && i + 1 < test.length() && test.charAt(i + 1) >= '0' && test.charAt(i + 1) <= '9') {
-                previousWasDigit = false;
+                wasPreviousDigit = false;
             } else {
                 return false;
             }

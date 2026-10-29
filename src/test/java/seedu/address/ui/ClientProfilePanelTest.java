@@ -4,21 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.testutil.JavaFxTestUtil.findById;
+import static seedu.address.testutil.JavaFxTestUtil.runOnFxThread;
 
-import java.awt.GraphicsEnvironment;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
-import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -26,6 +21,7 @@ import javafx.scene.layout.FlowPane;
 import seedu.address.model.AddressBook;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
+import seedu.address.testutil.JavaFxTestUtil;
 import seedu.address.testutil.PersonBuilder;
 
 public class ClientProfilePanelTest {
@@ -123,8 +119,8 @@ public class ClientProfilePanelTest {
     }
 
     @Test
-    public void profileUi_selectionAndDateChanges_clearOldRenderedValues() throws InterruptedException {
-        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+    public void profileUi_selectionAndDateChanges_clearOldRenderedValues() throws Exception {
+        JavaFxTestUtil.initializeToolkit();
         runOnFxThread(() -> {
             Person first = new PersonBuilder().withName("First Client").withTags("health", "Active")
                     .withFollowUp(new FollowUp(TODAY, "First action")).build();
@@ -165,8 +161,8 @@ public class ClientProfilePanelTest {
     }
 
     @Test
-    public void profileUi_longTag_staysInsideNarrowViewport() throws InterruptedException {
-        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+    public void profileUi_longTag_staysInsideNarrowViewport() throws Exception {
+        JavaFxTestUtil.initializeToolkit();
         runOnFxThread(() -> {
             String longTag = "a".repeat(80);
             Person person = new PersonBuilder().withTags(longTag, "short").build();
@@ -200,46 +196,4 @@ public class ClientProfilePanelTest {
         });
     }
 
-    private static Node findById(Node node, String id) {
-        if (id.equals(node.getId())) {
-            return node;
-        }
-        if (node instanceof ScrollPane scrollPane) {
-            return findById(scrollPane.getContent(), id);
-        }
-        if (node instanceof Parent parent) {
-            for (Node child : parent.getChildrenUnmodifiable()) {
-                Node match = findById(child, id);
-                if (match != null) {
-                    return match;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static void runOnFxThread(Runnable task) throws InterruptedException {
-        synchronized (Platform.class) {
-            try {
-                Platform.startup(() -> { });
-            } catch (IllegalStateException alreadyStarted) {
-                // Another UI test has initialized the toolkit in this test JVM.
-            }
-        }
-        CountDownLatch completed = new CountDownLatch(1);
-        AtomicReference<Throwable> failure = new AtomicReference<>();
-        Platform.runLater(() -> {
-            try {
-                task.run();
-            } catch (Throwable error) {
-                failure.set(error);
-            } finally {
-                completed.countDown();
-            }
-        });
-        assertTrue(completed.await(10, TimeUnit.SECONDS));
-        if (failure.get() != null) {
-            throw new AssertionError("JavaFX profile rendering failed", failure.get());
-        }
-    }
 }

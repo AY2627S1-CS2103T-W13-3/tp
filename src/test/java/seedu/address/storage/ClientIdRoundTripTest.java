@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import seedu.address.model.AddressBook;
 import seedu.address.model.person.ClientId;
+import seedu.address.model.person.FollowUp;
 import seedu.address.testutil.PersonBuilder;
 
 /** Verifies durable identity history using the real atomic storage writer. */
@@ -103,8 +105,8 @@ public class ClientIdRoundTripTest {
         JsonAddressBookStorage storage = new JsonAddressBookStorage(file);
         AddressBook book = new AddressBook(storage.readAddressBook().orElseThrow());
         var old = book.getPersonList().getFirst();
-        var changed = old.withFollowUp(new seedu.address.model.person.FollowUp(
-                java.time.LocalDate.of(2020, 1, 1), "联系客户 🏠"));
+        var changed = old.withFollowUp(new FollowUp(
+                LocalDate.of(2020, 1, 1), "联系客户 🏠"));
         book.setPerson(old, changed);
         storage.saveAddressBook(book);
         assertEquals(book, new AddressBook(storage.readAddressBook().orElseThrow()));

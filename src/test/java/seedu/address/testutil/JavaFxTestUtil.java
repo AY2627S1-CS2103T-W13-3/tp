@@ -8,6 +8,9 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import javafx.application.Platform;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.control.ScrollPane;
 
 /**
  * Shares JavaFX startup, thread dispatch, and native desktop test requirements.
@@ -64,5 +67,24 @@ public final class JavaFxTestUtil {
         FutureTask<T> task = new FutureTask<>(action);
         Platform.runLater(task);
         return task.get(FX_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    /** Finds an FXML node, including content not yet attached to a ScrollPane skin. */
+    public static Node findById(Node node, String id) {
+        if (id.equals(node.getId())) {
+            return node;
+        }
+        if (node instanceof ScrollPane scrollPane) {
+            return findById(scrollPane.getContent(), id);
+        }
+        if (node instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                Node match = findById(child, id);
+                if (match != null) {
+                    return match;
+                }
+            }
+        }
+        return null;
     }
 }

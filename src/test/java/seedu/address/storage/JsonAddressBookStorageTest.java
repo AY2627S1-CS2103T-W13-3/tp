@@ -11,13 +11,16 @@ import static seedu.address.testutil.TypicalPersons.IDA;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
@@ -42,7 +45,7 @@ public class JsonAddressBookStorageTest {
         assertThrows(NullPointerException.class, () -> readAddressBook(null));
     }
 
-    private java.util.Optional<ReadOnlyAddressBook> readAddressBook(String filePath) throws Exception {
+    private Optional<ReadOnlyAddressBook> readAddressBook(String filePath) throws Exception {
         return new JsonAddressBookStorage(Paths.get(filePath)).readAddressBook(addToTestDataPathIfNotNull(filePath));
     }
 
@@ -283,7 +286,7 @@ public class JsonAddressBookStorageTest {
     @Test
     public void failedWriteAndMove_preserveOriginalBytes() throws Exception {
         Path file = testFolder.resolve("book.json");
-        byte[] original = "original data".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] original = "original data".getBytes(StandardCharsets.UTF_8);
         AddressBook book = getTypicalAddressBook();
         for (int failure = 0; failure < 3; failure++) {
             Files.write(file, original);
@@ -308,8 +311,8 @@ public class JsonAddressBookStorageTest {
                 }
             };
             assertThrows(IOException.class, () -> storage.saveAddressBook(book));
-            assertTrue(java.util.Arrays.equals(original, Files.readAllBytes(file)));
-            try (java.util.stream.Stream<Path> files = Files.list(testFolder)) {
+            assertArrayEquals(original, Files.readAllBytes(file));
+            try (Stream<Path> files = Files.list(testFolder)) {
                 assertEquals(1, files.count());
             }
         }
@@ -333,7 +336,7 @@ public class JsonAddressBookStorageTest {
         assertThrows(SymbolicLinkSaveException.class, () -> new JsonAddressBookStorage(link).saveAddressBook(changed));
         assertTrue(Files.isSymbolicLink(link));
         assertEquals(target.getFileName(), Files.readSymbolicLink(link));
-        assertTrue(java.util.Arrays.equals(originalBytes, Files.readAllBytes(target)));
+        assertArrayEquals(originalBytes, Files.readAllBytes(target));
         assertEquals(original, new AddressBook(new JsonAddressBookStorage(link).readAddressBook().orElseThrow()));
     }
 

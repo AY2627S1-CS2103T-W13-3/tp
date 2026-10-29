@@ -5,19 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.testutil.JavaFxTestUtil.findById;
+import static seedu.address.testutil.JavaFxTestUtil.runOnFxThread;
 
-import java.awt.GraphicsEnvironment;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
-import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
@@ -25,7 +22,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -33,6 +29,7 @@ import javafx.scene.layout.VBox;
 import seedu.address.model.AddressBook;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
+import seedu.address.testutil.JavaFxTestUtil;
 import seedu.address.testutil.PersonBuilder;
 
 public class PendingFollowUpPanelTest {
@@ -140,8 +137,8 @@ public class PendingFollowUpPanelTest {
     }
 
     @Test
-    public void panelUi_observableChangesAndDispose_updateOnlyWhileSubscribed() throws InterruptedException {
-        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+    public void panelUi_observableChangesAndDispose_updateOnlyWhileSubscribed() throws Exception {
+        JavaFxTestUtil.initializeToolkit();
         runOnFxThread(() -> {
             Person due = person("Due Client", TODAY, "Call today");
             Person later = person("Later Client", TODAY.plusDays(1), "Call later");
@@ -207,8 +204,8 @@ public class PendingFollowUpPanelTest {
     }
 
     @Test
-    public void panelUi_equalValueReplacement_followsSelectedIdentity() throws InterruptedException {
-        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+    public void panelUi_equalValueReplacement_followsSelectedIdentity() throws Exception {
+        JavaFxTestUtil.initializeToolkit();
         runOnFxThread(() -> {
             Person original = person("Client", TODAY, "Call client");
             Person replacement = new PersonBuilder(original).build();
@@ -240,8 +237,8 @@ public class PendingFollowUpPanelTest {
     }
 
     @Test
-    public void panelUi_disposedDuringNotification_ignoresCapturedCallbacks() throws InterruptedException {
-        Assumptions.assumeFalse(GraphicsEnvironment.isHeadless());
+    public void panelUi_disposedDuringNotification_ignoresCapturedCallbacks() throws Exception {
+        JavaFxTestUtil.initializeToolkit();
         runOnFxThread(() -> {
             for (DisposalSource source : DisposalSource.values()) {
                 Person person = person("Client", TODAY, "Call client");
@@ -291,46 +288,4 @@ public class PendingFollowUpPanelTest {
         return new PersonBuilder().withName(name).withFollowUp(new FollowUp(date, action)).build();
     }
 
-    private static Node findById(Node node, String id) {
-        if (id.equals(node.getId())) {
-            return node;
-        }
-        if (node instanceof ScrollPane scrollPane) {
-            return findById(scrollPane.getContent(), id);
-        }
-        if (node instanceof Parent parent) {
-            for (Node child : parent.getChildrenUnmodifiable()) {
-                Node match = findById(child, id);
-                if (match != null) {
-                    return match;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static void runOnFxThread(Runnable task) throws InterruptedException {
-        synchronized (Platform.class) {
-            try {
-                Platform.startup(() -> { });
-            } catch (IllegalStateException alreadyStarted) {
-                // Another UI test has initialized the toolkit in this test JVM.
-            }
-        }
-        CountDownLatch completed = new CountDownLatch(1);
-        AtomicReference<Throwable> failure = new AtomicReference<>();
-        Platform.runLater(() -> {
-            try {
-                task.run();
-            } catch (Throwable error) {
-                failure.set(error);
-            } finally {
-                completed.countDown();
-            }
-        });
-        assertTrue(completed.await(10, TimeUnit.SECONDS));
-        if (failure.get() != null) {
-            throw new AssertionError("JavaFX pending-panel rendering failed", failure.get());
-        }
-    }
 }
