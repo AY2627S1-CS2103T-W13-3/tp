@@ -13,7 +13,7 @@ Interface Parser <<interface>>
 Class FollowUpCommandParser
 Class ViewCommandParser
 Class FindCommandParser
-Class FollowUpParserUtil
+Class ClientIdParserUtil
 Class ParserUtil
 Class ArgumentTokenizer
 Class ArgumentMultimap
@@ -53,9 +53,9 @@ ViewCommand -up-|> Command
 FindCommand -up-|> Command
 FollowUpsCommand -up-|> Command
 
-FollowUpCommandParser .down.> FollowUpParserUtil : parseIndex()
-FollowUpParserUtil .down.> ParserUtil : parseIndex()
-ViewCommandParser .down.> ParserUtil : parseIndex()
+FollowUpCommandParser .down.> ClientIdParserUtil : parseClientId()
+ViewCommandParser .down.> ClientIdParserUtil : parseClientId()
+ClientIdParserUtil .down.> ParserUtil : parseIndex()
 FindCommandParser .down.> ClientContainsKeywordsPredicate : <<create>>\nbare search
 FindCommandParser .down.> ClientSearchPredicate : <<create>>\nexplicit search
 FindCommand .down.> ClientContainsKeywordsPredicate : uses
