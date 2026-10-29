@@ -23,7 +23,7 @@ PolicyHarbor supports one pending action per client. Multiple actions, follow-up
 
 ## Get started
 
-Install Java 25; Mac users should use the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html). Until v1.5 is published on the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases), obtain the matching `PolicyHarbor.jar` from the team; the published v1.4 JAR does not match these v1.5 workflows. Place it in a writable folder, open a terminal there and run:
+Install Java 25; Mac users should use the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html). Download [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) from the [official v1.5 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5). Place it in a writable folder, open a terminal there and run:
 
 ```bash
 java -jar PolicyHarbor.jar
