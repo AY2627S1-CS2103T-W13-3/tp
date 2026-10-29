@@ -85,6 +85,15 @@ public class EmailTest {
     }
 
     @Test
+    public void isValidEmail_dotAdjacentToOtherPunctuation_rejected() {
+        for (String email : List.of("alice+.smith@example.com", "alice_.smith@example.com",
+                "alice-.smith@example.com", "alice.+smith@example.com", "alice._smith@example.com",
+                "alice.-smith@example.com")) {
+            assertFalse(Email.isValidEmail(email), "Dots must separate alphanumeric characters: " + email);
+        }
+    }
+
+    @Test
     public void equals() {
         Email email = new Email("valid@email");
 
