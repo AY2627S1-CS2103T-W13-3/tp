@@ -1,6 +1,8 @@
 # Somaaditya Samal: attributed-code quality audit
 
 Date: 29 October 2026 (Singapore). Team baseline: `01ef0f17bf9631bbe50c95e2f47b5592244f3574`.
+Delivery integration baseline: `2aaa0ad4553b529ee75aee5474cc90c258e31b67`. The team merged its final guides and v1.5 version labels during this audit; those changes were merged into this branch, preserving the new guide structure and reapplying only the lifecycle note and Codex acknowledgement. Attribution comparisons below retain the original audit baseline.
+
 Issue: [#241](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/241).
 
 ## Assessment and sources

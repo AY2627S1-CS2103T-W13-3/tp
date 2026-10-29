@@ -7,11 +7,15 @@ title: Developer Guide
 
 --------------------------------------------------------------------------------------------------------------------
 
-This guide describes the v1.5 implementation. It explains the component boundaries, permanent client identity and save-before-publish workflow before detailing validation and UI behavior.
+PolicyHarbor helps individual insurance agents manage contact records and one pending next action per client. This guide is for developers: start with component responsibilities, then follow the identity, command-publication and persistence invariants before changing the product. Exact command syntax is in the [User Guide](UserGuide.html).
+
+**Version baseline:** this guide describes the verified v1.5 release-candidate implementation at [`01ef0f17`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/01ef0f17bf9631bbe50c95e2f47b5592244f3574). At this audit the latest published JAR is v1.4, and the candidate still displays that title/version label. This is not documentation of that older binary. Before publishing v1.5, align the final tag, uploaded JAR, guides and testing record; repeat packaged checks if the implementation changes.
 
 ## **Acknowledgements**
 
-* PolicyHarbor adapts [AddressBook Level 3](https://github.com/se-edu/addressbook-level3), retaining its Java/JavaFX architecture and test conventions.
+* [AddressBook Level 3 (AB3)](https://github.com/se-edu/addressbook-level3) is the starting codebase. PolicyHarbor retains `seedu.address`, the Java/JavaFX/FXML component-manager structure, common utilities and test/build conventions. Client identity, follow-ups, transactions, validation and dashboard behavior substantially adapt that foundation.
+* The [AB3 Developer Guide](https://se-education.org/addressbook-level3/DeveloperGuide.html) and [User Guide](https://se-education.org/addressbook-level3/UserGuide.html) supplied documentation structure and retained architecture explanations. The architecture, component, class/parser and deletion diagrams under `docs/diagrams` derive from AB3 diagrams and have been adapted to PolicyHarbor's implemented relationships and execution flow. The project website retains the AB3 Jekyll/Minima foundation.
+* The homepage bundles a subset of [Newsreader, by the Newsreader Project Authors](https://github.com/productiontype/Newsreader), for headings in `docs/assets/landing/Newsreader.woff2`. Its SIL Open Font License 1.1 notice is retained in [`OFL.txt`](assets/landing/OFL.txt). The font is a reused asset, separate from the application implementation.
 * All team members used ChatGPT for general assistance during the project.
 * Somaaditya Samal used OpenAI Codex to audit his RepoSense-attributed code, refactor migration and panel lifecycle code, and improve related tests for issue #241.
 
@@ -19,7 +23,7 @@ This guide describes the v1.5 implementation. It explains the component boundari
 
 ## **Setting up, getting started**
 
-Refer to the guide [_Setting up and getting started_](SettingUp.html).
+Refer to [_Setting up and getting started_](SettingUp.html) for the prescribed JDK/JavaFX and IDE setup. Keep synthetic test folders separate from real client data. Production entry points are `Main`/`MainApp`; test fixtures live in test sources and are not packaged commands.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -39,16 +43,14 @@ Class diagrams use solid associations, dashed dependencies, hollow triangles for
   <figcaption>High-level component dependencies. <a href="images/ArchitectureDiagram.png">Open full-size image</a>.</figcaption>
 </figure>
 
-The _**Architecture Diagram**_ given above explains the high-level design of the App.
-
-The following provides a quick overview of the main components and their interactions.
+PolicyHarbor is an offline Java/JavaFX client and next-action manager. Components separate presentation, command orchestration, domain state and local persistence; the diagram shows selected dependencies, not class inheritance.
 
 **Main components of the architecture**
 
 **`Main`** (consisting of classes [`Main`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/Main.java) and [`MainApp`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/MainApp.java)) is in charge of the app launch and shut down.
 
-* At app launch, it initializes the other components in the correct sequence, and connects them up with each other.
-* At shut down, it shuts down the other components and invokes cleanup methods where necessary.
+* At launch, `MainApp` acquires working-folder ownership, loads/recovers preferences, constructs Storage, loads Model, then connects Logic and UI. Invalid client loading creates a protected model; it does not silently start a writable replacement dataset.
+* At startup/focus and each minute, it refreshes the shared date used for action statuses. On shutdown it stops the timer, saves window preferences and releases instance ownership; UI closure disposes its observers and Help window.
 
 The bulk of the app's work is done by the following four components:
 
@@ -61,12 +63,7 @@ The bulk of the app's work is done by the following four components:
 
 **How the architecture components interact with each other**
 
-The _Sequence Diagram_ below shows how the components interact with each other for the scenario where the user issues the command `delete 1`.
-
-<figure class="uml-diagram" tabindex="0" aria-label="Component interaction for deleting a client">
-  <img src="images/ArchitectureSequenceDiagram.png" alt="Component interaction for deleting a client" />
-  <figcaption>Component interaction for deleting a client. <a href="images/ArchitectureSequenceDiagram.png">Open full-size image</a>.</figcaption>
-</figure>
+Commands cross the UI → Logic → candidate Model → Storage boundary. The [transaction sequence](#save-before-publish-boundary) shows when changes become live; component/class diagrams below describe responsibilities without repeating that flow.
 
 Each of the four main components (also shown in the diagram above),
 
@@ -113,23 +110,9 @@ Here's a (partial) class diagram of the `Logic` component:
   <figcaption>Logic, command and parser structure. <a href="images/LogicClassDiagram.png">Open full-size image</a>.</figcaption>
 </figure>
 
-The sequence diagram below illustrates the interactions within the `Logic` component, taking `execute("delete 1")` API call as an example.
+`LogicManager` dispatches commands, runs them on isolated model candidates, saves dirty client data and publishes only on success. Read-only commands publish view/selection/date without saving. See the [save-before-publish boundary](#save-before-publish-boundary) for the execution sequence and failure contract. `XYZCommand` is a representative concrete command, not a source class.
 
-<figure class="uml-diagram" tabindex="0" aria-label="Permanent-ID deletion and save-before-publish">
-  <img src="images/DeleteSequenceDiagram.png" alt="Permanent-ID deletion and save-before-publish" />
-  <figcaption>Permanent-ID deletion and save-before-publish. <a href="images/DeleteSequenceDiagram.png">Open full-size image</a>.</figcaption>
-</figure>
-
-The delete sequence assumes parsing and ID resolution succeed; it shows both storage outcomes. It resolves Client ID 1 against the complete address book, including hidden clients. Parsing and internal lookup details are omitted here; the parser structure below explains delegation separately.
-
-How the `Logic` component works:
-
-1. When `Logic` is called upon to execute a command, the command is passed to an `AddressBookParser` object, which in turn creates a parser that matches the command (e.g., `DeleteCommandParser`) and uses it to parse the command.
-1. `LogicManager` samples a command date and forks an isolated model candidate. The parsed command executes against that candidate.
-1. Dirty client data is saved before the candidate is published with `Model.commitFrom`. A parse, command or save failure discards the candidate and leaves the live state unchanged.
-1. A successful read-only command publishes list/selection/date changes without saving. Its `CommandResult` supplies the feedback text returned to the UI.
-
-Here are the other classes in `Logic` (omitted from the class diagram above) that are used for parsing a user command:
+Parser delegation is shown separately to keep the command diagram readable:
 
 <figure class="uml-diagram" tabindex="0" aria-label="Selected parsers and shared parsing utilities">
   <img src="images/ParserClasses.png" alt="Selected parsers and shared parsing utilities" />
@@ -154,7 +137,7 @@ How the parsing works:
 
 The `Model` component,
 
-* stores the client data i.e., all `Person` objects (which are contained in a `UniquePersonList` object).
+* owns client records through `AddressBook`/`UniquePersonList`, with aggregate-owned permanent identity metadata independent of contact equality.
 * derives one displayed list for full, search or pending mode and exposes a stable unmodifiable `ObservableList<Person>`.
 * exposes read-only properties for the current date, pending-list mode and selected canonical client; these are session state and are not serialized.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
@@ -177,78 +160,144 @@ The `Storage` component,
 
 ### Common classes
 
-Classes used by multiple components are in the `seedu.address.commons` package.
+The [`seedu.address.commons`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/master/src/main/java/seedu/address/commons) package supplies shared exceptions, JSON/file/string utilities, GUI settings, logging and process locking. Domain rules stay in Model; common utilities do not own client state.
 
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Implementation**
 
-This section describes some noteworthy details on how certain features are implemented.
+### Permanent client identity
+
+A table position changes after searching, deleting or sorting pending work. It cannot safely identify a client. [`ClientId`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/model/person/ClientId.java) is instead a permanent positive integer, independent of contact-value equality. Commands resolve it against the **complete** address book through `ClientIdResolver.requireClient`, including clients hidden by a filter.
+
+[`AddressBook`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/model/AddressBook.java) owns both `UniquePersonList` and `ClientIdentityRegistry`. The registry associates canonical `Person` references with IDs and maintains a monotonic `nextClientId`. A canonical record is the actual immutable instance in the owning book; an equal-valued copy is not an identity key. Metadata is installed before list notifications, so observers can resolve newly published records.
+
+| Aggregate operation | Identity consequence |
+| --- | --- |
+| `addPerson` | Allocates the next ID; the command obtains it from the aggregate for feedback. |
+| `setPerson(target, replacement)` | Transfers the canonical target's ID to the immutable replacement, retaining insertion position. Use this for contact/follow-up changes. |
+| `removePerson` | Removes the association without lowering the allocation counter. |
+| `setPersons` | Allocation-oriented bulk replacement: retained references keep IDs; reconstructed equal-valued records receive new ones. It is not an edit or snapshot API. |
+| `resetData` / `restorePersons` | Copies an identity-bearing snapshot / restores a fully validated saved snapshot, including its counter. |
+
+IDs range from 1 to 2147483647. The `long` counter can reach the exhausted sentinel 2147483648; allocation then raises `ClientIdExhaustedException`, which addition translates into a command error. Deleting records, including every record, does not release old IDs. A failed command candidate consumes no **live** ID. Normal save/restart retains gaps and the counter; externally removing all identity history is the [legacy compatibility limitation](#permanent-identity-in-json).
+
+### Save-before-publish boundary
+
+The central invariant is that a command must not publish client-data changes that could not be saved. [`LogicManager.execute`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/logic/LogicManager.java) owns this boundary:
+
+```text
+command = parse(rawInput, loadingGate)
+candidate = liveModel.forkForCommand(one sampled LocalDate)
+result = command.execute(candidate)
+if candidate.hasUnsavedChanges():
+    storage.saveAddressBook(candidate.getAddressBook())
+liveModel.commitFrom(candidate)
+return result
+```
+
+The candidate has its own aggregate/identity registry, observable list and session properties; immutable `Person` values may be shared. Parse or command failures publish nothing. A save failure becomes a `CommandException` with recovery guidance and discards the candidate, preserving live data, list mode/order, selected client and command date. The atomic storage writer preserves the destination on its reported write/move failure. Read-only commands publish view/date changes without saving client data.
+
+<figure class="uml-diagram" tabindex="0" aria-label="Permanent-ID deletion and save-before-publish">
+  <img src="images/DeleteSequenceDiagram.png" alt="Permanent-ID deletion and save-before-publish" />
+  <figcaption>Successful ID resolution followed by the two storage outcomes for deletion. Parser internals are omitted. <a href="images/DeleteSequenceDiagram.png">Open full-size image</a>.</figcaption>
+</figure>
+
+Deletion removes the identified client and their optional action. It retains the active list mode and clears selection only when necessary. The diagram assumes parsing and ID resolution succeed; it does not imply that deletion is committed before saving. An [alternative component-level sequence](images/ArchitectureSequenceDiagram.png) abstracts the same boundary.
+
+**Trade-off:** candidate isolation avoids trying to roll back every observable UI effect after an I/O failure. It copies state and revalidates collections rather than optimizing for very large datasets. Performance targets are [requirements to measure](#non-functional-requirements), not a claim that copying is free.
 
 ### Client-record validation and duplicate rejection
 
-Contact values remain immutable `Name`, `Phone`, `Email` and `Address` objects inside `Person`. Name and address constructors trim outer U+0020 spaces, retaining internal spaces and case. Shared parsers trim only U+0020 for all contact fields. Names require visible content (invisible Hangul fillers alone are rejected) and accept Unicode letters and combining marks after letters, while keeping ASCII digits and ordinary spaces; tags use ASCII validation; phones accept ASCII digits with an optional leading `+` and single spaces or hyphens between digit groups. Addresses accept Unicode single-line text but reject C0/C1 controls and U+2028/U+2029. Email accepts repeated `+`, `_` and `-` in the local part and interior repeated hyphens in domain labels, while retaining the adjacent alphanumeric pair requirement in the final domain label and preserving stored case.
+Contact values (`Name`, `Phone`, `Email`, `Address`) and `Person` are immutable. Parsers and JSON adapters reconstruct the same domain values, so saved data cannot bypass validation. Unicode names, addresses and follow-up notes must contain valid, persistable text; unpaired UTF-16 surrogates are rejected even when produced by syntactically valid JSON escapes. Email validation and ordinary-space trimming use iterative scans, avoiding recursive-regex/large-input failure modes. The [UG's input reference](UserGuide.html) gives exact user-facing constraints.
 
-**Unicode client names.** `Name.isValidName` scans Unicode code points and rejects controls, invalid surrogate sequences and combining marks without a preceding letter. It retains the entered spelling. Duplicate-name comparison normalizes to NFC and collapses runs of ordinary spaces, then uses `equalsIgnoreCase` consistently with name search; name search normalizes both stored words and keywords to NFC before case-insensitive whole-word comparison. `NameTest`, `PersonTest`, `NameContainsKeywordsPredicateTest` and `JsonAdaptedPersonTest` cover acceptance, rejection and reconstruction.
+[`Person.isDuplicateOf`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/model/person/Person.java) applies **normalized-name equality AND (same phone digits OR case-insensitive email equality)**. Name comparison uses NFC composition, collapsed ordinary-space runs and `equalsIgnoreCase`; stored spelling is retained. Phone formatting is retained for display but ignored for this duplicate comparison. Address, tags and follow-up are excluded.
 
-**Persistable Unicode addresses.** `Address.isValidAddress` also rejects unpaired UTF-16 surrogates so accepted addresses can be encoded when saved as UTF-8.
-Each high surrogate must be followed by a low surrogate; a low surrogate cannot appear on its own. The pairing scan takes O(n) time and O(1) extra space, preserving existing ordinary-space trimming and single-line restrictions.
-Valid supplementary characters, including emoji, remain unchanged. A literal U+FFFD replacement character is valid text and is not rejected merely because the same character can result from a decoding error.
-Both `ParserUtil.parseAddress` and `JsonAdaptedPerson.toModelType` use the domain validator, so command entry and saved-value loading enforce the same rule without changing the saved schema.
-A JSON escape such as `\uD800` can be syntactically valid JSON but decode to an invalid address. The adapter rejects it through `IllegalValueException`; storage translates this to `DataLoadingException`, activating the existing empty, mutation-blocked startup path without overwriting the file or publishing earlier valid records.
-`AddressTest` covers malformed pairs and valid boundary pairs. `SavedAddressRecoveryTest` checks whole-file rejection, blocked mutations and unchanged bytes, valid Unicode add/save/restart, and successful saving after an address is repaired and the app restarted.
+This relation is symmetric but **not transitive**: for one name, A `(111, one@example.com)` conflicts with B `(111, two@example.com)`, and B with C `(222, two@example.com)`, although A and C may coexist. `UniquePersonList` therefore checks every relevant pair, excluding only the replaced slot during an edit. It cannot safely use this relation as `equals`/`hashCode`. Full value equality still includes all stored fields and the action; `isSamePerson`'s legacy stored-name comparison is not permanent identity. Name-only rejection was also unsuitable because real clients can share names.
 
-**Blank Unicode addresses.** `Address.isValidAddress` requires at least one code point that is neither Unicode whitespace, a space character nor a formatting character. Non-breaking/full-width spaces and zero-width formatting characters alone (or mixed together) are rejected. Visible addresses retain their Unicode content, including internal separators and formatting used by scripts. Parser and storage adapters share this validator.
+`Tag` lowercases validated ASCII values with `Locale.ROOT`; sets remove case variants. `Tag.formatTags` supplies consistent sorted output to contact feedback, while the profile renders sorted chips. Duplicate checking covers the whole book, irrespective of the displayed filter.
 
-**Email validation implementation.** `Email.isValidEmail` iteratively scans the local and domain parts, including the repeated punctuation rules, while preserving stored case and the existing length policy. Each character is examined a constant number of times, so validation takes O(n) time and O(1) auxiliary space for an address of length n. This avoids recursive regular-expression matching and its potential stack overflow on unusually long input. `EmailTest` covers valid, invalid and exceptionally long addresses; `MainAppTest.longEmail_addAndRestart_preservesSavedClient` checks a long address through command entry and save/load.
+<span id="client-command-parsing-and-publication"></span>
 
-`Person.isDuplicateOf` implements normalized-name equality **AND** (same phone digits **OR** case-insensitive-email equality). `Phone` preserves the entered display format and uses exact equality for value comparison; duplicate rejection compares the digits only so alternate international formatting does not bypass it. Names are normalized only for this comparison: NFC composition and collapsed ordinary-space runs, compared with `equalsIgnoreCase`. Stored names remain unchanged. Address, tags and follow-up do not participate.
+<span id="view-execution-and-error-precedence"></span>
 
-The relation is symmetric but **not transitive**. For a common name, record A `(111, one@example.com)` duplicates B `(111, two@example.com)`, and B duplicates C `(222, two@example.com)`, while A and C are allowed together. Consequently:
+<span id="dispatcher-and-loading-protection"></span>
 
-* `UniquePersonList.contains` checks for a duplicate against every existing record.
-* `setPersons` checks every pair before replacing the list, so ordering cannot hide a conflict.
-* `setPerson` resolves the target by full value equality, excludes only that full-list slot and checks the replacement against every other record before updating. Matching the old target does not bypass those checks.
-* Follow-up-only replacements retain the contact fields and remain valid. Two same-name clients can coexist and be replaced or deleted independently.
+### View parsing, client search and supported command routing
 
-`AddressBook` delegates to this collection path. Model mutations, command candidates and storage loading reuse the same rejection rule. `AddressBook` maintains permanent `ClientId` values and a monotonic allocation counter independently of `Person` contact equality. `ModelManager` retains selection by resolving the selected ID back to the canonical immutable record after mutations and publication.
+[`AddressBookParser`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/logic/parser/AddressBookParser.java) first rejects raw control characters and line/paragraph separators, then dispatches case-sensitive commands. Only `add`, `delete`, `edit`, `view`, `find`, `list`, `followup` and `followups` are typed routes. Legacy command classes are not proof that `clear`, `help` or `exit` is accepted at the command box; Help/window closure are GUI actions.
 
-**Alternatives considered:** name-only rejection prevents legitimate same-name clients. Redefining `Person.equals`/`hashCode` around duplicate rejection would violate equality's transitivity. Both are unsuitable. `Person.isSamePerson` retains exact stored-name matching for legacy callers; it is neither the duplicate predicate nor a stable record-identity key. `equals`/`hashCode` still include all stored fields and follow-up.
+Global character validation precedes the failed-load mutation gate. In a protected session, `add`, `delete`, `edit` and singular `followup` are rejected before their command-specific parsers; queries remain available. Otherwise each parser checks its own shape/prefixes and values. `list`/`followups` reject arguments. Shared `ClientIdParserUtil` validates a bounded ASCII numeric ID (leading zeroes allowed); `ClientIdResolver` distinguishes a valid-but-absent ID during execution. A malformed command never changes the model merely because its prefix was recognized.
 
-`Tag` normalizes validated ASCII values with `Locale.ROOT`, so sets deduplicate case variants. `Tag.formatTags(Set<Tag>)` is the shared display API: sorted bracketed lowercase values separated by one space, or `None`. `Messages.format(Person)` uses it and emits contact details only; add/delete feedback does not append follow-up information.
+#### Bare and explicit client search
 
-### Client command parsing and publication
+`FindCommandParser` constructs a predicate over all clients, replacing any earlier full/search/pending view. Bare keywords use whole-name-word **OR** exact-full-phone matching; explicit `n/`, `p/` or `t/` accepts exactly one field. `ClientSearchPredicate` implements normalized case-insensitive name substrings, phone-digit substrings ignoring display separators, and exact case-insensitive tags. Bare phone keywords retain leading zeroes and are not concatenated. Prefix mixing, quoted text and ordinary-space tokenization follow the shared grammar, rather than a general query language.
 
-`AddCommandParser` retains the existing tokenizer. It checks required prefixes and preamble before repeated required prefixes, then validates name, phone, email, address and tags in that order. Unrecognized prefixes remain part of the current field value. The model's check for duplicates across all client records follows parsing, even when the client is hidden by a filter. `AddCommand` adds through `Model`, then looks up the new canonical client's `ClientId` in the owning address book for its success feedback. It translates only `ClientIdExhaustedException` into a normal command error; ID allocation remains an aggregate responsibility. The command does not assign IDs itself.
+`FindCommand` accepts `Predicate<Person>`, keeping search policy outside the command. Search preserves insertion order, emits each client once and retains a selected profile only while its canonical record is visible. `ViewCommand` resolves IDs globally: viewing a hidden client first restores the full list; viewing an already visible client retains the current mode. Neither operation saves client data.
 
-Addition preserves the active full, search or pending mode and its predicate. A new client appears in search results only when it matches, and a client without a follow-up remains hidden in pending mode. Existing selection is retained when its client remains visible. `LogicManager` saves the dirty candidate before publication, so a failed save does not publish the new client or consume a live ID.
+### Contact editing
 
-`DeleteCommandParser` checks for exactly one ordinary-space-separated ID token before calling `ClientIdParserUtil.parseClientId`, which uses bounded ASCII-digit parsing and accepts leading zeroes. `ViewCommandParser` and `FollowUpCommandParser` also use permanent IDs. `ClientIdResolver.requireClient` resolves each ID against the complete address book, including clients hidden by the current search or pending view. Delete retains the active list mode and removes the identified record and its follow-up.
+[`EditCommandParser`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/logic/parser/EditCommandParser.java) requires an ID and at least one supplied field. Omitted fields remain unchanged; supplied tags replace the complete set, with a lone empty `t/` clearing it. Contact validation occurs during parsing, before execution resolves the ID.
 
-`StringUtil.trimOrdinarySpaces` is shared by command parsers, contact/follow-up validation and saved-person/tag adapters.
-It scans the two outer boundaries for U+0020 instead of retrying a trailing-space regular expression at each internal space.
-Internal spacing, case, non-ASCII characters and the existing validation order remain unchanged; tabs and other whitespace are not silently stripped by this helper.
-The address validator still checks complete UTF-16 surrogate pairs, and stored values continue through the same domain rules as command input.
-`LongWhitespaceCommandTest` exercises a long valid name through add, save/load and search, plus rejection of an overlength follow-up without changing saved bytes.
-`StringUtilTest` checks the short-input contract, including empty/blank text, internal spaces, tabs, non-breaking spaces and Unicode text. Its large-string timing regression measures only the pure trim call; workflow correctness tests do not impose a disk-I/O deadline.
+`EditCommand` creates an immutable replacement retaining the optional follow-up. `Model.setPerson` checks the full collection for duplicates, transfers the ID through the aggregate, and re-evaluates the active filter. Changing a search field can hide the edited client and clear selection; a failed save publishes none of these changes. This reuses the same replacement path as follow-up changes rather than assigning identity in individual commands.
 
-`LogicManager` executes against a candidate, saves dirty data, then publishes the candidate. Parsing, duplicate, invalid-ID and save failures preserve live data, list mode/order, selection and date; successful read-only commands do not save.
+### Follow-up state and date handling
 
-Tests cover domain partitions, exact messages, validation precedence, normalized duplicates, the non-transitive conflict example, safe replacements, tag normalization, permanent-ID boundaries and many leading zeroes. `ClientRecordCommandsTest` exercises the real dispatcher/model/Logic and temporary-file storage, including same-name round trips, permanent-ID targeting across pending/search filters, follow-up targeting and injected save failures. Parser tests cover syntax separately from global ID resolution.
+`Person` contains **zero or one** immutable `FollowUp` with `dueDate : LocalDate` and `description : String`. Setting/replacing creates a new `Person` preserving contacts/tags/ID; clearing removes the optional value. There is no completion flag, notification scheduler or action history.
+
+`FollowUpCommandParser` distinguishes `followup ID clear` from date/description input. The set command resolves the global ID before validating the raw date and description; date errors precede description errors. Past dates are allowed for overdue carry-over work. Calendar parsing is strict, with years 0001–9999. Notes retain Unicode spelling/internal spacing, trim outer ordinary spaces, and require 1–200 Unicode code points with visible content. The tokenizer recognizes space-prefixed `d/` and `m/` even inside a note; quotes do not escape them. These are deliberate grammar limits, documented in the UG.
+
+`ModelManager.showPendingFollowUps()` includes every client with an action and stably sorts by due date. Ties retain full-list insertion order. `FollowUp.getStatus(today)` derives `OVERDUE`, `DUE_TODAY` or `UPCOMING` from the supplied date; the value does not read the device clock. Neither status nor selection is serialized.
+
+`LogicManager` samples its clock once per command candidate and publishes that date only on success. Separately, `MainApp` refreshes the live date on startup, regained window focus and a one-minute timer. An idle window therefore updates across midnight; a failed command itself cannot advance the date, although an independent refresh can. ISO dates avoid dependence on the operating system's display format; the local clock/time zone still determine what counts as today.
+
+#### A follow-up through the system
+
+For `followup 17 d/2099-12-15 m/Discuss renewal`, dispatch creates a `SetFollowUpCommand` with raw values. The command resolves ID 17 on its candidate, validates and replaces the client while transferring identity. Storage serializes the action's date/description with the contact and identity metadata. Successful publication updates the table, profile and global summary; all use the same published date for status. Failed execution or saving retains the previous action and views.
+
+<span id="selection-transition-evidence"></span>
+
+### Client-profile selection model
+
+The profile is model-owned session state, independent of JavaFX row highlighting. [`Model.selectedPersonProperty()`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/model/Model.java) is a stable read-only property whose nullable value must be a canonical **visible** record. An equal-valued copy is insufficient. Selection changes do not mark client data dirty and are not persisted.
+
+| Transition | Selection consequence |
+| --- | --- |
+| Reorder pending rows / replace selected client's immutable value | Follows the same ID while visible. |
+| Filter out or delete selected client | Clears; returning to `list` does not reopen it. |
+| Clear selected client's action | Clears in pending mode; remains in full/search mode if visible. |
+| Add another client | Preserves the current mode/eligible selection; does not select the addition. |
+| Restart | Starts without selection. |
+
+#### Candidate copying and selection publication
+
+`forkForCommand(today)` copies data, view state and selection into isolated observables. `commitFrom(candidate)` retains the live observable objects and maps the candidate's selected **Client ID** back to the actual committed record. This matters when an identical follow-up replacement creates an equal-valued new object: an equal aggregate snapshot need not reset the live list, so publishing the candidate reference directly would leave selection outside it. Canonical reconciliation handles either retained or replaced live data.
+
+Profile scroll continuity is presentation state. `ClientProfilePanel` caches the rendered ID before a replacement removes the old record from the registry. The same client keeps its reading position across edits/action replacement; a different client (even with the same name) starts at the top. Model membership remains authoritative.
+
+### Integrated dashboard and data ownership
+
+`MainWindow.fillInnerParts()` composes the command/feedback bar, permanent-ID table, profile and grouped pending panel. It rejects repeated initialization. `Dashboard.css` owns host geometry/branding; component FXML/styles own their contents. Split panes allocate space without modifying model state.
+
+`PersonListPanel` observes only `Logic.getFilteredPersonList()`, uses `Logic.getClientId` for labels and identity for the `VIEWING` marker, and enables due/status columns in pending mode. Rows clear recycled graphics. The table is unsortable by header; insufficient column width enables horizontal scrolling. Highlighting a row does not select a profile.
+
+`PendingFollowUpProjection` instead consumes `Logic.getAllPersonList()`, the complete unmodifiable committed feed. It retains canonical references and stably sorts actions by due date, independent of search/pending filters. `PendingFollowUpPanel` groups this projection using the published date and observes selected-client changes for markers. There is no second client store or panel clock. `MainWindow` closes the projection and disposes both `ClientProfilePanel` and `PendingFollowUpPanel` when hidden. Cleanup is idempotent and panel callbacks guard queued notifications. The profile renders its initial display before subscribing, so failed construction leaves no listeners attached. `ClientProfileLifecycleTest` covers window cleanup, disposal during notification and failed construction.
+
+### Command submission and feedback
+
+Enter and Run use one `CommandBox` submission path; Run is not a default button that could also fire on Enter. Errors retain exact input and restore typing focus; success clears it. `MainWindow` explicitly chooses normal/error feedback, rather than classifying message wording. The selectable, scrollable `ResultDisplay` does not steal command focus. A separate persistent saved-data warning cannot be cleared by ordinary command feedback.
+
+#### Client profile panel
+
+`ClientProfilePanel` observes selected-client/date properties and wraps contacts, sorted tag chips and action text in its own scroll pane. The pending panel scrolls independently. Help is a separate F1/menu window with copy-link feedback and Escape closure; reopening restores an iconified Help window. The footer shows the real data path with a full-path tooltip. These controls do not change storage ownership.
 
 ### Saved client loading
 
-`Name` allows `/`, `-`, `'`, `@` and `.` after an initial Unicode letter or ASCII digit, supporting local name forms while retaining existing case and spacing rules. The shared validator applies to command parsing and saved records; punctuation is retained on save/restart and in duplicate comparison. `s/o` and `d/o` are literal name text, since neither is an `add` field prefix.
-
-`JsonAdaptedPerson` validates saved contact fields using the domain types after removing outer ordinary spaces, matching command input. `JsonAdaptedTag` validates tags before `Tag` converts them to lowercase; collecting them into a set removes case variants. Missing tags become an empty set. Optional follow-ups, including overdue dates, use the existing follow-up adapter.
-
-`JsonSerializableAddressBook` converts every record before calling `AddressBook.restorePersons` with the complete contacts, IDs and next-ID counter. Restoration validates contacts and the identity association before publication, checking every pair with `Person.isDuplicateOf`, including the non-transitive case. Missing entries, invalid values and duplicates become loading failures. `JsonAddressBookStorage` translates them to `DataLoadingException`; `MainApp` then starts with an empty, mutation-blocked model while leaving the saved file unchanged. A repaired file loads on the next startup.
-
-**Unknown client fields.** JSON loading rejects unrecognised properties at the address-book, client and follow-up levels, including `tag` and `followup` misspellings. This uses the same protected startup path and preserves the original bytes. Missing optional `tags` and `followUp` remain valid. `JsonAddressBookStorage` enables strict property checking on its JSON reader; preference loading keeps ignoring unknown properties for compatibility.
+[`JsonSerializableAddressBook`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/storage/JsonSerializableAddressBook.java) represents the aggregate snapshot; `JsonAdaptedPerson`, `JsonAdaptedTag` and `JsonAdaptedFollowUp` reconstruct domain values. All contacts and identities are validated before `AddressBook.restorePersons` publishes them. Missing optional tags/actions mean an empty set/no action; required values, duplicates and invalid identity associations fail the **whole** load, without accepting an earlier valid subset.
 
 #### Permanent identity in JSON
 
-`JsonSerializableAddressBook(ReadOnlyAddressBook)` snapshots `nextClientId` and constructs each `JsonAdaptedPerson` with the canonical record's aggregate-owned `ClientId`. The adapters do not infer IDs from display order. The serialized shape is:
+Only persistent contact/action/identity data is stored:
 
 ```json
 {
@@ -261,239 +310,63 @@ Tests cover domain partitions, exact messages, validation precedence, normalized
 }
 ```
 
-The two identity fields enter creator parameters as `JsonNode`. Before numeric conversion, adapters require integral JSON numbers: client IDs in `1..2147483647` and the counter in `1..2147483648`. Strings, booleans, fractions, containers and overflow are rejected. The aggregate additionally rejects duplicate IDs or a counter not greater than every allocated ID. Empty books preserve their supplied counter, including the exhausted sentinel.
+Serialization asks the aggregate for each canonical record's ID; it never infers IDs from display order. Adapters require integral JSON numbers in the ID/counter ranges. Restoration rejects repeated IDs and a counter not greater than every allocated ID. Empty books retain their counter, including exhaustion.
 
-A file is legacy only when every client ID and the root counter are absent or null. All contact values are reconstructed before assigning insertion-order IDs `1..N` and counter `N+1`. Reading does not rewrite the file; the existing atomic writer saves the complete new schema on a successful mutation. If any identity value is non-null, strict validation applies throughout: mixed/missing/null metadata cannot trigger partial renumbering.
+A file is legacy only if **every** client ID and the root counter are absent or null. Loading assigns insertion-order IDs 1..N with counter N+1, without rewriting; the first successful mutation writes the current schema. Once any identity value is non-null, incomplete/null metadata is invalid throughout. Rejecting partial metadata avoids silently assigning new identities to established records.
 
-The all-null rule is an explicit compatibility trade-off. A formerly migrated file whose entire identity history was externally removed/nullified is indistinguishable from legacy input. It resets to insertion-order IDs; recovery of former gaps and the high-water counter requires a complete backup. Normal operations never clear this metadata. `ClientIdMigrationTest` checks the reset/no-rewrite boundary and complete-backup restoration; `ClientIdRoundTripTest` covers gapped IDs, empty/exhausted counters, deletion/restart and failed-save retry. `ClientIdLoadingProtectionTest` verifies whole-file protection, partial-null rejection and private diagnostics.
+**Compatibility limitation:** externally removing/nullifying *all* identity history makes a migrated file indistinguishable from legacy input. Former gaps and the high-water counter cannot be recovered without a complete backup. Normal operations do not clear this metadata.
 
-**Saved text types.** `StoredTextDeserializer` is applied only to the saved contact/follow-up text creator parameters and tag string conversion. It accepts string tokens, leaving null handling to the existing required-field/domain checks; non-string values produce a mapping failure before domain validation. It does not alter the shared mapper or preference coercion rules. `SavedTextTypeRecoveryTest` checks whole-file rejection, blocked mutations, unchanged bytes and repair/restart across scalar/container/null cases.
+#### Protected startup and safe replacement
 
-**Strict JSON parsing.** `JsonUtil.fromJsonString` reads one root value and checks that no additional tokens remain. Client-data reads opt into Jackson's `STRICT_DUPLICATE_DETECTION` on their parser, which rejects repeated property names within any one object, including nested objects and escaped spellings of the same name; the same property name in separate objects remains valid. Trailing non-whitespace content, including a second JSON value, causes loading to fail; trailing JSON whitespace remains valid. `JsonUtil.readJsonFile` also rejects a null root. These checks apply before saved client records are converted. A client-data loading failure follows the protected startup path above: the empty model blocks mutations and preserves the original file. Repair the file or restore a valid backup, then restart the application before resuming client modifications. `JsonUserPrefsStorage` retains the legacy last-value behavior for duplicate preference properties; the shared mapper is not configured globally for strict duplicate detection. `DuplicateJsonPreferencesTest` verifies that startup retains and saves those preferences instead of replacing them with defaults. `JsonDuplicatePropertyTest` covers property uniqueness and separate-object controls; `DuplicateJsonRecoveryTest` verifies protected startup, query access, blocked mutations, byte preservation and recovery after repair for duplicate root, client and follow-up properties.
+Client reads use strict UTF-8 (one initial BOM is accepted), reject a null root/trailing content, duplicate object properties, unknown client-schema fields and non-string saved text. Domain validation then rejects invalid values, including malformed UTF-16 from JSON escapes. A genuinely absent file means a new empty book. If absence cannot be established because access is denied, loading is attempted so an inaccessible existing file cannot be mistaken for a first launch.
 
-**Private loading diagnostics.** Jackson parsing and mapping exceptions can contain source JSON, rejected field values and nested client details.
-`JsonUtil.readJsonFile` therefore logs a fixed warning with the file path and the category `invalid JSON/data format or I/O failure`, without appending exception text or attaching a throwable to the log record.
-The original `IOException` remains the cause of `DataLoadingException` for callers; retaining that chain does not make its messages or stack trace safe for ordinary logs.
+`JsonAddressBookStorage` translates load failures to `DataLoadingException`. `MainApp.initModelManager` creates an empty mutation-blocked model and the UI keeps a persistent warning. Queries remain usable; command dispatch blocks mutations. Repairing permissions/JSON during that session does not unlock it: restore a valid complete backup, then restart and reload before modifying clients.
 
-`JsonDiagnosticPrivacyTest` captures real log records and checks their messages, attached throwables and formatted output against synthetic client canaries.
-Its fixtures cover malformed client JSON, wrong client/preference types, a nested constructor failure and a directory-read failure, while checking exception types and preservation of input bytes.
-`LoadingDiagnosticPrivacyTest` captures the shared logger across `MainApp`, storage and commands to verify protected startup without partial client publication, allowed queries, blocked mutations and safe diagnostics.
-For a preference type-mapping failure, it checks default recovery and repair while valid client data stays byte-identical; invalid preference bytes may be replaced.
-**Strict text decoding.** Saved-client loading follows these boundaries:
-
-* `FileUtil.readFromFile` reads UTF-8 with malformed-input reporting. A stray continuation byte, truncated sequence or invalid leading byte raises an `IOException` before Jackson receives a changed string.
-* `JsonUtil.readJsonFile` translates that I/O failure to `DataLoadingException`.
-* `MainApp` enters the same protected startup path as invalid JSON. No client is partly loaded and the original bytes remain untouched.
-* Valid UTF-8 Unicode, an intentionally encoded replacement character, JSON Unicode escapes and trailing JSON whitespace remain readable. Escaped invalid UTF-16 values are a separate domain-validation concern.
-
-`FileUtilUtf8Test` checks the decoder partitions. `SavedDataEncodingRecoveryTest` checks protected commands, byte preservation and repair followed by a writable restart.
-
-**Filesystem retry.** `LogicManager` saves a candidate model before publishing it. If the data directory has become a regular file, `JsonAddressBookStorage` fails before replacing the destination and `LogicManager` leaves the live model unchanged. `StorageDirectoryRecoveryTest` moves a disposable directory aside, observes the real save failure, restores the directory and retries successfully. This verifies the existing atomic-save boundary without adding another fallback writer.
-
-**UTF-8 BOM compatibility.** `FileUtil.readFromFile` skips one U+FEFF only at the start of the decoded JSON text. Client data and preferences saved by BOM-producing editors load normally. Embedded U+FEFF values are retained, additional or misplaced BOMs remain invalid, and strict byte decoding and trailing-content checks still apply. Loading alone does not rewrite the file.
-
-A legacy file without identity metadata uses the following JSON shape. Loading assigns IDs without rewriting the file; the first successful mutation writes the [current identity schema](#permanent-identity-in-json). Tags are strings, not objects; omit `followUp` (or use `null`) when no action is pending. Do not add session selection or a computed status to the file.
-
-```json
-{
-  "persons": [{
-    "name": "Rachel Lim",
-    "phone": "91234567",
-    "email": "rachel@example.com",
-    "address": "Blk 123",
-    "tags": ["active", "health"],
-    "followUp": {
-      "dueDate": "2099-12-15",
-      "description": "Discuss renewal options"
-    }
-  }]
-}
-```
+For saves, [`JsonAddressBookStorage`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/storage/JsonAddressBookStorage.java) serializes a candidate, writes a sibling temporary file and atomically replaces the destination. Unsupported atomic replacement is a save failure, not a fallback to partial writing; failures attempt temporary-file cleanup. A symbolic-link destination is rejected before writing and again before replacement. These checks are best effort against external filesystem changes: a late path swap can replace the link itself, but the atomic move does not write through to its target. The instance lock coordinates PolicyHarbor processes, not external editors. Atomic replacement is not a backup/history service or a guarantee against hardware failure.
 
 ### Preference recovery
 
-`JsonUserPrefsStorage.readUserPrefs` rejects explicitly null `guiSettings` through `DataLoadingException`, in addition to JSON/mapping failures. `MainApp.initPrefs` falls back to a new `UserPrefs`, then attempts to save the recovered preferences. Client-data loading proceeds independently: invalid preferences alone do not activate the client-file mutation gate. Missing GUI settings retain the domain default. This preference-repair policy differs from invalid client data, whose bytes are preserved until external repair and restart.
-
-### View parsing, client search and supported command routing
-
-`ViewCommand` and `ViewCommandParser` use the shared client-targeting API and model selection API. `FindCommandParser` constructs either the existing bare-search predicate or an explicit `ClientSearchPredicate`; `FindCommand` applies either predicate through the model's full-list filter. `Logic.selectedPersonProperty()` delegates to the live model, allowing the workspace and profile to observe the same selection.
-
-#### View execution and error precedence
-
-`ViewCommandParser` trims outer ordinary spaces (U+0020) and requires exactly one token. Missing or additional tokens produce `Invalid command format!` followed by a newline and `Usage: view ID`, before ID syntax validation. It delegates to `ClientIdParserUtil.parseClientId`, accepting ASCII digits with leading zeroes and a numeric value in `1..2147483647`. Invalid IDs produce `Client ID must be a positive integer from 1 to 2147483647.`.
-
-At execution, `ViewCommand` calls `ClientIdResolver.requireClient` against the full address book. An unknown ID, such as 17, produces `No client with ID 17.`. If the matching client is hidden by search or pending mode, `ViewCommand` switches to the full-list filter before selecting that canonical `Person`. Success returns `Showing client ID 17: Rachel Lim` when Rachel has ID 17. No command-result field, callback or UI event is added.
-
-Permanent IDs are authoritative regardless of the currently displayed list. Viewing a visible client preserves the current mode; viewing a hidden one switches to the full list. Selection does not change stored client data or the dirty flag. Through the existing `LogicManager` execution path, the command selects on an isolated candidate; successful publication transfers selection and the sampled date without saving client data. A failed parse or range check publishes nothing. The command never samples a date itself.
-
-#### Bare and explicit client search
-
-`FindCommandParser` trims only outer U+0020 after global input validation. Bare input is split on ordinary-space runs and continues to construct `ClientContainsKeywordsPredicate`, preserving its case-insensitive whole-name-word OR exact-full-phone behavior. Phone keywords retain leading zeroes and match formatted stored numbers by complete digits; partial phone matching is reserved for the explicit phone form. Quotes and punctuation remain literal, numeric keywords may also match name words, and separate tokens are never concatenated.
-
-The explicit forms accept one `n/`, `p/` or `t/` field. The parser rejects empty values, multiple or mixed explicit fields, and bare text before an explicit field. `p/` accepts at least one ASCII digit with only the existing phone display characters; it does not apply the full phone's three-digit minimum. `t/` reuses `Tag` validation. Known explicit prefixes are reserved inside explicit queries.
-
-`ClientSearchPredicate` implements explicit matching: NFC-normalized, case-insensitive name substrings with ordinary-space runs collapsed; phone-digit substrings with `+`, spaces and hyphens ignored; and exact case-insensitive tag matching. `FindCommand` accepts `Predicate<Person>` so both the existing bare predicate and the new explicit predicate flow through the same command.
-
-`FindCommand` applies the selected predicate to all clients through `updateFilteredPersonList`, including clients hidden by pending mode or a prior search. Insertion order is preserved and a client appears once. The shared `%1$d client(s) listed!` message is retained. Search does not save client data or explicitly select a record; the model retains selection only if the canonical client remains visible.
-
-#### Dispatcher and loading protection
-
-`AddressBookParser` rejects C0/C1 controls and U+2028/U+2029 on raw input, trims ordinary spaces, and rejects an empty line with `Enter a command.`. Command words are case-sensitive. Its supported routes are `add`, `delete`, `edit`, `view`, `find`, `list`, `followup` and `followups`.
-
-The no-argument routes `list` and `followups` reject non-empty arguments with `Invalid command format!` followed by their command-specific usage. Outer ordinary spaces remain accepted. Rejection occurs before command execution, preserving the displayed filter, pending mode, selection, sampled date and saved client data. Global character validation retains priority, including in protected loading sessions. Free-text fields and search keywords in other commands retain their existing grammar.
-
-The mutation gate contains `add`, `delete`, `edit` and singular `followup`. In a failed-load session these routes report the existing changes-blocked diagnostic before command-specific parsing. Queries remain available, including normal view argument validation; a syntactically valid unknown ID such as `view 1` returns `No client with ID 1.` because no clients were loaded. Standalone `clear`, `help` and `exit` reach the unknown-command result, `Unknown command.`, in both normal and blocked sessions. Global raw-character errors still have priority. `followup ID clear` remains a supported mutation.
-
-Legacy command classes, their direct unit tests, the GUI Help menu and the window close handler remain available for their separate uses; removal applies to typed dispatch. Compatibility tests assert parse rejection for unsupported routes and retain failed-save/file-preservation checks for supported mutations.
-
-#### Automated evidence
-
-`ViewCommandParserTest` covers shape-before-syntax precedence, permanent-ID boundaries and long leading-zero runs. `ViewCommandTest` covers permanent-ID resolution, selection in full/search/pending modes, hidden-target full-list restoration, failure preservation and selection/date publication without a storage write.
-
-`FindCommandParserTest`, `FindCommandTest` and `AddressBookParserTest` cover literal usage/result text, ordinary-space splitting, whole-word OR matching, insertion order, repeated keywords, all-data search after filtering/pending mode, selection reconciliation and global validation. `ClientSearchPredicateTest` covers normalized/caseless partial names, collapsed spaces, formatted phone substrings and exact tags. `ClientSearchWorkflowTest` checks explicit searches after pending mode, hidden matches, selection reconciliation and unchanged client data. Dispatcher tests reject unsupported routes in normal and blocked sessions and retain singular follow-up clearing. `LogicManagerTest` and `FollowUpWorkflowIntegrationTest` provide compatibility evidence for blocked-session rejection and preservation of state and saved bytes.
-
-`ClientContainsKeywordsPredicateTest` covers exact phone matching, leading zeroes, numeric name words, unchanged name matching and excluded fields. `FindPhoneWorkflowIntegrationTest` exercises the real parser and Logic path with shared phone numbers, mixed name/phone keywords, explicit fields and pending/search transitions. It verifies insertion order, one result per client, selection reconciliation and unchanged client data and saved bytes, with storage configured to fail if search attempts a save. `ClientAddWorkflowTest` covers ID feedback, the last valid ID, exhaustion, duplicate rejection without counter consumption, permitted same-name clients, mode retention and add-after-delete/restart. `ClientWorkflowsIntegrationTest` covers failed-save retry with unchanged original bytes and a search-to-edit sequence that preserves ID and follow-up.
-
-Command tests alone do not certify rendered profile behavior. The workspace and profile sections below describe the integrated UI and its separate checks.
-
-### Contact editing
-
-`EditCommandParser` parses the permanent ID and optional contact fields into an `EditPersonDescriptor`. It rejects repeated single-valued prefixes and requires at least one field. Omitted fields retain their values; supplied tags replace the complete set, and a lone empty `t/` clears it. Contact values are validated during parsing, before global ID lookup during execution.
-
-`EditCommand` resolves the ID against all clients and constructs an immutable replacement `Person`, retaining its pending follow-up. `Model.setPerson` checks duplicates across the complete collection, transfers the target's ID and re-evaluates the active filter. A changed search field can hide the edited record and clear selection. As with other mutations, save-before-publish prevents a failed save from changing live data or IDs.
-
-### Client-profile selection model
-
-`Model` and `ModelManager` own session selection. The integrated `view` command, Logic bridge and profile pane use this state instead of JavaFX row highlighting.
-
-`Model.selectedPersonProperty()` returns one stable `ReadOnlyObjectProperty<Person>`. Its nullable value is the selected canonical record, with `null` meaning no selection. `Model.selectPerson(Person)` accepts a non-null object that is actually present in the current displayed list. An equal-valued copy is not a canonical member. Selection changes view state without marking client data dirty; the property does not expose a writable UI setter.
-
-Selection follows the exact record, never its name, duplicate relation or displayed index. Immutable `Person` instances can be shared between model copies. When `setPerson(target, replacement)` replaces the selected record, the model tracks the replacement and retains it as the selection only if it remains visible. Filtering out or deleting the selected record clears selection. Clearing its follow-up retains selection in full/search mode but clears it in pending mode, where the record is no longer visible. Returning to the full list does not recreate a cleared selection. Addition preserves the current list mode and does not select the new record. Constructors start with no selection, including when data loading is blocked; selection is not stored in JSON or preferences.
-
-#### Candidate copying and selection publication
-
-`forkForCommand(today)` copies selection along with data and view state into a clean candidate. The candidate has its own observable list and properties, so selecting, replacing, filtering or deleting a record there does not change the live model. Discarding the candidate preserves live selection and the published date. Selection-only operations remain clean; an accepted data replacement remains dirty even when its stored values are unchanged.
-
-After the caller has successfully saved any dirty candidate, `commitFrom(candidate)` publishes its data, mode, date and selection while retaining the live observable objects. It resolves the candidate's selected permanent `ClientId` back to the matching canonical committed record. This mapping does not depend on either full-list positions or displayed row positions.
-
-This mapping matters for an identical follow-up replacement. The candidate may contain a new `Person` object with equal values, while publication skips resetting the live client data when it has equal values. Publishing the candidate object directly would leave selection pointing outside the live list. Mapping to the committed live record retains a canonical visible selection whether the data was reset or retained.
-
-Profile scrolling is separate from model selection: `ClientProfilePanel` starts a different client's profile at its vertical minimum.
-The UI caches the rendered permanent `ClientId` and compares it with the new canonical record's ID, retaining the reading position across contact edits and immutable follow-up replacements.
-The old record may already have left the aggregate, so looking up its ID after replacement would be too late. Selecting another client, including one with the same name, resets the scroll position.
-This continuity check is only a presentation policy; canonical-record membership and selection still belong to the model.
-Repeated views, date refreshes and failed commands do not reset the current profile; reopening a closed profile starts at the top.
-`ClientProfileScrollTest` checks rendered scrolling, same-name clients and real Logic commands, including follow-up replacement and failed saving.
-
-#### Selection transition evidence
-
-`ClientProfileSelectionTest` covers model-level selection transitions using a fixed date of `2026-10-12`: same-name records, pending reordering, filter exclusion, follow-up clearing, deletion, candidate isolation and equal-value replacement. Canonical-object assertions distinguish correct record tracking from value equality. The existing model and pending-list suites provide regression coverage for the authoritative displayed list and stable due-date ordering.
-
-These tests establish the model boundary. `ClientProfileWorkflowIntegrationTest` adds real-command checks for pending reordering, filter exclusion, full-list and pending-list clearing, failed-save preservation, restart, and a 50-client command sequence with rejected input and saved-byte checks. The manual testing appendix covers visual profile updates and window resizing.
-
-### Integrated dashboard and data ownership
-
-`MainWindow.fillInnerParts()` composes the command bar, feedback strip, permanent-ID client table, profile and grouped pending panel. Repeated initialization is rejected to prevent duplicate controls and subscriptions. The horizontal workspace divider and the vertical sidebar divider allocate space without changing the data or selection. Component FXML loads scoped styles; `Dashboard.css` owns host geometry and branding.
-
-The left `PersonListPanel` receives only `logic.getFilteredPersonList()`. Its unsortable `TableView` uses the `logic::getClientId` lookup to display stable IDs and variable-height cells that wrap names/contact values. Due/status columns are visible in pending mode. `createRowDisplay` derives text from immutable values and the published date. Recycled rows clear old graphics and status badges; `isViewed` uses reference identity. Table selection never writes model selection. The resize policy compares the visible columns' minimum total with the laid-out row viewport, excluding insets and the vertical scrollbar. When that usable width is insufficient, it enables horizontal scrolling instead of squeezing or hiding the last columns. Skin, viewport and visible-column changes trigger re-evaluation.
-
-The `Client ID` column displays the aggregate's permanent ID rather than a row number. `PersonListPanel.ClientIdCell` obtains it from the `clientIdLookup` function; a client keeps the same label across sorting and filtering. The displayed IDs can have gaps after deletion. Verify long IDs at supported resolutions in the v1.5 display matrix.
-
-`Logic.getAllPersonList()` exposes the stable, unmodifiable complete committed feed independently of search/pending filters. `MainWindow` constructs one `PendingFollowUpProjection` from it. The projection keeps clients with a follow-up, sorts them stably by due date and retains the canonical `Person` references. It never reads the filtered command list or samples a clock. Candidate execution and failed saves cannot publish tentative records into this feed.
-
-`PendingFollowUpPanel` observes the projection, `todayProperty()` and `selectedPersonProperty()`. It groups actions by status using the published date, retaining due-date order within groups. It displays full names, dates and action text without using row positions as command targets. Its selection listener observes invalidation so an equal-valued replacement still updates the identity-based marker. Empty groups are unmanaged and the empty summary is explicit.
-
-On window close or programmatic hiding, `MainWindow` disposes both `ClientProfilePanel` and `PendingFollowUpPanel` and closes the pending projection. These operations are idempotent; panel callbacks guard against already-queued notifications after disposal. The profile validates its initial display before subscribing, so a failed construction leaves no listeners attached. `ClientProfileLifecycleTest` covers window cleanup, disposal during notification and failed construction. No independent timer or second client store is introduced.
-
-#### Layout boundaries and acceptance tools
-
-`DashboardLayoutBoundaryTest` composes a real `MainWindow` over temporary storage and lays it out at 853x480, 1536x864 and 1920x1080, the logical sizes of 1280x720 at 150%, 1920x1080 at 125% and 1920x1080 at 100%. It covers partitions that `DashboardIntegrationTest` does not: a 1,000-client table, long unbroken email and address values in the profile, 80 pending cards, and a 200-character action with a long name.
-
-Its text assertions read each control's rendered `.text` node as well as `getText()`. JavaFX keeps the full value in the control while drawing an ellipsis-clipped string, so `getText()` alone cannot detect truncation. Width assertions compare a scroll pane's content with its viewport, because the profile and pending summary disable horizontal scrolling.
-
-For many cards, the test asserts that scrolling reaches the end of the last card rather than that the card fits: at 853x480 the summary viewport (about 99 pixels) is shorter than one card. The sidebar divider is the user's remedy, so this is a documented limit rather than a defect.
-
-`DisplayMatrixFixture` (in test sources) writes a 1,000-client data file into a fresh folder for packaged-JAR checks and refuses to overwrite an existing file. Client 1 carries long unbroken values, and every tenth client has a follow-up spread across all three statuses relative to a printed reference date (today by default, or an optional `yyyy-MM-dd` argument). The 1,000-client test reuses the same generator, so every test run validates the fixture data.
-
-Logical scene sizes are not evidence of physical scaling, font substitution or OS window behaviour. Record packaged results per OS, JDK, physical resolution and scaling in the [v1.5 platform matrix](testing/v1.5/platform-matrix.html), keeping combinations nobody has run explicitly pending.
-
-### Command submission and feedback
-
-`CommandBox` routes the field's Enter action and the Run button through the same submission handler. Run is not a default button, preventing a second submission on Enter. Parse/command/save failures retain input and add one error style; success clears it. Focus returns to the command field so correction can continue. Diagnostic logs record only outcome and exception category, never raw commands or exception details containing client data.
-
-`FollowUpCommandBoxTest` checks forwarding and exception propagation at the executor boundary; `CommandSubmissionTest` checks the shared FXML submission path, single execution, retained input and focus recovery.
-Packaged acceptance must additionally exercise Enter and Run with valid and rejected commands, then correct the retained text without refocusing. Check the rendered feedback separately: a complete accessibility value or selectable message does not establish that its text is readable on screen.
-
-`ResultDisplay.setFeedbackToUser` resets error state explicitly; `setErrorFeedbackToUser` enables an Error label and a CSS pseudo-class. `MainWindow.executeCommand` uses the error setter only in its exception branch. The message is never classified by its wording. The read-only TextArea wraps, scrolls and allows selection/copying without stealing command input focus. Required resources/injected controls are validated. JavaFX component tests reuse an existing toolkit rather than calling `Platform.startup` twice in one JVM.
-
-The saved-data warning is a separate persistent label controlled by `logic.isDataLoadingBlocked()`. Normal and error feedback updates cannot clear it. The footer formats the real data path without modifying storage; its wrapped tooltip exposes the full path. Help remains available through F1/menu and supports keyboard copy/close.
-
-### Client profile panel
-
-`ClientProfilePanel` observes Logic's selected-client and published-date properties. It renders the immutable record without selecting, saving or sampling the device clock. Contact values and action text wrap in a scrollable card; lowercase tags are sorted chips, with `No tags` for an empty set. No selection clears the fields and shows `No client selected.`; no action shows `Follow-up: None`. Status derives from `FollowUp.getStatus(today)`.
-
-`DashboardIntegrationTest` drives the real window, Logic, model and temporary JSON storage. It verifies global-summary independence from filtering, permanent client IDs after reordering, canonical profile retention, clear/delete, date-driven groups, failed-save byte/view preservation, error recovery, cleanup and logical layout sizes. A missing-screen test exercises the real window constructor without discarding preferences. `DashboardStartupIntegrationTest` loads malformed JSON through MainApp and checks that query success and rejected mutations cannot dismiss the persistent warning or populate the protected views. Component suites cover cell recycling, long values, feedback accessibility and command submission separately. JavaFX layout tests establish logical geometry; the final OS scaling matrix still requires manual evidence.
-
-### Follow-up state and date handling
-
-`Person` contains an optional immutable `FollowUp` with a `LocalDate` due date and an action description. Recording or replacing an action creates a new `Person` that preserves every contact field and tag; clearing removes the optional action. There is no action history or completion flag.
-
-Descriptions preserve Unicode spelling without normalization and retain internal spacing, trimming only outer U+0020 spaces. The domain validator scans code points, enforcing a 1–200 limit and rejecting controls, line/paragraph separators, unpaired surrogates and unassigned code points. Each supplementary character counts once; combining marks, variation selectors and joining characters each count towards the limit.
-At least one code point must provide visible content: Unicode spaces, format characters, combining marks, Hangul fillers (U+115F/U+1160/U+3164/U+FFA0) and Braille blank (U+2800) do not qualify by themselves. Format characters and marks remain valid within notes containing visible text or symbols, preserving script shaping and joined emoji. This is a text-validation rule; actual glyph support depends on the platform's fonts.
-`JsonAdaptedFollowUp` reuses this domain validation when loading saved notes. The parser's global control-character gate and reserved `d/`/`m/` prefix handling remain unchanged.
-
-`FollowUpCommandParser` recognizes either `followup ID clear` or one date and one description prefix. Commands resolve the permanent Client ID against the complete address book before validating a new date/action. New and replacement actions accept past dates for overdue carry-over work, using the same strict calendar, year (`0001`–`9999`) and description validation as stored actions. Date errors precede description errors; a valid past date with an invalid description reports the description error.
-
-`ArgumentTokenizer` recognizes `d/` and `m/` anywhere they immediately follow an ordinary space (U+0020), including inside a description. It does not interpret quotation marks or provide prefix escaping. Repeating either prefix therefore fails duplicate-prefix validation before command execution; an existing action stays unchanged. For example, `m/Confirm d/m/y format` repeats `d/`, while `m/Confirm day/month/year format` and `m/Check ref:d/m/y` preserve the intended descriptions.
-
-`showPendingFollowUps()` includes every client with an action and sorts by due date. Stable sorting preserves full-list insertion order on equal dates. Chronological order naturally groups overdue, due-today and upcoming actions. `FollowUpStatus` derives those labels from the due date and published date; neither status nor the selected client is stored in JSON.
-
-`LogicManager` samples its injected clock once per command candidate. The date is published only when that command succeeds. Separately, `MainApp` refreshes the live date on startup, window focus and a one-minute timer, so statuses update across midnight without a command. A failed command does not itself advance the date; independent focus/timer refreshes can still occur. `MainAppTest` and `LogicManagerTest` cover these two date paths.
-
-#### A follow-up through the system
-
-For `followup 17 d/2099-12-15 m/Discuss renewal`, the dispatcher chooses `FollowUpCommandParser`, which checks shape/prefixes and constructs `SetFollowUpCommand` with the permanent ID and raw values. `LogicManager` supplies an isolated candidate and one sampled date. The command resolves ID 17 globally, validates the date/description and replaces the immutable `Person` while retaining its ID. Storage serializes only the action's date/description with the client record and identity metadata. After a successful save, publication updates the table, selected profile and global pending projection. Each view derives status from the published date; no stored status or independent panel clock is involved.
-
-### Save-before-publish boundary
-
-`LogicManager.execute` follows this sequence:
-
-1. Parse against the startup loading gate.
-2. Fork an isolated candidate with the sampled date.
-3. Execute the command against the candidate.
-4. Save the candidate only when its data is dirty.
-5. Publish its data, preferences, mode, date and selection to the live model.
-
-A save failure becomes `CommandException` with `MESSAGE_SAVE_FAILED` formatted with the storage destination; no candidate state is published. The message suggests checking directory access and free space without displaying exception text, which may contain client data. `JsonAddressBookStorage` writes a sibling temporary file, then replaces the destination with an atomic move. It rejects a symbolic-link destination before writing and checks again before replacement; these checks are best effort and cannot prevent an external process from swapping the path after the final check. Such a late swap can replace the link itself, but the atomic move does not write through to its target. The app does not synchronize with external filesystem writers; `LogicManager` shows a specific recovery message for that case. On failure it attempts to remove the temporary file and preserves the existing destination. Unsupported atomic replacement is reported as a save failure, rather than falling back to a partial write. See `JsonAddressBookStorageTest` for write/move and symlink failure coverage.
+Preferences have a different recovery policy from client records. `JsonUserPrefsStorage` rejects explicitly null `guiSettings` and malformed/mapping failures; `MainApp.initPrefs` falls back to `UserPrefs` defaults and attempts to save the recovery. Missing settings retain defaults. Client loading proceeds independently, so invalid preferences alone do not block client mutations. Preference compatibility still ignores unknown properties and accepts the last repeated property; strict client-reader options are not imposed on the shared mapper.
 
 ### Application instance ownership
 
-Before loading preferences or client data, `MainApp.init()` acquires an exclusive operating-system file lock through `AppInstanceLock` on `.policyharbor.lock` in the working folder. A competing launch or lock I/O failure leaves the services uninitialized; `start()` explains the failure and exits. `stop()` skips preference writes for a blocked instance and releases an acquired lock after normal shutdown. Initialization failures also release it, and process termination releases the OS lock.
+Before preferences/client loading, `MainApp.init()` acquires an OS file lock through `AppInstanceLock` on `.policyharbor.lock` in the working folder. A competing launch or lock I/O failure leaves services uninitialized; startup explains the error and exits without preference writes. Initialization failure, normal shutdown or process termination releases ownership.
 
-The marker is retained because deleting it could allow a new process to lock a replacement file while an existing process still owns the original. An in-process registry, keyed by the normalized path with its real parent directory, rejects duplicate acquisitions before opening another descriptor: on some systems, closing that second descriptor could release the first descriptor's OS lock. Separate working folders remain independent; this protects against concurrent PolicyHarbor instances rather than synchronizing external file edits.
-
-`MainAppInstanceTest` and `AppInstanceLockTest` use separate JVMs to verify blocked launches preserve saved bytes, separate folders work independently, normal shutdown and abrupt exit release ownership, retained markers permit restart, and a rejected same-JVM acquisition does not release ownership to another process.
-
---------------------------------------------------------------------------------------------------------------------
-
-## **Documentation, logging, testing, dev-ops**
-
-* [Documentation guide](Documentation.html)
-* [Testing guide](Testing.html)
-* [Logging guide](Logging.html)
-* [DevOps guide](DevOps.html)
+The marker is retained: deleting it while an owner holds the original file could let another process lock a replacement. An in-process registry rejects duplicate acquisitions before opening another descriptor, whose closure can release existing OS locks on some systems. Separate working folders remain independent. This prevents simultaneous PolicyHarbor writers to one working folder, without introducing a server or remote authentication.
 
 ### Diagnostic log fallback
 
-`LogsCenter` installs the console handler before attempting to open its rotating `policyharbor.log` files.
-If file-handler creation throws `IOException`, it emits a generic warning through the initialized base logger and continues with console logging.
-The warning does not include exception details. Other initialization failures still propagate; this fallback does not make client-data or preference writes succeed in a read-only folder.
+`JsonUtil.readJsonFile` logs only path and failure category, excluding Jackson messages/throwables that can contain raw client data. It retains the cause in `DataLoadingException` for callers; that does not make the cause safe to print in ordinary diagnostics. Command submission logs outcome/category without raw input. These safeguards limit accidental disclosure in local diagnostic files; they do not encrypt the user's local client data.
 
-`LogsCenterTest` launches a fresh JVM per scenario so it exercises static initialization independently of shared test-runner logging.
-It obstructs `policyharbor.log.0` with a directory and verifies successful initialization and subsequent stderr logging, alongside writable-file creation, append preservation and log-level checks.
-For a packaged manual check, launch the JAR from a disposable writable folder containing a directory named `policyharbor.log.0`.
-Expect the console warning followed by normal startup logging and the main window. Repeat from a fresh writable folder without the obstruction and confirm that `policyharbor.log.0` is created as a file.
-On POSIX, also repeat from a disposable readable/searchable but non-writable folder (for example, mode `0500`), restoring its permissions afterwards; later data or preference write failures remain outside this fallback.
+`LogsCenter` installs console logging before opening rotating `policyharbor.log` files. A file-handler `IOException` produces a generic warning and leaves console logging available; other initialization failures propagate. This fallback does not make client/preference writes succeed in an unwritable folder.
+
+--------------------------------------------------------------------------------------------------------------------
+
+<span id="automated-evidence"></span>
+
+<span id="layout-boundaries-and-acceptance-tools"></span>
+
+<span id="v15-display-matrix-checks"></span>
+
+## **Documentation, logging, testing, dev-ops**
+
+Use the [documentation](Documentation.html), [testing](Testing.html), [logging](Logging.html) and [DevOps](DevOps.html) guides for tool setup. For implementation work, run focused tests first, then the configured `./gradlew check coverage` and `.github/run-checks.sh` checks. Assertions check developer invariants; user-input validation uses normal exceptions and must work with or without `-ea`.
+
+| Boundary to verify | Representative source/test entry points |
+| --- | --- |
+| Domain validity, duplicate relation and allocation | `PersonTest`, `AddressTest`, `EmailTest`, `AddressBookTest`, `ClientIdentityRegistryTest` |
+| Dispatch, search/edit grammar and global ID targeting | `AddressBookParserTest`, `FindCommandParserTest`, `EditCommandParserTest`, `ClientIdTargetingTest` |
+| Save-before-publish, canonical selection and dates | `LogicManagerTest`, `ClientProfileSelectionTest`, `ClientProfileWorkflowIntegrationTest`, `FollowUpWorkflowIntegrationTest` |
+| Identity migration/round trips and whole-file recovery | `ClientIdMigrationTest`, `ClientIdRoundTripTest`, `ClientIdLoadingProtectionTest`, `SavedTextTypeRecoveryTest`, `InaccessibleDataRecoveryTest` |
+| Strict JSON/Unicode and private diagnostics | `JsonDuplicatePropertyTest`, `SavedDataEncodingRecoveryTest`, `SavedAddressRecoveryTest`, `JsonDiagnosticPrivacyTest`, `LoadingDiagnosticPrivacyTest` |
+| Atomic I/O, instance ownership and diagnostic fallback | `JsonAddressBookStorageTest`, `StorageDirectoryRecoveryTest`, `AppInstanceLockTest`, `MainAppInstanceTest`, `LogsCenterTest` |
+| Observable dashboard, input and real geometry | `DashboardIntegrationTest`, `DashboardLayoutBoundaryTest`, `CommandSubmissionTest`, `ClientProfileScrollTest`, `HelpAndFooterTest` |
+
+Test classes live under [`src/test/java/seedu/address`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/master/src/test/java/seedu/address). Storage tests inject write/move failures; integration tests assert saved bytes and live state, rather than just error text. Fixed/injected dates establish midnight and time-zone behavior reproducibly. Native focus, font substitution and physical display scaling still need packaged-app checks.
+
+`DisplayMatrixFixture` is an **IDE/test-source tool**, not a packaged command. It writes 1,000 synthetic records to a fresh folder and refuses overwrite. Launch the JAR from that folder, reach `view 1000`, inspect long contact values and scroll to the final pending card. `StatusBarFooterLongPathFixture` separately exercises a roughly 200-character path/tooltip, which the app's fixed relative data path cannot configure through preferences. Logical scene-size tests establish geometry, not physical scaling or throughput. Record actual OS/JDK/resolution/scaling results and pending combinations in the [platform matrix](testing/v1.5/platform-matrix.html).
+
+The repository's Java CI workflow configures Java 25 Zulu with JavaFX on Linux, macOS and Windows, `check coverage`, and Linux repository checks. Inspect the actual workflow/check status on the release commit; configuration is not evidence that CI ran. For release evidence, identify the exact source revision, JAR checksum/runtime and tests executed. A previous revision's test record does not by itself verify the final distributed JAR.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -501,293 +374,278 @@ On POSIX, also repeat from a disposable readable/searchable but non-writable fol
 
 ### Product scope
 
-**Target user profile**:
-
-* is an individual insurance agent who manages their own client and prospect records
-* personally keeps track of client contact details and the next action they need to take for each client
-* uses a personal computer to manage client details and follow-ups
-* needs to review which client follow-ups are due, upcoming, or overdue
-* types quickly and prefers typed commands to mouse interactions
-
-**Value proposition**: PolicyHarbor helps individual insurance agents keep client contact details and one pending next action per client organised in a keyboard driven desktop app, making follow-ups easier to review and manage.
+**Target users** are individual insurance agents who keep their own client/prospect contact records and dated next actions on a personal computer, type quickly and prefer commands. **Value proposition:** keep contact context and one pending action per client together, with stable targeting and a chronological overview of overdue, due-today and upcoming work.
 
 ### User stories
 
-These stories describe the delivered v1.5 scope. Each client has one pending action.
+The following stories are implemented in the verified candidate; they are not a statement that the published v1.4 JAR has these newer capabilities. In each row, read: **As an insurance agent, I want to [capability], so that I can [benefit].**
 
-| Priority | As an insurance agent, I want to... | So that I can... |
+| Priority | Capability | Benefit |
 | --- | --- | --- |
-| High | add a client or prospect with contact details | keep their information in one place |
-| High | list clients and search by partial name, phone digits or exact tag | find the record I need |
-| High | target clients by permanent IDs across searches and sorting | update the intended record consistently |
-| High | edit contact details without deleting the client | keep information current while retaining their ID and follow-up |
-| High | view a client's complete profile | review context before making contact |
-| High | delete an incorrect client record | remove inaccurate information |
-| High | reload saved data after restarting | retain my work between sessions |
-| High | record or replace a dated next action | remember an agreed commitment |
-| High | review overdue, due-today and upcoming actions | prioritize follow-ups |
+| High | add a client/prospect with contact details | keep their information in one place |
+| High | list clients and search by name, phone or tag | locate the record using the information I remember |
+| High | target clients by permanent IDs across filtering/reordering | act on the intended record consistently |
+| High | edit contact details while preserving ID and follow-up | keep information current without recreating the client |
+| High | open a complete client profile | review context before making contact |
+| High | delete a client and their pending action | remove incorrect records without leaving orphan work |
+| High | reload saved records, IDs and actions after restarting | retain my work between sessions |
+| High | record or replace one dated next action | remember an agreed commitment |
+| High | review pending work chronologically and by status | prioritize follow-ups even while searching clients |
 | High | clear a completed action | remove work that no longer needs attention |
-| High | receive useful errors without losing data | correct mistakes safely |
-| Medium | categorize clients with tags | keep relevant context in the profile |
+| High | receive actionable errors while rejected changes preserve data | correct mistakes and retry safely |
+| Medium | categorize clients using tags | retain useful context and find a category |
 
-Future backlog, outside v1.5: multiple actions/history, notifications, client archiving, import and combined multi-field filtering. They are not advertised as available commands.
+#### Recorded future requirements — not implemented
+
+The existing backlog records the following aspirations. They are **not commands, release commitments or proposed implementations**. Each row uses the same insurance-agent role and benefit format above.
+
+| Capability | Benefit |
+| --- | --- |
+| retain multiple actions and follow-up history | review earlier commitments |
+| receive follow-up notifications | be reminded without opening the pending view |
+| archive inactive clients | retain context without treating them as active work |
+| import existing client records | avoid re-entering a dataset manually |
+| combine multiple search fields | narrow a large result set using several criteria |
 
 ### Use cases
 
-The actor is an individual insurance agent and the system is PolicyHarbor. Each command is entered in one line; the app does not prompt for individual fields or confirmation.
+**System:** PolicyHarbor. **Actor:** individual insurance agent. Unless an extension states otherwise, the app has loaded valid data. Commands are single submissions; the system does not prompt for separate fields or confirmation. These use cases cover distinct interaction patterns; routine add/delete/list syntax is in the UG and manual appendix.
 
-**UC01 — Retrieve a client profile**
+#### UC01 — Retrieve a client hidden by the current view
 
-1. The agent lists all clients or searches names, phone numbers or tags.
-2. The system displays matching clients and their permanent Client IDs.
-3. The agent enters `view ID`.
-4. The system opens that client's complete profile without changing saved data.
+**Preconditions:** the client exists with a known permanent ID; the table is filtered or in pending mode and hides that client.
 
-Extension: invalid syntax or an unknown Client ID produces an error and preserves the current profile.
+**Main success scenario**
 
-**UC02 — Add a client**
+1. Agent requests the client's profile using their permanent ID.
+2. System resolves the ID against the complete client collection, restores the full list and opens the correct profile.
 
-1. The agent submits `add` with contact details and optional tags.
-2. The system validates the fields and checks the full dataset for duplicates.
-3. The system saves the new record, retains the active list mode and displays success feedback including the allocated Client ID.
+Use case ends. Saved data remains unchanged.
 
-Extensions: invalid/duplicate data produces an error without changes. A save failure preserves the previous data and view. The agent can correct and resubmit the retained command text.
+**Extensions**
 
-**UC03 — Delete a client**
+* 1a. The request has invalid syntax or an invalid ID value.
+  * 1a1. System explains the format/ID constraint and retains the current view and profile.
+  * Use case ends.
+* 2a. No client has that valid ID.
+  * 2a1. System reports the missing ID and retains the current view and profile.
+  * Use case ends.
 
-1. The agent identifies the client in the displayed list.
-2. The agent enters `delete ID`; opening a profile first is optional.
-3. The system saves the removal of the client and their follow-up, then refreshes the current list. If that client was viewed, the profile closes.
+#### UC02 — Edit a client while retaining their identity
 
-Extensions: an invalid or unknown Client ID or save failure leaves the original state intact.
+**Preconditions:** the client exists; client mutations are not blocked by startup recovery. The agent has the permanent ID and at least one replacement field.
 
-**UC04 — Record or replace a follow-up**
+**Main success scenario**
 
-1. The agent enters `followup ID d/DATE m/DESCRIPTION` for a client, whether currently visible or hidden.
-2. The system validates the ID, date and description.
-3. The system saves the action and updates the list/profile, reordering pending rows when necessary.
+1. Agent submits contact changes for that ID.
+2. System validates the supplied fields, resolves the client and checks other records for duplicates.
+3. System saves the replacement with the same ID and pending action, then publishes it and success feedback.
 
-Extensions: invalid input or saving failure preserves the previous action and view. Only one action is stored, so an accepted replacement overwrites the earlier action.
+Use case ends. The active filter is retained; the profile follows the replacement only while it remains visible.
 
-**UC05 — Clear a follow-up**
+**Extensions**
 
-1. The agent enters `followup ID clear` for a client, whether currently visible or hidden.
-2. The system saves removal of the pending action.
-3. In pending mode the client leaves the list and their open profile closes; in full/search mode the client remains and their profile shows no action.
+* 1a. Startup recovery blocks mutations.
+  * 1a1. System explains that saved data must be repaired/restored and reloaded; no changes are accepted.
+  * Use case ends.
+* 2a. Fields/ID are invalid, the ID is absent or the replacement duplicates another client.
+  * 2a1. System explains the relevant error and retains data, filter and selection.
+  * 2a2. Agent corrects the retained request.
+  * Use case resumes at step 1.
+* 3a. Storage cannot save the replacement.
+  * 3a1. System gives recovery guidance and keeps the previous live record, ID, action, view and saved file.
+  * 3a2. Agent addresses the filesystem problem and retries.
+  * Use case resumes at step 1.
 
-Extensions: an absent action, invalid or unknown Client ID, or save failure produces an error and preserves the original state.
+#### UC03 — Record, replace or clear a next action
+
+**Preconditions:** the client exists with a known ID; mutations are allowed. A replacement/clear request concerns the client's single pending action.
+
+**Main success scenario**
+
+1. Agent submits a date and action description for that ID.
+2. System resolves the client and validates the date and description.
+3. System saves the new action, replacing any previous one, then publishes the updated client and pending views.
+
+Use case ends. The ID/contacts are retained; pending order and status reflect the new date, and any visible selected profile follows the same client.
+
+**Extensions**
+
+* 1a. Agent instead requests that the action be cleared.
+  * 1a1. System resolves the client and confirms an action exists.
+  * 1a2. System saves/publishes its removal. The client leaves pending mode; an open profile clears there but remains in full/search mode while visible.
+  * Use case ends.
+* 1a1a. There is no pending action.
+  * 1a1a1. System explains this and makes no changes.
+  * Use case ends.
+* 2a. Input/ID is invalid or the ID is absent.
+  * 2a1. System explains the error; the previous action, data and view remain unchanged.
+  * Use case ends.
+* 3a. Saving the new/replacement action fails.
+  * 3a1. System gives recovery guidance and preserves the previous action, data, view and saved file; no tentative reorder is published.
+  * Use case ends.
+* 1a2a. Saving removal fails.
+  * 1a2a1. System gives recovery guidance and preserves the previous action, data, view and saved file; no tentative removal is published.
+  * Use case ends.
 
 ### Non-Functional Requirements
 
-1. Should work on Windows, Linux and macOS with Java `25`; macOS uses the prescribed Zulu JDK+FX distribution.
+These are acceptance criteria. Platform, timing and physical-display targets require recorded measurements; stating a target does not mark it verified.
 
-2. Target: hold 1000 clients without noticeable sluggishness in typical usage. The 1,000-client layout fixture checks reachability and rendering, and a separate 50-client scenario checks command workflows. Neither is a timing benchmark proving this target.
-
-3. A user with above-average typing speed for regular English text (i.e. not code or system administration commands) should be able to accomplish most tasks faster using commands than using the mouse.
-
-4. Should respond to typical user commands such as adding, deleting, searching, viewing client records and updating follow-ups within 1 second under normal operating conditions.
-
-5. Should preserve all successfully saved client information between application sessions, such that closing and reopening the application does not cause data loss.
-
-6. Invalid commands or invalid user input should not modify existing client data and should result in a clear error message explaining how the input can be corrected.
-
-7. Should be usable without an Internet connection for all core client-management functions.
-
-8. Client data should be stored locally on the user's device and should not require a remote server for normal operation.
-
-9. Should be distributable as a single executable JAR file without requiring a separate installation process.
-
-10. The user interface should remain usable at common laptop screen resolutions, including `1280 × 720` at 150% scaling, and work well at `1920 × 1080` at 100%/125% scaling. These are manual verification targets.
-
-11. Commonly used commands and command formats should remain consistent throughout the application to reduce the amount of relearning required from the user.
-
-12. The application should be designed primarily for keyboard-based interaction, while still allowing mouse interaction where appropriate.
+| ID | Quality constraint / acceptance criterion | Evidence boundary |
+| --- | --- | --- |
+| NFR1 | Core operations work on Windows, Linux and macOS using Java 25 and the prescribed JavaFX runtime (Zulu JDK+FX on macOS). | Run the packaged scenarios on each supported OS/runtime; logical JavaFX tests alone do not prove portability. |
+| NFR2 | Capacity target: at 1,000 synthetic clients, all clients and pending cards remain reachable by scrolling or permanent ID. | The layout fixture/tests exercise this capacity; retain physical display checks. |
+| NFR3 | Responsiveness target: after warm-up, 95% of 30 representative add/edit/delete/search/view/follow-up commands complete from submission to visible feedback within 1 second at 1,000 clients. | Record hardware, runtime, local disk, dataset and timings. No such benchmark is claimed here; 1,000-record rendering is not timing evidence. |
+| NFR4 | A tester can complete add/search/view/edit/action/clear/delete using the keyboard without refocusing with a pointer after each submission. | Packaged Enter/Tab/Space/error-correction checks; this replaces an unmeasured faster-than-mouse claim. |
+| NFR5 | Successful mutations survive close/restart with identical contacts, IDs, counter and actions. | Compare restored values; selection/list mode are intentionally session-only. |
+| NFR6 | Rejected input and reported save failures leave live client data, IDs, list/selection and existing saved bytes unchanged. | Fault-injection and workflow tests; independent date refresh can still occur. |
+| NFR7 | Invalid/inaccessible existing client data is preserved and blocks mutations until a valid reload. | Recovery tests include unchanged bytes and repair/restart. |
+| NFR8 | Core client/action operations work with networking disabled, with data on local storage and no required remote server. | Help's external UG link is supplementary. Local storage is not encrypted by the app. |
+| NFR9 | Distribution is one executable JAR of at most 100 MB, launched from a writable working folder without a separate installer. | Measure the final uploaded asset; a candidate measurement does not certify a later JAR. |
+| NFR10 | Command box/feedback, client table and both sidebar views remain accessible at 1280×720/150% and 1920×1080/100% or 125%; overflowing content remains reachable. | Record actual OS/resolution/scaling in the platform matrix. Logical geometry is supporting evidence. |
+| NFR11 | Equivalent operations use consistent permanent-ID syntax, shared domain validation and explicit corrective feedback; retained failed input remains editable. | Parser/feedback tests and packaged scenarios. |
+| NFR12 | Closing the main window closes Help, stops date refresh and releases process ownership so the same folder can be reopened. | Lifecycle tests and second-process/restart checks. |
 
 ### Glossary
 
-* **Client record**: The contact details stored for a client or prospective client
-* **Follow up**: The next action an agent plans to take for a client, with a due date and description
-* **Pending**: A follow-up that has been recorded and not yet cleared. It stays pending after its due date passes
-* **Client ID**: A permanent positive integer assigned by the address book. IDs do not change after filtering or reordering, and are not reused after deletion.
-* **Overdue**: A pending follow-up whose due date is before today
-* **Due today**: A pending follow-up whose due date is today
-* **Upcoming**: A pending follow-up whose due date is after today
+* **Client record:** contact details/tags and, optionally, one pending action for a client or prospect.
+* **Client ID:** permanent positive integer allocated by the address book; unrelated to row position and not reused after normal deletion.
+* **Canonical record:** the actual immutable `Person` instance registered in its owning address book, rather than an equal-valued copy.
+* **Follow-up:** next action with a due date and description.
+* **Pending:** recorded and not cleared, including actions whose dates have passed.
+* **Overdue / due today / upcoming:** due date is before / equal to / after the published local date.
+* **Protected startup:** empty query-capable session that blocks client mutations after a saved-data loading failure.
 
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Appendix: Instructions for manual testing**
 
-Test the packaged JAR in a fresh writable folder with Java 25 (the prescribed Zulu JDK+FX on Mac). Use synthetic clients and repeat each independent scenario from the specified starting state. These are procedures, not a claim that every platform/scaling combination has been tested.
+These are independent packaged-app procedures, not a statement that every OS/scaling combination has passed. Use **only disposable synthetic data**. Record the JAR checksum, matching commit, Java/OS and physical display settings. Run each lettered scenario in its own fresh writable working folder; copy the same `PolicyHarbor.jar` there and launch from that folder with Java 25 (`java -jar PolicyHarbor.jar`). On macOS use the prescribed Zulu JDK+FX setup from [SettingUp](SettingUp.html). The title may still show v1.4; verify the artifact, not its window label.
 
-### Startup, persistence and basic workflow
+**Two-client fixture:** whenever requested below, start an empty folder, launch, and enter these lines separately. Expect Rachel ID 1 with lowercase `health`/`active` tags, Amanda ID 2, and no selected profile. Repeated tag case variants collapse.
 
-1. Launch `java -jar PolicyHarbor.jar` from the JAR's folder. Expect an empty list, `No client selected.` and no loading warning.
-2. Enter these commands separately:
+```text
+add n/Rachel Lim p/001 e/rachel@example.com a/Blk 123 t/HEALTH t/health t/active
+add n/Amanda Lee p/002 e/amanda@example.com a/Blk 456
+```
 
-   ```text
-   add n/Rachel Lim p/001 e/rachel@example.com a/Blk 123 t/HEALTH t/health t/active
-   add n/Amanda Lee p/002 e/amanda@example.com a/Blk 456
-   view 1
-   ```
+<span id="startup-persistence-and-basic-workflow"></span>
 
-   Expect Rachel's contact fields, lowercase `active` and `health` tag chips and `Follow-up: None` in the profile. Only Rachel's row is marked `VIEWING`.
-3. Record Rachel's action (ID 1) for today + 2 days and Amanda's (ID 2) for today + 1 day using `followup ID d/DATE m/ACTION`. Use actual `YYYY-MM-DD` dates.
-4. Enter `followups`, then `view 2`. Expect Amanda before Rachel with unchanged IDs, and Amanda's profile open. Replace Amanda's action with today's date to verify the `DUE TODAY` badge.
-5. Close/relaunch from the same folder. Expect all contacts/actions in full insertion order and no profile selection. Resize/move the window, close/relaunch and verify window preferences.
+<span id="concurrent-launches-and-restart"></span>
 
-### Concurrent launches and restart
+### A. Launch and initial setup
 
-1. In a disposable writable folder, launch the packaged JAR, add a fictional client and record a follow-up. Keep this window open and copy the saved client file for comparison.
-2. From a second terminal in the same folder, launch the same JAR. Expect a startup error explaining that PolicyHarbor is already running. Dismiss it; the first window remains usable and the saved client file is unchanged. The rejected launch must not write preferences.
-3. Close the first window and launch again from the same folder. Expect the client and follow-up to load, even though `.policyharbor.lock` remains. Repeat after terminating the owner process.
-4. Launch the JAR from a separate disposable folder while the first is open. Expect an independent empty dataset. Do not delete or replace an active folder's lock marker.
+1. Launch in a fresh folder. Expect an empty table, `No client selected.`, an empty pending summary and no saved-data warning. Run `list` and `followups`; neither creates client records.
+2. Add the two-client fixture, close the main window and restart in the same folder. Expect both records/IDs, no selected profile and the full list. Move/resize the window, close/restart and check restored window preferences.
+3. While that instance is open, launch the JAR from a second terminal in the **same** folder. Expect an already-running error, no second working window and unchanged saved client bytes. Close the first normally and reopen: the retained `.policyharbor.lock` marker must not block restart. Never remove a marker while an owner is running.
+4. Launch in a different fresh working folder while the first is open. Expect an independent empty dataset. Close all test windows afterwards, including Help if open.
 
-### Profile transitions and permanent Client IDs
+<span id="search-and-validation"></span>
 
-From the two-client dataset above:
+<span id="editing-while-preserving-identity"></span>
 
-| Action | Expected result |
+### B. Basic client workflow
+
+**Start:** fresh two-client fixture. Submit each row in order.
+
+| Commands / action | Essential expected result |
 | --- | --- |
-| `followups`, `view 2`, then replace Amanda's action with a date later than Rachel's | Amanda moves after Rachel; her ID stays 2 and her profile and `VIEWING` marker follow the record. |
-| `followup 2 clear` after that reorder | Amanda leaves pending mode and her profile closes. |
-| `list`, `view 2` | Amanda can be viewed again and shows `Follow-up: None`. |
-| `find Rachel` | Only Rachel remains; Amanda's profile closes. |
-| `list` | Both clients return; no profile reopens automatically. |
-| `view 1`, then `delete 2` | Rachel remains viewed; deleting her neighbor does not change selection. |
-| `delete 1` | Rachel and her action disappear and the profile clears. |
+| `list`, then `find lim AMANDA Lim` | Both clients once, insertion order; `2 client(s) listed!`. |
+| `find n/rac`, then `find p/01`, then `find t/HEALTH` | Each finds only Rachel (ID 1): partial name/digits and exact case-insensitive tag. |
+| `find 001`, then `find 01` | Exact bare-phone search finds Rachel for `001`, no match for `01`. |
+| `view 1` | Restores the full list from the empty result and opens Rachel; `Showing client ID 1: Rachel Lim`. |
+| `edit 1 p/+65 9123 4567 t/RENEWAL t/priority` | Same ID/profile; new phone and replacement lowercase tags. |
+| `edit 1 t/` | Tags cleared; contacts retained. |
+| `find p/9123`, then `edit 1 p/888` | Rachel leaves results and profile closes; `view 1` restores the full list and shows phone `888`. |
+| `delete 2`, then add `add n/Ben Tan p/003 e/ben@example.com a/Blk 789` | Amanda removed; Ben receives ID **3**, not 2. Rachel remains ID 1. |
 
-For same-name targeting, start fresh and add two Rachel Lim clients with different phone/email values. View/delete each client by the permanent ID shown in the table and verify that only the intended record is affected. Repeat after filtering or reordering.
+Repeat a same-name check in a separate fresh folder: add two Rachel Lim records with different phone **and** email values, then view/delete by the displayed IDs. Only the intended record is affected. Conversely, adding `n/RACHEL  LIM` with Rachel's existing phone or case-variant email is rejected as a duplicate, with existing records unchanged.
 
-### Search and validation
+<span id="recording-and-replacing-overdue-carry-over-work"></span>
 
-Start fresh with Rachel and Amanda from the basic workflow.
+### C. Follow-up workflow
 
-| Input | Expected result |
+**Start:** fresh two-client fixture. The fixed future dates below assume the computer date is before December 2099; otherwise substitute two valid dates after today consistently.
+
+```text
+followup 1 d/2099-12-15 m/Discuss renewal
+followup 2 d/2099-12-14 m/Call Amanda
+followups
+view 1
+followup 1 d/2099-12-13 m/Confirm renewal
+```
+
+Expect IDs 2 then 1 before replacement, then 1 before 2 afterwards. Rachel's profile/`VIEWING` marker follows ID 1, and replacement leaves only the new note. The global summary contains both actions even after `find Amanda`; Rachel's hidden profile clears.
+
+1. Enter `list`, then replace the two dates with **actual yesterday and today** using `followup ID d/YYYY-MM-DD m/ACTION`. Expect `OVERDUE` and `DUE TODAY` respectively in profile/pending views; future work is `UPCOMING`. ISO input works regardless of the OS's displayed date format.
+2. Give both clients the same date and enter `followups`; expect insertion order (IDs 1, 2). Reopen ID 1 and enter `followup 1 clear`. It leaves the pending table/summary and the profile clears. `view 1` restores the full list and shows `Follow-up: None`.
+3. Enter `list`, `view 2`, then `followup 2 clear`; the selected profile remains with no action. Repeat `followup 2 clear`; expect a no-pending-action error with no change.
+4. Record `followup 1 d/2099-12-15 m/续保电话 👩‍💻`, then restart. Expect preserved Unicode spelling/action and no session selection. Glyph appearance must be checked on each platform.
+
+For midnight behavior, use a disposable test environment whose local date can be controlled: leave a due-today action open across midnight (or change the test clock), wait for the minute refresh or refocus the window. Expect consistent updated statuses. Fixed-clock automated tests cover this boundary when changing the host date is unsuitable; record whether the real packaged case was exercised.
+
+<span id="profile-transitions-and-permanent-client-ids"></span>
+
+<span id="integrated-dashboard-checks"></span>
+
+<span id="integrated-v14-dashboard-checks"></span>
+
+### D. Permanent IDs and profile selection
+
+**Start:** fresh two-client fixture; record actions for ID 1 on `2099-12-15` and ID 2 on `2099-12-14`, then `followups`, `view 2`.
+
+| Action | Essential expected result |
 | --- | --- |
-| `find lim AMANDA Lim` | `2 client(s) listed!`, Rachel then Amanda, each once. |
-| `find Rach`, `find "Rachel"`, `find Rachel,`, `find rachel@example.com` | Each returns `0 client(s) listed!`; partial names, quoted/punctuated tokens and email do not match these clients. |
-| `find 001` | `1 client(s) listed!`, Rachel; the full phone number retains its leading zeroes. |
-| `find 01`, `find 0001`, `find 0 01` | Each returns `0 client(s) listed!`; phone matching is exact and separate tokens are not joined. |
-| `find 001 AMANDA Lim 001` | `2 client(s) listed!`, Rachel then Amanda, each once. |
-| `find` | `Invalid command format!` then the combined bare/explicit search usage. |
-| `find n/rac`, `find p/01`, `find t/HEALTH` | Each returns only Rachel once, with `1 client(s) listed!`; her phone is `001` and her tags include `health`. |
-| `find p/9123`, `find t/renewal` | Each returns `0 client(s) listed!` for this fixture. |
-| `view 0 extra`, `delete 0 extra` | Format error and the corresponding `Usage: ... ID`, before ID syntax. |
-| `view 0`, `view 2147483648`, `delete 0` | `Client ID must be a positive integer from 1 to 2147483647.` |
-| `view 2147483647` | `No client with ID 2147483647.` (when that ID is absent) |
-| `clear`, `help`, `exit` | `Unknown command.`; no client data changes and the window stays open. |
-| `add n/RACHEL  LIM p/001 e/new@example.com a/Blk 9` | Duplicate error despite name case/spacing differences. |
-| `add n/Rachel Lim p/003 e/RACHEL@EXAMPLE.COM a/Blk 9` | Duplicate error because email matching ignores case. |
-| `add n/Rachel Lim p/003 e/other@example.com a/Blk 9` | Allowed: both phone and email differ. |
-| `add a/ t/! e/bad p/12 n/Bad&` | Name constraint first; no record is added. |
+| Replace ID 2's action with `2099-12-16` | Amanda moves after Rachel, retaining ID 2 and the open profile/marker. |
+| Click/highlight Rachel's row | Amanda stays viewed; row highlighting does not change model selection. |
+| `find Rachel`, then `list` | Amanda's hidden profile clears and does not reopen automatically. Global summary keeps both actions. |
+| `view 2`, then `delete 1` | Amanda stays viewed even though the preceding record disappears. Rachel's action disappears from the summary too. |
+| `delete 2` | Amanda/action removed; profile and pending summary empty. |
 
-After each rejected command, verify that the input stays editable/focused and the client data, list and selected profile are unchanged. On success the command box clears. Date preservation is checked per command; the independent focus/minute refresh can update displayed statuses.
+This tests record identity across changing row positions; it does not assume IDs are consecutive after deletion.
 
-### Editing while preserving identity
+<span id="reserved-prefixes-in-follow-up-descriptions"></span>
 
-Start in a fresh folder with Rachel and Amanda from the basic workflow. Give Rachel a dated follow-up and enter `view 1`.
+<span id="save-failures-and-automated-boundaries"></span>
 
-1. Enter `edit 1 p/+65 9123 4567 t/RENEWAL t/priority`. Expect `Client ID 1 updated: ` followed by the updated contact details and `[priority] [renewal]`. Rachel keeps ID 1, her follow-up and her open profile; the previous `active`/`health` tags are replaced.
-2. Enter `find p/9123`, then `edit 1 p/888`. Rachel leaves these search results and her profile closes, while her global pending action remains. Enter `view 1` to restore the full list and confirm her new phone and unchanged action.
-3. Enter `edit 1 t/`. Expect no tags. Close/restart and verify the edited phone, ID and follow-up persist; selection starts empty.
-4. Enter `edit 1` with no fields, repeat a single-valued prefix, or enter `edit 1 n/Amanda Lee p/002`. Expect the no-fields, duplicate-prefix and duplicate-client diagnostics respectively, with the previous record unchanged.
+### E. Persistence and failed operations
 
-### Reserved prefixes in follow-up descriptions
+**Start:** fresh two-client fixture. Enter `followup 1 d/2099-12-15 m/Discuss renewal`, `edit 1 a/Blk 789`, then `view 1`. Copy `data/addressbook.json` as a baseline before rejected operations.
 
-Start in a fresh folder and add Rachel and Amanda using only the two `add` commands from the basic workflow. Use the two sample dates consistently throughout this scenario. If needed, substitute today's date for the first and tomorrow's date for the second; this keeps the prefix checks independent of date-policy changes. Enter `list`, `view 1`, then `followup 1 d/2099-12-14 m/Call about renewal`. Expect Rachel's action to be recorded.
+1. Submit `edit 1`, `view 0`, `list extra`, `find n/Rachel p/001`, an invalid date (`followup 1 d/2026-02-29 m/Call`), and a repeated reserved prefix (`followup 1 d/2099-12-15 m/Confirm d/m/y format`). Each must show a corrective error, retain editable input and preserve data/list/profile and saved bytes. `help`, `exit` and standalone `clear` must report `Unknown command.`; F1/window closure remain GUI actions.
+2. Close/restart. Expect edited contacts, ID 1, ID 2 and the action retained, with full list/no selected profile. Queries (`list`, `find Rachel`, `view 1`, `followups`) must not rewrite client data.
+3. For a portable failed-save check, close the app, back up the valid file, then start it again. **While it remains open**, move the disposable `data` directory to `data-backup` and put a regular file named `data` in its place. Try `delete 1`. Expect save-failure guidance with `No changes were kept.`, and both clients, action, current view and profile retained. Compare the JSON in `data-backup` with its baseline.
+4. Remove only that obstruction file and restore `data-backup` to `data`. Retry `delete 1`; expect success, Rachel/action removed and Amanda still ID 2. Restart and add a distinct client: expect ID 3. Do not use this procedure with real data or modify the active lock marker.
 
-| Input | Expected result |
-| --- | --- |
-| `followup 1 d/2099-12-15 m/Confirm d/m/y format` | `Multiple values specified for the following single-valued field(s): d/` |
-| `followup 1 d/2099-12-15 m/Confirm m/y format` | The same duplicate-field diagnostic ending in `m/`. |
-| `followup 1 d/2099-12-15 m/"Confirm d/m/y format"` | The duplicate-field diagnostic ending in `d/`; quotation marks do not escape the internal prefix. |
-| `followup 1 d/2099-12-15 m/"Confirm m/y format"` | The duplicate-field diagnostic ending in `m/`. |
+Automated storage fault injection covers additional write/atomic-move failures without relying on OS permission behavior.
 
-After each rejection, confirm Rachel still has `Call about renewal` due on `2099-12-14` (or the substituted date), with the same displayed list and selected profile. Then enter `followup 1 d/2099-12-15 m/Confirm day/month/year format`; expect `Follow-up for client ID 1: Rachel Lim updated to 2099-12-15.` and the complete replacement description. Finally, `followup 1 d/2099-12-15 m/Check ref:d/m/y` must also succeed: an embedded `d/` without a preceding ordinary space is description text. Use the substituted date in these commands and expected results if necessary.
+<span id="window-help-and-long-content"></span>
 
-### Loading protection and saved-data compatibility
+### F. Interface, keyboard and long content
 
-Close the app before editing its JSON; back up the file first.
+**Start:** fresh two-client fixture; set one action and `view 1`.
 
-1. Make one saved follow-up date earlier than today, retaining a valid ISO date and action. Restart and enter `followups`. Expect that action to load as `OVERDUE`.
-2. Remove a record's optional `followUp` or `tags` field and restart. Expect no action/no tags for that client; legacy contact-only records load.
-3. In a separate folder, corrupt the JSON or put an invalid/duplicate client in it. Restart. Expect an empty list and a persistent saved-data warning.
-4. Enter `list`, `find Rachel` and `view 1`. Queries remain available; an unknown permanent Client ID gives `No client with ID 1.`. The warning stays visible.
-5. Try `add`, `edit`, `delete` or `followup`. Expect the changes-blocked diagnostic before command-specific parsing. Confirm the invalid file's bytes are unchanged.
-6. Close the app, restore the valid backup and relaunch. Expect normal writable operation.
+1. Submit valid `list` with Enter and Run. Each activation must produce one result and clear the field. Submit an invalid command by each route, then correct the retained input without clicking the field. Tab to Run and activate with Space; verify single submission and restored typing focus.
+2. Press F1 from the command box. Expect Help with **Copy link** focused. Activate it and paste into a disposable editor; expect `https://ay2627s1-cs2103t-w13-3.github.io/tp/UserGuide.html`. Manual selection/copy must also work. Minimize Help and invoke F1/menu again: it must restore. Escape closes it; reopening clears previous copy feedback. If clipboard rejection can be induced on the platform, expect the manual-copy fallback; otherwise record this case as pending.
+3. Use a long address and a 200-code-point action. Resize/drag both split dividers: contact/action text wraps, profile/summary scroll independently and table columns scroll horizontally rather than disappearing. Feedback must remain readable, selectable and scrollable, including a multiline error's final line. Check empty/recycled rows have no stale badge/marker.
+4. Exercise scrolling with many synthetic records using the [test-source fixture procedure](#documentation-logging-testing-dev-ops). At the physical settings in NFR10, verify `view 1000`, the last table ID, long profile fields and the final pending card. Record untested OS/scaling combinations, rather than treating logical scene tests as completed physical checks.
+5. Open Help, close the main window and verify all application windows close. Relaunch with `java -ea -jar PolicyHarbor.jar`; repeat valid input and one rejection. Assertions must not alter normal validation behavior.
 
-### Recording and replacing overdue carry-over work
+<span id="loading-protection-and-saved-data-compatibility"></span>
 
-Use a disposable writable folder and two fictional clients. Substitute actual dates for yesterday, today and tomorrow.
+<span id="inaccessible-client-data-at-startup"></span>
 
-1. Record the first client's follow-up for yesterday and the second client's for tomorrow. Enter `followups`; expect the overdue action first with `OVERDUE` and the future action second with `UPCOMING`.
-2. Enter `view 2`, then replace that client's action using a date earlier than the first action. Expect the client to move to row 1 with `OVERDUE`; the profile and `VIEWING` marker must stay with that client.
-3. Close and relaunch, then enter `followups`. Expect the same dates, descriptions, statuses and ordering, with all contact fields retained and no profile selected.
-4. Try an invalid calendar date, such as `2026-02-29`, and a valid past date with an empty `m/` value. Expect the date and description errors respectively; client data, list and selection must remain unchanged.
+<span id="permanent-id-persistence-and-recovery-checks"></span>
 
-`SetFollowUpCommandTest` covers past-date acceptance, strict date/year boundaries and validation order.
-`FollowUpWorkflowIntegrationTest` covers search/pending targeting, profile reconciliation, ties and reordering, save/load, a single command-date sample across midnight, and failed-save preservation of data, date, selection and saved bytes.
+### G. Important recovery
 
-### Window, help and long content
+**Start:** separate disposable folder, app closed. Create a `data` directory and save the [current identity JSON example](#permanent-identity-in-json) as `data/addressbook.json`; preserve a complete backup outside `data`.
 
-For Unicode follow-up acceptance, use a disposable writable folder and a fictional client. Record `followup 1 d/2099-12-15 m/续保电话`, then replace it with Tamil, Arabic, accented text and a joined emoji such as `👩‍💻`. Verify the full note in the selected profile and pending summary, then restart and check that spelling and joining sequences are retained. Check glyph readability on each supported platform; automated tests establish text preservation, not installed-font coverage. Try a 201-code-point note or a note made only of spaces/zero-width characters; expect rejection with the previous action intact.
+1. Launch and `view 17`: Rachel loads with ID 17 and an overdue action (assuming today is after 2020-01-01). Queries must leave the file byte-identical. Delete 17, close/restart and add a distinct client: expect ID **42**. Restart and confirm it remains 42.
+2. Close, restore the example, then make `nextClientId` equal to 17. Launch: expect an empty table/profile/summary and a persistent saved-data warning. Queries stay available; `view 17` reports no such loaded client. `add`, `edit`, `delete` and `followup` must be blocked and the invalid bytes preserved. Command success/error feedback cannot dismiss the warning.
+3. Restore the full valid backup while the protected app is open. A mutation must still be blocked. Close/restart: `view 17` works again and a valid mutation saves normally. Repeat with malformed JSON in another disposable copy to cover parsing rather than identity validation.
+4. For legacy migration, close and use a disposable copy with **all** client IDs and `nextClientId` removed. Loading assigns insertion-order ID 1 without rewriting; the first successful mutation writes identity metadata. Do not erase all IDs in the only copy of real data: that also discards former allocation history.
+5. In a fresh fixture with valid client data, close, write `{"guiSettings":null}` to `preferences.json`, and relaunch. Expect default window preferences and the same clients without a client-data warning; a normal mutation still saves. Client-file bytes must not change merely because preferences were repaired.
 
-- Test full/search/pending modes, scrolling and empty lists. Ordinary rows show no action fields; reused/empty rows show no stale badge or `VIEWING` marker.
-- Click/highlight another row while a profile is open. The viewed client must remain unchanged until a successful `view` command.
-- Use a long address and an action up to 200 Unicode code points. Narrow the split panes and verify wrapping/scrolling and access to the command box and feedback.
-- Check at 1920×1080 with 100%/125% scaling and at 1280×720 with 150% scaling on available platforms. Record any untested combinations.
-
-Help window and data-file footer (automated tests cover only the URL constant and feedback text):
-
-1. With focus in the command box, press F1. Expect Help to open with **Copy link** focused. Repeat from the Help menu.
-2. Press Enter. Expect `Link copied.`. Paste elsewhere; expect `https://ay2627s1-cs2103t-w13-3.github.io/tp/UserGuide.html`.
-3. Select the full URL in its field and copy it manually. The pasted text must match.
-4. Where a platform or clipboard tool can reject writes, press **Copy link** again. Expect `Could not copy the link. Select it above and copy it instead.` Record whether this was exercised.
-5. Press Esc. Expect Help to close. Press F1 again; the previous copy message is cleared.
-6. Run `StatusBarFooterLongPathFixture` (in `src/test/java/seedu/address/ui`) from the IDE. It shows the footer for a path of about 200 characters. The footer must end with `addressbook.json`. Hovering it must show the full path wrapped within the screen, without clipping, until the pointer leaves. (The app always uses `data/addressbook.json`, so this path cannot be set through `preferences.json`.)
-
-### Integrated dashboard checks
-
-Use a disposable folder and fictional clients. Add at least three clients and assign actions for yesterday, today and a future date; use the automated fixed-date fixtures for additional date-boundary scenarios.
-
-1. Run `list`, then `view 1`. Enter `find` with another client's name. Only the client table is filtered; the global pending summary retains all actions. The profile clears when its client leaves the command list.
-2. Run `followups` and select a client using their permanent ID with `view ID`. Replace their action with another valid date. The table reorders by due date without changing Client IDs while the profile and VIEWING markers follow the same record. Clear the action in pending mode; that row and summary card disappear and selection clears.
-3. Submit an invalid command using Enter and then Run. Each activation produces one result, keeps the exact input and restores typing focus. Correct it to `list`; the Error label and input clear. Select/copy a long multiline error and scroll to its final line.
-4. Narrow the main divider and resize the window. Verify horizontal table scrolling, independently scrollable profile/summary and the vertical sidebar divider. At logical sizes corresponding to 1920x1080 at 100%/125% and 1280x720 at 150%, keep command submission, feedback and both views accessible. Record which real OS/scaling combinations were exercised in the [v1.5 platform matrix](testing/v1.5/platform-matrix.html); untested combinations remain pending.
-5. Close and restart the packaged JAR in the same folder. Clients/actions persist; session selection resets. Repeat with `java -ea -jar PolicyHarbor.jar` and confirm ordinary validation still works.
-
-### v1.5 display matrix checks
-
-Run these on each real OS and resolution/scaling combination available, and record the results in the [v1.5 platform matrix](testing/v1.5/platform-matrix.html).
-
-1. Run `DisplayMatrixFixture` from the IDE with a fresh folder as its program argument. Copy the JAR there and launch it from a terminal in that folder.
-2. Enter `list` and scroll to the end of the table. The Client ID of the thousandth fixture client must be fully readable, without an ellipsis. Enter `view 1000`; expect `Showing client ID 1000: Client 1000`.
-3. Enter `view 1`. The long name, email and address must wrap inside the profile without an ellipsis, and the profile must scroll to the follow-up section.
-4. Scroll the pending summary to its last upcoming card, then drag the sidebar divider both ways. Both panels must stay usable, and the command box and feedback must stay visible.
-
-### Save failures and automated boundaries
-
-`JsonAddressBookStorageTest` injects write/move failures. `ClientProfileWorkflowIntegrationTest` checks failed add/delete/action replacement/clearing without changing saved bytes, selection, list mode/order or date. `ClientRecordCommandsTest` covers additional duplicate and permanent-ID partitions; `ClientProfileSelectionTest` covers canonical identity and equal-value publication.
-
-For an optional manual failure check, keep the app open and make only its test `data` directory unwritable. Attempt a mutation. Expect `Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.` with the previous data/list/profile retained. Restore directory permissions before continuing. Use disposable data; automated fault injection is the reproducible evidence where platform permissions differ.
-
-### Inaccessible client data at startup
-
-`JsonUtil.readJsonFile` returns an empty result only when `Files.notExists` establishes that the data file is absent.
-When access prevents determining existence, both `Files.exists` and `Files.notExists` can return false; treating that case as a first launch could overwrite existing clients after access returns.
-The reader instead attempts the load, allowing the existing I/O-to-`DataLoadingException` path to create a mutation-blocked model.
-Restoring folder access does not unlock that model: the user must restart so that the original client data is loaded before changes resume.
-`InaccessibleDataRecoveryTest` uses temporary POSIX directory permissions to verify protected startup, unchanged bytes after access returns, and successful recovery after restart.
-The permission-specific cases skip on platforms without POSIX support or accounts that bypass the access restriction; existing missing-file tests retain portable first-launch coverage.
-
-### Permanent-ID persistence and recovery checks
-
-Use a disposable working folder and close the application before replacing its data file. Use the [current identity JSON example](#permanent-identity-in-json) above (ID 17, counter 42).
-
-1. Start the app, run `view 17`, and verify Rachel's ID and overdue action. Run `list`, `find Rachel` and `followups`; query commands must leave the file byte-identical.
-2. Run `delete 17`, close and restart. Add a distinct client: expect ID 42, not 1 or 17. Restart again and verify that ID is retained.
-3. With the app closed, restore the original example and make the counter 17, equal to the existing ID. Restart: expect the persistent saved-data warning, an empty displayed list and blocked mutations. Queries remain available; the invalid file must remain unchanged.
-4. Close the app, restore the complete valid example, and restart. `view 17` must work and a successful mutation must survive another restart. Repairing the file without restarting a protected session must not unlock mutations.
-5. For legacy compatibility, remove every ID and the counter from a disposable valid copy. Loading assigns insertion-order IDs without rewriting. The first successful mutation writes the new schema. Nullifying all identity fields has the same reset behavior; never perform that experiment on the only copy of real client data.
-
-These checks supplement the automated storage/transaction regressions; they do not replace the physical keyboard, scrolling and platform matrix.
+For inaccessible-file behavior, use the permission-aware automated regression or a disposable OS account/folder that can actually deny access. Restoring access in a protected session must not enable writes before restart. Record platforms/accounts where this restriction cannot be exercised.
