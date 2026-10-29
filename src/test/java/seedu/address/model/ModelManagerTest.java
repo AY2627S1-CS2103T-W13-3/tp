@@ -442,6 +442,21 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void equals_differentViewDateOrLoadingProtection_returnsFalse() {
+        ModelManager original = modelWith();
+        ModelManager pending = modelWith();
+        pending.showPendingFollowUps();
+        assertFalse(original.equals(pending));
+
+        ModelManager nextDay = modelWith();
+        nextDay.updateToday(TODAY.plusDays(1));
+        assertFalse(original.equals(nextDay));
+
+        ModelManager protectedModel = new ModelManager(new AddressBook(), new UserPrefs(), TODAY, true);
+        assertFalse(original.equals(protectedModel));
+    }
+
+    @Test
     public void equals() {
         AddressBook addressBook = new AddressBookBuilder().withPerson(ALICE).withPerson(BENSON).build();
         AddressBook differentAddressBook = new AddressBook();
