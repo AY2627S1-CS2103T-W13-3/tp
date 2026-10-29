@@ -15,9 +15,9 @@ PolicyHarbor v1.5 is a desktop client and follow-up manager for independent insu
 1. Ensure that Java `25` is installed on your computer.<br>
    **Mac users:** Ensure you have the precise JDK version prescribed [here](https://se-education.org/guides/tutorials/javaInstallationMac.html).
 
-1. Download `PolicyHarbor.jar` from the v1.5 (when published) or a later release on the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases). Until then, use a JAR built from the current `master` source. **Do not use the v1.4 JAR with this guide:** its command targeting and supported features differ.
+1. Download `PolicyHarbor.jar` from the v1.5 or a later release on the [team's releases page](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases). **Do not use the v1.4 JAR with this guide:** its command targeting and supported features differ.
 
-1. Copy the file to the folder where you want PolicyHarbor to store its data.
+1. Copy the file to a writable folder where you want PolicyHarbor to store its data.
 
 1. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar PolicyHarbor.jar`.<br>
    The client list is empty on first launch. Add a client to get started.
@@ -66,7 +66,11 @@ PolicyHarbor v1.5 is a desktop client and follow-up manager for independent insu
 
 ### Reading the workspace
 
-The client table shows permanent Client IDs alongside contact details. The selected client profile appears on the right, above the global pending follow-up summary. Screenshots from the older row-index interface have been omitted; the Client ID column in your v1.5-compatible build is the command target.
+The client table shows permanent Client IDs alongside contact details. The selected client profile appears on the right, above the global pending follow-up summary. Use the `Client ID` column when entering a command.
+
+[![PolicyHarbor workspace showing permanent Client IDs, the selected profile and pending follow-ups](images/Ui.png)](images/Ui.png)
+
+*The workspace in pending mode. Client IDs stay fixed when rows move. Open the image for a full-size view.*
 
 The light dashboard keeps the command field, **Run** button and feedback strip at the top. Enter and Run submit the same current text once. A successful command clears the input; a rejected command keeps it for correction, marks the field and shows **Error** above the complete message. Editing clears the field's error style; the feedback remains until the next command. Long feedback wraps and can be scrolled, selected and copied.
 
@@ -254,7 +258,7 @@ For example, search for Rachel with `find n/rac`, then use `view 17` and `edit 1
 
 ### Editing a client's details: `edit`
 
-Changes one or more contact fields for an existing client, identified by their permanent Client ID. The client's ID and pending follow-up are preserved.
+Changes one or more contact fields for an existing client, identified by their permanent Client ID. The client's ID and pending follow-up are preserved. The ID is resolved against all saved clients, including clients hidden by the current search or pending list.
 
 Format: `edit ID [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]...`
 
@@ -306,7 +310,7 @@ Opening a different client starts their profile at the top, so their name and co
 This also applies to separate clients who share a name and to reopening a profile after it closes.
 Viewing the same client again, changing their follow-up or refreshing its status keeps your reading position, as far as the remaining content allows.
 
-The profile shows the selected client's name, phone, email, address and tags. Tags appear as chips in lowercase alphabetical order, or as `No tags` when there are no tags. A pending follow-up shows its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it shows `Follow-up: None`; with no selected client it shows `No client selected.`
+The profile shows the selected client's permanent ID, name, phone, email, address and tags. Tags appear as chips in lowercase alphabetical order, or as `No tags` when there are no tags. A pending follow-up shows its date, full action text and `OVERDUE`, `DUE TODAY` or `UPCOMING` status. With no follow-up it shows `Follow-up: None`; with no selected client it shows `No client selected.`
 
 Your open profile will follow the client, even when their row position changes. Two clients with the same name will have separate profiles. Only a successful `view` command will open a profile; adding a client or highlighting a row will not open one automatically.
 
@@ -403,6 +407,7 @@ Saved contact fields, tags, follow-up dates and descriptions must be JSON string
 * **MVP scope:** one pending follow-up per client. Follow-up history, notifications and archiving are not provided. Contact details can be updated with `edit`.
 
 
+* **Invalid window preferences:** if `preferences.json` cannot be loaded, PolicyHarbor uses default window settings and attempts to replace that preference file. Client records remain in the separate `data/addressbook.json`; a preference error alone does not block client changes.
 * **Window restoration:** PolicyHarbor restores the window on its saved screen when that screen is available. If the saved screen is unavailable, startup fits the window inside the primary screen's usable area. You do not need to delete `preferences.json` when disconnecting a secondary screen.
 * **If the workspace feels cramped on a small or highly scaled display:** maximize the window, then drag the main divider and the sidebar divider towards the area you are reading. The command box and feedback stay at the top of the window; the table and both right-hand panels scroll to show the rest.
 * **Help window:** use the Help menu or `F1` to open the Help window. Opening Help again restores its minimised window and brings it to the front.

@@ -7,6 +7,8 @@ title: Developer Guide
 
 --------------------------------------------------------------------------------------------------------------------
 
+This guide describes the v1.5 implementation. It explains the component boundaries, permanent client identity and save-before-publish workflow before detailing validation and UI behavior.
+
 ## **Acknowledgements**
 
 * PolicyHarbor adapts [AddressBook Level 3](https://github.com/se-edu/addressbook-level3), retaining its Java/JavaFX architecture and test conventions.
@@ -16,7 +18,7 @@ title: Developer Guide
 
 ## **Setting up, getting started**
 
-Refer to the guide [_Setting up and getting started_](SettingUp.md).
+Refer to the guide [_Setting up and getting started_](SettingUp.html).
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -27,9 +29,14 @@ Refer to the guide [_Setting up and getting started_](SettingUp.md).
 :bulb: **Tip:** The `.puml` files used to create diagrams are in `docs/diagrams`. Refer to the [_PlantUML Tutorial_ at se-edu/guides](https://se-education.org/guides/tutorials/plantUml.html) to learn how to create and edit diagrams.
 </div>
 
+Class diagrams use solid associations, dashed dependencies, hollow triangles for generalization/realization and filled diamonds for composition. `<<interface>>` labels distinguish interfaces; italic class names identify abstract classes. Sequence diagrams use solid call arrows and dashed returns, with `alt` frames for alternative outcomes. On a narrow screen, scroll a figure horizontally or open its full-size image.
+
 ### Architecture
 
-<img src="images/ArchitectureDiagram.png" width="280" />
+<figure class="uml-diagram" tabindex="0" aria-label="High-level component dependencies">
+  <img src="images/ArchitectureDiagram.png" alt="High-level component dependencies" />
+  <figcaption>High-level component dependencies. <a href="images/ArchitectureDiagram.png">Open full-size image</a>.</figcaption>
+</figure>
 
 The _**Architecture Diagram**_ given above explains the high-level design of the App.
 
@@ -55,7 +62,10 @@ The bulk of the app's work is done by the following four components:
 
 The _Sequence Diagram_ below shows how the components interact with each other for the scenario where the user issues the command `delete 1`.
 
-<img src="images/ArchitectureSequenceDiagram.png" width="574" />
+<figure class="uml-diagram" tabindex="0" aria-label="Component interaction for deleting a client">
+  <img src="images/ArchitectureSequenceDiagram.png" alt="Component interaction for deleting a client" />
+  <figcaption>Component interaction for deleting a client. <a href="images/ArchitectureSequenceDiagram.png">Open full-size image</a>.</figcaption>
+</figure>
 
 Each of the four main components (also shown in the diagram above),
 
@@ -64,7 +74,10 @@ Each of the four main components (also shown in the diagram above),
 
 For example, the `Logic` component defines its API in `Logic.java` and implements it in `LogicManager.java`. Other components interact with a component through its interface rather than its concrete class, preventing them from coupling to that component's implementation, as illustrated in the following partial class diagram.
 
-<img src="images/ComponentManagers.png" width="300" />
+<figure class="uml-diagram" tabindex="0" aria-label="Component interfaces and manager implementations">
+  <img src="images/ComponentManagers.png" alt="Component interfaces and manager implementations" />
+  <figcaption>Component interfaces and manager implementations. <a href="images/ComponentManagers.png">Open full-size image</a>.</figcaption>
+</figure>
 
 The sections below give more details of each component.
 
@@ -72,7 +85,10 @@ The sections below give more details of each component.
 
 The **API** of this component is specified in [`Ui.java`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/ui/Ui.java)
 
-![Structure of the UI Component](images/UiClassDiagram.png)
+<figure class="uml-diagram" tabindex="0" aria-label="UI composition and shared UiPart base class">
+  <img src="images/UiClassDiagram.png" alt="UI composition and shared UiPart base class" />
+  <figcaption>UI composition and shared UiPart base class. <a href="images/UiClassDiagram.png">Open full-size image</a>.</figcaption>
+</figure>
 
 The UI consists of a `MainWindow` and its parts, including `CommandBox`, `ResultDisplay`, `PersonListPanel`, `ClientProfilePanel`, `PendingFollowUpPanel` and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
 
@@ -91,11 +107,19 @@ The `UI` component,
 
 Here's a (partial) class diagram of the `Logic` component:
 
-<img src="images/LogicClassDiagram.png" width="550"/>
+<figure class="uml-diagram" tabindex="0" aria-label="Logic, command and parser structure">
+  <img src="images/LogicClassDiagram.png" alt="Logic, command and parser structure" />
+  <figcaption>Logic, command and parser structure. <a href="images/LogicClassDiagram.png">Open full-size image</a>.</figcaption>
+</figure>
 
 The sequence diagram below illustrates the interactions within the `Logic` component, taking `execute("delete 1")` API call as an example.
 
-The updated [delete command sequence diagram source](diagrams/DeleteSequenceDiagram.puml) shows global permanent-ID resolution against the complete address book. Its older rendered screenshot is omitted until regenerated, because it still shows row-index targeting.
+<figure class="uml-diagram" tabindex="0" aria-label="Permanent-ID deletion and save-before-publish">
+  <img src="images/DeleteSequenceDiagram.png" alt="Permanent-ID deletion and save-before-publish" />
+  <figcaption>Permanent-ID deletion and save-before-publish. <a href="images/DeleteSequenceDiagram.png">Open full-size image</a>.</figcaption>
+</figure>
+
+The delete sequence assumes parsing and ID resolution succeed; it shows both storage outcomes. It resolves Client ID 1 against the complete address book, including hidden clients. Parsing and internal lookup details are omitted here; the parser structure below explains delegation separately.
 
 How the `Logic` component works:
 
@@ -106,7 +130,12 @@ How the `Logic` component works:
 
 Here are the other classes in `Logic` (omitted from the class diagram above) that are used for parsing a user command:
 
-See the updated [parser class diagram source](diagrams/ParserClasses.puml), where `ViewCommandParser` and `FollowUpCommandParser` depend on `ClientIdParserUtil.parseClientId()`. The older rendered image is omitted until regenerated.
+<figure class="uml-diagram" tabindex="0" aria-label="Selected parsers and shared parsing utilities">
+  <img src="images/ParserClasses.png" alt="Selected parsers and shared parsing utilities" />
+  <figcaption>Selected parsers and shared parsing utilities. <a href="images/ParserClasses.png">Open full-size image</a>.</figcaption>
+</figure>
+
+This partial diagram focuses on follow-up, view and search parsing. The shown parsers implement `Parser<T extends Command>` with their respective command result types. `ViewCommandParser` and `FollowUpCommandParser` share `ClientIdParserUtil.parseClientId()`. Add, edit and delete parsers and low-level tokenizer details are omitted to keep this view focused.
 
 How the parsing works:
 
@@ -117,7 +146,10 @@ How the parsing works:
 
 **API** : [`Model.java`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/model/Model.java)
 
-<img src="images/ModelClassDiagram.png" width="450" />
+<figure class="uml-diagram" tabindex="0" aria-label="Model ownership, permanent IDs and the optional follow-up">
+  <img src="images/ModelClassDiagram.png" alt="Model ownership, permanent IDs and the optional follow-up" />
+  <figcaption>Model ownership, permanent IDs and the optional follow-up. <a href="images/ModelClassDiagram.png">Open full-size image</a>.</figcaption>
+</figure>
 
 The `Model` component,
 
@@ -131,7 +163,10 @@ The `Model` component,
 
 **API** : [`Storage.java`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/storage/Storage.java)
 
-<img src="images/StorageClassDiagram.png" width="550" />
+<figure class="uml-diagram" tabindex="0" aria-label="JSON storage and follow-up adapters">
+  <img src="images/StorageClassDiagram.png" alt="JSON storage and follow-up adapters" />
+  <figcaption>JSON storage and follow-up adapters. <a href="images/StorageClassDiagram.png">Open full-size image</a>.</figcaption>
+</figure>
 
 The `Storage` component,
 
@@ -161,6 +196,8 @@ Valid supplementary characters, including emoji, remain unchanged. A literal U+F
 Both `ParserUtil.parseAddress` and `JsonAdaptedPerson.toModelType` use the domain validator, so command entry and saved-value loading enforce the same rule without changing the saved schema.
 A JSON escape such as `\uD800` can be syntactically valid JSON but decode to an invalid address. The adapter rejects it through `IllegalValueException`; storage translates this to `DataLoadingException`, activating the existing empty, mutation-blocked startup path without overwriting the file or publishing earlier valid records.
 `AddressTest` covers malformed pairs and valid boundary pairs. `SavedAddressRecoveryTest` checks whole-file rejection, blocked mutations and unchanged bytes, valid Unicode add/save/restart, and successful saving after an address is repaired and the app restarted.
+
+**Blank Unicode addresses.** `Address.isValidAddress` requires at least one code point that is neither Unicode whitespace, a space character nor a formatting character. Non-breaking/full-width spaces and zero-width formatting characters alone (or mixed together) are rejected. Visible addresses retain their Unicode content, including internal separators and formatting used by scripts. Parser and storage adapters share this validator.
 
 **Email validation implementation.** `Email.isValidEmail` iteratively scans the local and domain parts, including the repeated punctuation rules, while preserving stored case and the existing length policy. Each character is examined a constant number of times, so validation takes O(n) time and O(1) auxiliary space for an address of length n. This avoids recursive regular-expression matching and its potential stack overflow on unusually long input. `EmailTest` covers valid, invalid and exceptionally long addresses; `MainAppTest.longEmail_addAndRestart_preservesSavedClient` checks a long address through command entry and save/load.
 
@@ -200,7 +237,7 @@ Tests cover domain partitions, exact messages, validation precedence, normalized
 
 ### Saved client loading
 
-`Name` allows `/`, `-`, `'`, `@` and `.` after an initial English letter or digit, supporting local name forms while retaining existing case and spacing rules. The shared validator applies to command parsing and saved records; punctuation is retained on save/restart and in duplicate comparison. `s/o` and `d/o` are literal name text, since neither is an `add` field prefix.
+`Name` allows `/`, `-`, `'`, `@` and `.` after an initial Unicode letter or ASCII digit, supporting local name forms while retaining existing case and spacing rules. The shared validator applies to command parsing and saved records; punctuation is retained on save/restart and in duplicate comparison. `s/o` and `d/o` are literal name text, since neither is an `add` field prefix.
 
 `JsonAdaptedPerson` validates saved contact fields using the domain types after removing outer ordinary spaces, matching command input. `JsonAdaptedTag` validates tags before `Tag` converts them to lowercase; collecting them into a set removes case variants. Missing tags become an empty set. Optional follow-ups, including overdue dates, use the existing follow-up adapter.
 
@@ -254,7 +291,7 @@ For a preference type-mapping failure, it checks default recovery and repair whi
 
 **UTF-8 BOM compatibility.** `FileUtil.readFromFile` skips one U+FEFF only at the start of the decoded JSON text. Client data and preferences saved by BOM-producing editors load normally. Embedded U+FEFF values are retained, additional or misplaced BOMs remain invalid, and strict byte decoding and trailing-content checks still apply. Loading alone does not rewrite the file.
 
-A saved record uses the following JSON shape. Tags are strings, not objects; omit `followUp` (or use `null`) when no action is pending. Do not add session selection or a computed status to the file.
+A legacy file without identity metadata uses the following JSON shape. Loading assigns IDs without rewriting the file; the first successful mutation writes the [current identity schema](#permanent-identity-in-json). Tags are strings, not objects; omit `followUp` (or use `null`) when no action is pending. Do not add session selection or a computed status to the file.
 
 ```json
 {
@@ -271,6 +308,10 @@ A saved record uses the following JSON shape. Tags are strings, not objects; omi
   }]
 }
 ```
+
+### Preference recovery
+
+`JsonUserPrefsStorage.readUserPrefs` rejects explicitly null `guiSettings` through `DataLoadingException`, in addition to JSON/mapping failures. `MainApp.initPrefs` falls back to a new `UserPrefs`, then attempts to save the recovered preferences. Client-data loading proceeds independently: invalid preferences alone do not activate the client-file mutation gate. Missing GUI settings retain the domain default. This preference-repair policy differs from invalid client data, whose bytes are preserved until external repair and restart.
 
 ### View parsing, client search and supported command routing
 
@@ -314,6 +355,12 @@ Legacy command classes, their direct unit tests, the GUI Help menu and the windo
 
 Command tests alone do not certify rendered profile behavior. The workspace and profile sections below describe the integrated UI and its separate checks.
 
+### Contact editing
+
+`EditCommandParser` parses the permanent ID and optional contact fields into an `EditPersonDescriptor`. It rejects repeated single-valued prefixes and requires at least one field. Omitted fields retain their values; supplied tags replace the complete set, and a lone empty `t/` clears it. Contact values are validated during parsing, before global ID lookup during execution.
+
+`EditCommand` resolves the ID against all clients and constructs an immutable replacement `Person`, retaining its pending follow-up. `Model.setPerson` checks duplicates across the complete collection, transfers the target's ID and re-evaluates the active filter. A changed search field can hide the edited record and clear selection. As with other mutations, save-before-publish prevents a failed save from changing live data or IDs.
+
 ### Client-profile selection model
 
 `Model` and `ModelManager` own session selection. The integrated `view` command, Logic bridge and profile pane use this state instead of JavaFX row highlighting.
@@ -331,8 +378,8 @@ After the caller has successfully saved any dirty candidate, `commitFrom(candida
 This mapping matters for an identical follow-up replacement. The candidate may contain a new `Person` object with equal values, while publication skips resetting the live client data when it has equal values. Publishing the candidate object directly would leave selection pointing outside the live list. Mapping to the committed live record retains a canonical visible selection whether the data was reset or retained.
 
 Profile scrolling is separate from model selection: `ClientProfilePanel` starts a different client's profile at its vertical minimum.
-The UI compares unchanged name, phone, email, address and tags to retain the reading position across immutable follow-up replacements.
-It does not compare names alone, so selecting a separate same-name client resets the scroll position.
+The UI caches the rendered permanent `ClientId` and compares it with the new canonical record's ID, retaining the reading position across contact edits and immutable follow-up replacements.
+The old record may already have left the aggregate, so looking up its ID after replacement would be too late. Selecting another client, including one with the same name, resets the scroll position.
 This continuity check is only a presentation policy; canonical-record membership and selection still belong to the model.
 Repeated views, date refreshes and failed commands do not reset the current profile; reopening a closed profile starts at the top.
 `ClientProfileScrollTest` checks rendered scrolling, same-name clients and real Logic commands, including follow-up replacement and failed saving.
@@ -347,7 +394,7 @@ These tests establish the model boundary. `ClientProfileWorkflowIntegrationTest`
 
 `MainWindow.fillInnerParts()` composes the command bar, feedback strip, permanent-ID client table, profile and grouped pending panel. Repeated initialization is rejected to prevent duplicate controls and subscriptions. The horizontal workspace divider and the vertical sidebar divider allocate space without changing the data or selection. Component FXML loads scoped styles; `Dashboard.css` owns host geometry and branding.
 
-The left `PersonListPanel` receives only `logic.getFilteredPersonList()`. Its unsortable `TableView` uses the `logic::getClientId` lookup to display stable IDs and variable-height cells that wrap names/contact values. Due/status columns are visible in pending mode. `createRowDisplay` derives text from immutable values and the published date. Recycled rows clear old graphics and status badges; `isViewed` uses reference identity. Table selection never writes model selection. At widths below the visible columns' minimum total, the resize policy permits horizontal scrolling instead of hiding the last columns.
+The left `PersonListPanel` receives only `logic.getFilteredPersonList()`. Its unsortable `TableView` uses the `logic::getClientId` lookup to display stable IDs and variable-height cells that wrap names/contact values. Due/status columns are visible in pending mode. `createRowDisplay` derives text from immutable values and the published date. Recycled rows clear old graphics and status badges; `isViewed` uses reference identity. Table selection never writes model selection. The resize policy compares the visible columns' minimum total with the laid-out row viewport, excluding insets and the vertical scrollbar. When that usable width is insufficient, it enables horizontal scrolling instead of squeezing or hiding the last columns. Skin, viewport and visible-column changes trigger re-evaluation.
 
 The `Client ID` column displays the aggregate's permanent ID rather than a row number. `PersonListPanel.ClientIdCell` obtains it from the `clientIdLookup` function; a client keeps the same label across sorting and filtering. The displayed IDs can have gaps after deletion. Verify long IDs at supported resolutions in the v1.5 display matrix.
 
@@ -367,7 +414,7 @@ For many cards, the test asserts that scrolling reaches the end of the last card
 
 `DisplayMatrixFixture` (in test sources) writes a 1,000-client data file into a fresh folder for packaged-JAR checks and refuses to overwrite an existing file. Client 1 carries long unbroken values, and every tenth client has a follow-up spread across all three statuses relative to a printed reference date (today by default, or an optional `yyyy-MM-dd` argument). The 1,000-client test reuses the same generator, so every test run validates the fixture data.
 
-Logical scene sizes are not evidence of physical scaling, font substitution or OS window behaviour. Record packaged results per OS, JDK, physical resolution and scaling in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md), keeping combinations nobody has run explicitly pending.
+Logical scene sizes are not evidence of physical scaling, font substitution or OS window behaviour. Record packaged results per OS, JDK, physical resolution and scaling in the [v1.5 platform matrix](testing/v1.5/platform-matrix.html), keeping combinations nobody has run explicitly pending.
 
 ### Command submission and feedback
 
@@ -402,6 +449,10 @@ At least one code point must provide visible content: Unicode spaces, format cha
 
 `LogicManager` samples its injected clock once per command candidate. The date is published only when that command succeeds. Separately, `MainApp` refreshes the live date on startup, window focus and a one-minute timer, so statuses update across midnight without a command. A failed command does not itself advance the date; independent focus/timer refreshes can still occur. `MainAppTest` and `LogicManagerTest` cover these two date paths.
 
+#### A follow-up through the system
+
+For `followup 17 d/2099-12-15 m/Discuss renewal`, the dispatcher chooses `FollowUpCommandParser`, which checks shape/prefixes and constructs `SetFollowUpCommand` with the permanent ID and raw values. `LogicManager` supplies an isolated candidate and one sampled date. The command resolves ID 17 globally, validates the date/description and replaces the immutable `Person` while retaining its ID. Storage serializes only the action's date/description with the client record and identity metadata. After a successful save, publication updates the table, selected profile and global pending projection. Each view derives status from the published date; no stored status or independent panel clock is involved.
+
 ### Save-before-publish boundary
 
 `LogicManager.execute` follows this sequence:
@@ -426,10 +477,10 @@ The marker is retained because deleting it could allow a new process to lock a r
 
 ## **Documentation, logging, testing, dev-ops**
 
-* [Documentation guide](Documentation.md)
-* [Testing guide](Testing.md)
-* [Logging guide](Logging.md)
-* [DevOps guide](DevOps.md)
+* [Documentation guide](Documentation.html)
+* [Testing guide](Testing.html)
+* [Logging guide](Logging.html)
+* [DevOps guide](DevOps.html)
 
 ### Diagnostic log fallback
 
@@ -444,9 +495,6 @@ Expect the console warning followed by normal startup logging and the main windo
 On POSIX, also repeat from a disposable readable/searchable but non-writable folder (for example, mode `0500`), restoring its permissions afterwards; later data or preference write failures remain outside this fallback.
 
 --------------------------------------------------------------------------------------------------------------------
-
-**Blank Unicode addresses.** `Address.isValidAddress` requires at least one code point that is neither Unicode whitespace, a space character nor a formatting character. Non-breaking/full-width spaces and zero-width formatting characters alone (or mixed together) are rejected. Visible addresses retain their Unicode content, including internal separators and formatting used by scripts. Parser and storage adapters share this validator.
-
 
 ## **Appendix: Requirements**
 
@@ -464,12 +512,14 @@ On POSIX, also repeat from a disposable readable/searchable but non-writable fol
 
 ### User stories
 
-These stories are delivered in v1.3. The MVP deliberately limits each client to one pending action.
+These stories describe the delivered v1.5 scope. Each client has one pending action.
 
 | Priority | As an insurance agent, I want to... | So that I can... |
 | --- | --- | --- |
 | High | add a client or prospect with contact details | keep their information in one place |
-| High | list clients and search by name or phone number | find the record I need |
+| High | list clients and search by partial name, phone digits or exact tag | find the record I need |
+| High | target clients by permanent IDs across searches and sorting | update the intended record consistently |
+| High | edit contact details without deleting the client | keep information current while retaining their ID and follow-up |
 | High | view a client's complete profile | review context before making contact |
 | High | delete an incorrect client record | remove inaccurate information |
 | High | reload saved data after restarting | retain my work between sessions |
@@ -479,7 +529,7 @@ These stories are delivered in v1.3. The MVP deliberately limits each client to 
 | High | receive useful errors without losing data | correct mistakes safely |
 | Medium | categorize clients with tags | keep relevant context in the profile |
 
-Backlog ideas, outside v1.4: multiple actions/history, notifications, client archiving, import and richer filtering. They are not advertised as available commands.
+Future backlog, outside v1.5: multiple actions/history, notifications, client archiving, import and combined multi-field filtering. They are not advertised as available commands.
 
 ### Use cases
 
@@ -487,7 +537,7 @@ The actor is an individual insurance agent and the system is PolicyHarbor. Each 
 
 **UC01 — Retrieve a client profile**
 
-1. The agent lists all clients or searches their names or phone numbers.
+1. The agent lists all clients or searches names, phone numbers or tags.
 2. The system displays matching clients and their permanent Client IDs.
 3. The agent enters `view ID`.
 4. The system opens that client's complete profile without changing saved data.
@@ -530,7 +580,7 @@ Extensions: an absent action, invalid or unknown Client ID, or save failure prod
 
 1. Should work on Windows, Linux and macOS with Java `25`; macOS uses the prescribed Zulu JDK+FX distribution.
 
-2. Target: hold 1000 clients without noticeable sluggishness in typical usage. The automated stress scenario uses 50 clients; it is not a benchmark proving this target.
+2. Target: hold 1000 clients without noticeable sluggishness in typical usage. The 1,000-client layout fixture checks reachability and rendering, and a separate 50-client scenario checks command workflows. Neither is a timing benchmark proving this target.
 
 3. A user with above-average typing speed for regular English text (i.e. not code or system administration commands) should be able to accomplish most tasks faster using commands than using the mouse.
 
@@ -579,7 +629,7 @@ Test the packaged JAR in a fresh writable folder with Java 25 (the prescribed Zu
    view 1
    ```
 
-   Expect Rachel's contact fields, `Tags: [active] [health]` and `Follow-up: None` in the profile. Only Rachel's row is marked `VIEWING`.
+   Expect Rachel's contact fields, lowercase `active` and `health` tag chips and `Follow-up: None` in the profile. Only Rachel's row is marked `VIEWING`.
 3. Record Rachel's action (ID 1) for today + 2 days and Amanda's (ID 2) for today + 1 day using `followup ID d/DATE m/ACTION`. Use actual `YYYY-MM-DD` dates.
 4. Enter `followups`, then `view 2`. Expect Amanda before Rachel with unchanged IDs, and Amanda's profile open. Replace Amanda's action with today's date to verify the `DUE TODAY` badge.
 5. Close/relaunch from the same folder. Expect all contacts/actions in full insertion order and no profile selection. Resize/move the window, close/relaunch and verify window preferences.
@@ -619,7 +669,8 @@ Start fresh with Rachel and Amanda from the basic workflow.
 | `find 01`, `find 0001`, `find 0 01` | Each returns `0 client(s) listed!`; phone matching is exact and separate tokens are not joined. |
 | `find 001 AMANDA Lim 001` | `2 client(s) listed!`, Rachel then Amanda, each once. |
 | `find` | `Invalid command format!` then the combined bare/explicit search usage. |
-| `find n/rac`, `find p/9123`, `find t/renewal` | Partial name, formatted phone digits and exact tag searches return matching clients once in insertion order. |
+| `find n/rac`, `find p/01`, `find t/HEALTH` | Each returns only Rachel once, with `1 client(s) listed!`; her phone is `001` and her tags include `health`. |
+| `find p/9123`, `find t/renewal` | Each returns `0 client(s) listed!` for this fixture. |
 | `view 0 extra`, `delete 0 extra` | Format error and the corresponding `Usage: ... ID`, before ID syntax. |
 | `view 0`, `view 2147483648`, `delete 0` | `Client ID must be a positive integer from 1 to 2147483647.` |
 | `view 2147483647` | `No client with ID 2147483647.` (when that ID is absent) |
@@ -630,6 +681,15 @@ Start fresh with Rachel and Amanda from the basic workflow.
 | `add a/ t/! e/bad p/12 n/Bad&` | Name constraint first; no record is added. |
 
 After each rejected command, verify that the input stays editable/focused and the client data, list and selected profile are unchanged. On success the command box clears. Date preservation is checked per command; the independent focus/minute refresh can update displayed statuses.
+
+### Editing while preserving identity
+
+Start in a fresh folder with Rachel and Amanda from the basic workflow. Give Rachel a dated follow-up and enter `view 1`.
+
+1. Enter `edit 1 p/+65 9123 4567 t/RENEWAL t/priority`. Expect `Client ID 1 updated: ` followed by the updated contact details and `[priority] [renewal]`. Rachel keeps ID 1, her follow-up and her open profile; the previous `active`/`health` tags are replaced.
+2. Enter `find p/9123`, then `edit 1 p/888`. Rachel leaves these search results and her profile closes, while her global pending action remains. Enter `view 1` to restore the full list and confirm her new phone and unchanged action.
+3. Enter `edit 1 t/`. Expect no tags. Close/restart and verify the edited phone, ID and follow-up persist; selection starts empty.
+4. Enter `edit 1` with no fields, repeat a single-valued prefix, or enter `edit 1 n/Amanda Lee p/002`. Expect the no-fields, duplicate-prefix and duplicate-client diagnostics respectively, with the previous record unchanged.
 
 ### Reserved prefixes in follow-up descriptions
 
@@ -652,7 +712,7 @@ Close the app before editing its JSON; back up the file first.
 2. Remove a record's optional `followUp` or `tags` field and restart. Expect no action/no tags for that client; legacy contact-only records load.
 3. In a separate folder, corrupt the JSON or put an invalid/duplicate client in it. Restart. Expect an empty list and a persistent saved-data warning.
 4. Enter `list`, `find Rachel` and `view 1`. Queries remain available; an unknown permanent Client ID gives `No client with ID 1.`. The warning stays visible.
-5. Try `add`, `delete` or `followup`. Expect the changes-blocked diagnostic before command-specific parsing. Confirm the invalid file's bytes are unchanged.
+5. Try `add`, `edit`, `delete` or `followup`. Expect the changes-blocked diagnostic before command-specific parsing. Confirm the invalid file's bytes are unchanged.
 6. Close the app, restore the valid backup and relaunch. Expect normal writable operation.
 
 ### Recording and replacing overdue carry-over work
@@ -692,12 +752,12 @@ Use a disposable folder and fictional clients. Add at least three clients and as
 1. Run `list`, then `view 1`. Enter `find` with another client's name. Only the client table is filtered; the global pending summary retains all actions. The profile clears when its client leaves the command list.
 2. Run `followups` and select a client using their permanent ID with `view ID`. Replace their action with another valid date. The table reorders by due date without changing Client IDs while the profile and VIEWING markers follow the same record. Clear the action in pending mode; that row and summary card disappear and selection clears.
 3. Submit an invalid command using Enter and then Run. Each activation produces one result, keeps the exact input and restores typing focus. Correct it to `list`; the Error label and input clear. Select/copy a long multiline error and scroll to its final line.
-4. Narrow the main divider and resize the window. Verify horizontal table scrolling, independently scrollable profile/summary and the vertical sidebar divider. At logical sizes corresponding to 1920x1080 at 100%/125% and 1280x720 at 150%, keep command submission, feedback and both views accessible. Record which real OS/scaling combinations were exercised in the [release GUI verification record](Testing.md#v14-release-gui-verification-record); untested combinations remain pending.
+4. Narrow the main divider and resize the window. Verify horizontal table scrolling, independently scrollable profile/summary and the vertical sidebar divider. At logical sizes corresponding to 1920x1080 at 100%/125% and 1280x720 at 150%, keep command submission, feedback and both views accessible. Record which real OS/scaling combinations were exercised in the [v1.5 platform matrix](testing/v1.5/platform-matrix.html); untested combinations remain pending.
 5. Close and restart the packaged JAR in the same folder. Clients/actions persist; session selection resets. Repeat with `java -ea -jar PolicyHarbor.jar` and confirm ordinary validation still works.
 
 ### v1.5 display matrix checks
 
-Run these on each real OS and resolution/scaling combination available, and record the results in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md).
+Run these on each real OS and resolution/scaling combination available, and record the results in the [v1.5 platform matrix](testing/v1.5/platform-matrix.html).
 
 1. Run `DisplayMatrixFixture` from the IDE with a fresh folder as its program argument. Copy the JAR there and launch it from a terminal in that folder.
 2. Enter `list` and scroll to the end of the table. The Client ID of the thousandth fixture client must be fully readable, without an ellipsis. Enter `view 1000`; expect `Showing client ID 1000: Client 1000`.
@@ -721,7 +781,7 @@ The permission-specific cases skip on platforms without POSIX support or account
 
 ### Permanent-ID persistence and recovery checks
 
-Use a disposable working folder and close the application before replacing its data file. Use the single-client JSON example above (ID 17, counter 42).
+Use a disposable working folder and close the application before replacing its data file. Use the [current identity JSON example](#permanent-identity-in-json) above (ID 17, counter 42).
 
 1. Start the app, run `view 17`, and verify Rachel's ID and overdue action. Run `list`, `find Rachel` and `followups`; query commands must leave the file byte-identical.
 2. Run `delete 17`, close and restart. Add a distinct client: expect ID 42, not 1 or 17. Restart again and verify that ID is retained.

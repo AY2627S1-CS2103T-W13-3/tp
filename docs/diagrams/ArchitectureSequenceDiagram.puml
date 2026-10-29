@@ -1,30 +1,26 @@
 @startuml
 !include style.puml
-actor User as user USER_COLOR
+skinparam ParticipantPadding 8
+skinparam sequenceMessageAlign center
 participant ":UI" as ui UI_COLOR
 participant ":Logic" as logic LOGIC_COLOR
 participant "live:Model" as live MODEL_COLOR
 participant "candidate:Model" as candidate MODEL_COLOR
 participant ":Storage" as storage STORAGE_COLOR
-user -> ui : delete 1
 ui -> logic : execute("delete 1")
 activate logic
-note over logic : Parse and sample the command date
+note over logic : Parse; sample today
 logic -> live : forkForCommand(today)
 live --> logic : candidate
 logic -> candidate : deletePerson(person)
-logic -> candidate : getAddressBook()
-candidate --> logic : candidateData
-logic -> storage : saveAddressBook(candidateData)
-alt Save fails
-    storage --> logic : IOException
-    logic --> ui : CommandException
-    note over live : No candidate state is published
-else Save succeeds
+logic -> storage : saveAddressBook(...)
+alt Save succeeds
     storage --> logic
     logic -> live : commitFrom(candidate)
     logic --> ui : CommandResult
+else Save fails
+    storage --> logic : IOException
+    logic --> ui : CommandException
 end
 deactivate logic
-ui --> user : Feedback and refreshed workspace
 @enduml
