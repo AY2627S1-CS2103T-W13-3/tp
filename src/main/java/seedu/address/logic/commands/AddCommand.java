@@ -11,6 +11,8 @@ import seedu.address.commons.util.ToStringBuilder;
 import seedu.address.logic.Messages;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.Model;
+import seedu.address.model.exceptions.ClientIdExhaustedException;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.Person;
 
 /**
@@ -24,8 +26,10 @@ public class AddCommand extends Command {
             + PREFIX_NAME + "NAME " + PREFIX_PHONE + "PHONE_NUMBER " + PREFIX_EMAIL + "EMAIL "
             + PREFIX_ADDRESS + "ADDRESS [" + PREFIX_TAG + "TAG]...";
 
-    public static final String MESSAGE_SUCCESS = "New client added: %1$s";
+    public static final String MESSAGE_SUCCESS = "Client ID %1$s added: %2$s";
     public static final String MESSAGE_DUPLICATE_PERSON = "This client already exists in PolicyHarbor.";
+    public static final String MESSAGE_CLIENT_ID_EXHAUSTED =
+            "No more clients can be added because the client ID limit has been reached.";
 
     private final Person toAdd;
 
@@ -45,8 +49,14 @@ public class AddCommand extends Command {
             throw new CommandException(MESSAGE_DUPLICATE_PERSON);
         }
 
-        model.addPerson(toAdd);
-        return new CommandResult(String.format(MESSAGE_SUCCESS, Messages.format(toAdd)));
+        try {
+            model.addPerson(toAdd);
+        } catch (ClientIdExhaustedException e) {
+            throw new CommandException(MESSAGE_CLIENT_ID_EXHAUSTED, e);
+        }
+        ClientId clientId = model.getAddressBook().getClientId(toAdd)
+                .orElseThrow(() -> new IllegalStateException("Added client has no assigned ID."));
+        return new CommandResult(String.format(MESSAGE_SUCCESS, clientId, Messages.format(toAdd)));
     }
 
     @Override
