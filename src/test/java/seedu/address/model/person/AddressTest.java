@@ -77,6 +77,27 @@ public class AddressTest {
     }
 
     @Test
+    public void isValidAddress_onlyInvisibleCharacters_rejectsBlankText() {
+        for (String invisible : new String[] {
+            "\u115f", "\u1160", "\u3164", "\uffa0", "\u2800",
+            "\u0301", "\u093e", "\u20dd", " \u115f\u1160\u3164\uffa0\u200b\u0301 "
+        }) {
+            assertFalse(Address.isValidAddress(invisible));
+            assertThrows(IllegalArgumentException.class, () -> new Address(invisible));
+        }
+    }
+
+    @Test
+    public void constructor_visibleTextWithInvisibleCharacters_preservesText() {
+        for (String visible : new String[] {
+            "Blk \u3164 123", "\u115f\u1161", "新加坡 🏠 #02-01", "Cafe\u0301", "🏠", "-"
+        }) {
+            assertTrue(Address.isValidAddress(visible));
+            assertEquals(visible, new Address("  " + visible + "  ").value);
+        }
+    }
+
+    @Test
     public void isValidAddress_unpairedSurrogates_rejectsMalformedText() {
         for (String invalid : new String[] {"\uD800", "\uDC00", "\uDC00\uD800", "\uD800A",
             "\uD800\uD800", "A\uDC00B", "\uD83C\uDFE0\uD800"}) {
