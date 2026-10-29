@@ -57,8 +57,8 @@ This guide describes the PolicyHarbor v1.5 client-management workflows. The publ
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
-* Extraneous ordinary text after `list` and `followups` is ignored.<br>
-  For example, `list 123` is interpreted as `list`. Client-ID commands such as `view` require their stated arguments.
+* `list` and `followups` take no arguments. Extra words, numbers or prefixes produce an invalid-command-format error with the correct usage.<br>
+  For example, `list 123` reports `Usage: list (no arguments)`. Use `list` on its own. Ordinary spaces before or after either command are accepted.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 

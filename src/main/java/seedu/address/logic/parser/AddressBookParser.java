@@ -4,6 +4,7 @@ import static seedu.address.commons.util.StringUtil.trimOrdinarySpaces;
 import static seedu.address.logic.Messages.MESSAGE_CHANGES_BLOCKED;
 import static seedu.address.logic.Messages.MESSAGE_EMPTY_COMMAND;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_CHARACTERS;
+import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 
 import java.util.regex.Matcher;
@@ -76,11 +77,24 @@ public class AddressBookParser {
             case DeleteCommand.COMMAND_WORD -> new DeleteCommandParser().parse(arguments);
             case ViewCommand.COMMAND_WORD -> new ViewCommandParser().parse(arguments);
             case FollowUpCommandParser.COMMAND_WORD -> new FollowUpCommandParser().parse(arguments);
-            case FollowUpsCommand.COMMAND_WORD -> new FollowUpsCommand();
+            case FollowUpsCommand.COMMAND_WORD -> {
+                requireNoArguments(arguments, FollowUpsCommand.MESSAGE_USAGE);
+                yield new FollowUpsCommand();
+            }
             case FindCommand.COMMAND_WORD -> new FindCommandParser().parse(arguments);
-            case ListCommand.COMMAND_WORD -> new ListCommand();
+            case ListCommand.COMMAND_WORD -> {
+                requireNoArguments(arguments, ListCommand.MESSAGE_USAGE);
+                yield new ListCommand();
+            }
             default -> throw new ParseException(MESSAGE_UNKNOWN_COMMAND);
         };
+    }
+
+    /** Rejects extra arguments without changing global validation precedence. */
+    private static void requireNoArguments(String arguments, String usage) throws ParseException {
+        if (!trimOrdinarySpaces(arguments).isEmpty()) {
+            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, usage));
+        }
     }
 
     private static boolean containsDisallowedCharacters(String input) {

@@ -125,7 +125,7 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_list() throws Exception {
         assertTrue(parser.parseCommand(ListCommand.COMMAND_WORD) instanceof ListCommand);
-        assertTrue(parser.parseCommand(ListCommand.COMMAND_WORD + " 3") instanceof ListCommand);
+        assertTrue(parser.parseCommand("  list   ") instanceof ListCommand);
     }
 
     @Test
@@ -139,8 +139,31 @@ public class AddressBookParserTest {
     }
 
     @Test
-    public void parseCommand_followUps_ignoresTrailingText() throws Exception {
-        assertTrue(parser.parseCommand("followups any trailing text") instanceof FollowUpsCommand);
+    public void parseCommand_followUps_acceptsOuterSpaces() throws Exception {
+        assertTrue(parser.parseCommand("  followups   ") instanceof FollowUpsCommand);
+    }
+
+    @Test
+    public void parseCommand_noArgumentCommands_rejectsExtraArguments() {
+        for (String command : List.of("list", "followups")) {
+            for (boolean blocked : List.of(false, true)) {
+                for (String suffix : List.of(" words", " 123", " n/Rachel", " list", " \u00a0")) {
+                    String usage = "Usage: " + command + " (no arguments)";
+                    assertThrows(ParseException.class, String.format(MESSAGE_INVALID_COMMAND_FORMAT, usage), () ->
+                            parser.parseCommand(" " + command + suffix + " ", blocked));
+                }
+                assertThrows(ParseException.class, MESSAGE_INVALID_CHARACTERS, () ->
+                        parser.parseCommand(command + " words\n", blocked));
+            }
+        }
+    }
+
+    @Test
+    public void parseCommand_targetedCommands_rejectsExtraTokens() {
+        for (String command : List.of("view 1 words", "delete 1 words", "edit 1 words n/Rachel",
+                "followup 1 clear words", "followup 1 words d/2099-12-31 m/Call client")) {
+            assertThrows(ParseException.class, () -> parser.parseCommand(command));
+        }
     }
 
     @Test
