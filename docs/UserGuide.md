@@ -150,6 +150,8 @@ Address input and recovery:
 * When editing the saved JSON directly, use complete characters. An incomplete Unicode escape pair, such as a lone `\uD800` in an address, causes the whole client file to be rejected at startup, even if the JSON syntax is otherwise correct.
 * In that case, the app shows the saved-data warning and blocks client changes to protect the file. Close the app, back up the file, correct the affected address or restore a valid backup, then restart. Editing the file while the app is open does not clear the warning.
 
+Names made only of invisible Hangul fillers are rejected. Fillers within otherwise visible valid names remain unchanged.
+
 Names such as `Ravi s/o Kumar`, `Priya d/o Raj`, `Mary-Ann Lim`, `Sean O'Brien`, `Tan Ah Kow @ Tan Ah Kau` and `Dr. Lim` can be entered as written. For example: `add n/Ravi s/o Kumar p/91110010 e/ravi@example.com a/Blk 1`.
 
 A client is a duplicate when **their name matches and either their phone or email matches** an existing client. Names are compared ignoring case, Unicode composition and repeated ordinary spaces; phones are compared by digits (so `+65 9123 4567` and `65-9123-4567` match), and emails ignore case. Address, tags and follow-up do not affect this check. Two clients may share a name if both their phone and email differ. Different names may share contact details. Duplicate checks include clients hidden by the current filter.
@@ -184,6 +186,8 @@ Changes are saved before they appear in the list. If saving fails, the previous 
 Shows all clients in insertion order and returns `Listed all clients.`. The open profile stays selected if its client is in the list.
 
 Format: `list`
+
+`list` and `followups` take no arguments. Extra text such as `list Rachel` is rejected with usage feedback; use `find Rachel` to search.
 
 ### Selecting a client: `view`
 
@@ -352,6 +356,16 @@ If `data/addressbook.json` is a symbolic link, PolicyHarbor refuses to save thro
 
 Close the app before copying `data/addressbook.json` to a backup location. Restore a backup while the app is closed, then restart from the JAR folder.
 
+### Existing files, Client IDs and backups
+
+An older file with no Client IDs loads automatically: valid clients receive IDs `1`, `2`, `3`, and so on in saved insertion order. Loading and query commands do not rewrite that file. The first successfully saved change writes the IDs and the next available ID alongside the client details.
+
+Once saved, IDs and the next available ID survive ordinary restarts. Deleting the highest ID, or every client, does not reset the allocation history. Back up and transfer the **complete** `data/addressbook.json`, including each `clientId` and the outer `nextClientId`; copying only the contacts loses that history.
+
+If any identity metadata remains, missing/invalid IDs or an invalid next ID cause protected startup: no clients are partly loaded and mutations are blocked. Close the app, back up the affected file, restore a complete known-good copy, then restart. Do not guess replacement IDs or lower the counter as a repair.
+
+**Identity-history limitation:** if every `clientId` and `nextClientId` is removed or set to `null`, the file is treated as legacy input and receives a new ID history. The app cannot reconstruct discarded IDs or the old counter. Restoring an older backup can likewise restore older history. Neither action is covered by the normal-operation guarantee against ID reuse.
+
 ### Editing the data file
 
 Client data is saved automatically as `data/addressbook.json` relative to the folder from which you run `java -jar PolicyHarbor.jar`. Advanced users can update it directly by editing that file.
@@ -363,7 +377,7 @@ If you see the saved-data warning after editing the file, close PolicyHarbor and
 <div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
 If the data file contains an invalid client or duplicate clients, PolicyHarbor starts with an empty displayed list and blocks client changes. It does not overwrite or partly load the invalid file. Correct the file or restore a backup, then restart the app. Back up the file before editing it.<br>
 Repeated JSON property names within the same object are also rejected, even if their values match. For example, keep only one `persons` property in the file's outer object and one `description` property in each follow-up object. Compare the repeated values with your backup before choosing which value to keep; then restart the app. Different client objects may each have their own `name`, `phone` and other properties.<br>
-Names, addresses, phone numbers, email addresses and tags follow the same validation rules used when adding a client. Outer ordinary spaces are removed; tags are stored in lowercase without duplicates. Missing tags mean no tags. Existing valid overdue follow-ups are preserved. Unrecognised field names are rejected so that misspellings such as `tag` or `followup` cannot silently discard data. Use `tags` and `followUp` exactly as shown in the Developer Guide.
+Saved contact fields, tags, follow-up dates and descriptions must be JSON strings, such as `"phone": "00123"`; numbers and booleans are rejected rather than converted to text. Keep phone numbers quoted to preserve leading zeroes. Names, addresses, phone numbers, email addresses and tags follow the same validation rules used when adding a client. Outer ordinary spaces are removed; tags are stored in lowercase without duplicates. Missing tags mean no tags. Existing valid overdue follow-ups are preserved. Unrecognised field names are rejected so that misspellings such as `tag` or `followup` cannot silently discard data. Use `tags` and `followUp` exactly as shown in the Developer Guide.
 </div>
 
 --------------------------------------------------------------------------------------------------------------------
@@ -391,7 +405,7 @@ Names, addresses, phone numbers, email addresses and tags follow the same valida
 
 * **Window restoration:** PolicyHarbor restores the window on its saved screen when that screen is available. If the saved screen is unavailable, startup fits the window inside the primary screen's usable area. You do not need to delete `preferences.json` when disconnecting a secondary screen.
 * **If the workspace feels cramped on a small or highly scaled display:** maximize the window, then drag the main divider and the sidebar divider towards the area you are reading. The command box and feedback stay at the top of the window; the table and both right-hand panels scroll to show the rest.
-* **Help window:** use the Help menu or `F1` to open the Help window. If a minimised Help window does not reappear, restore it from your operating system's dock or taskbar.
+* **Help window:** use the Help menu or `F1` to open the Help window. Opening Help again restores its minimised window and brings it to the front.
 
 --------------------------------------------------------------------------------------------------------------------
 

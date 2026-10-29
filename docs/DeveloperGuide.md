@@ -151,7 +151,7 @@ This section describes some noteworthy details on how certain features are imple
 
 ### Client-record validation and duplicate rejection
 
-Contact values remain immutable `Name`, `Phone`, `Email` and `Address` objects inside `Person`. Name and address constructors trim outer U+0020 spaces, retaining internal spaces and case. Shared parsers trim only U+0020 for all contact fields. Names accept Unicode letters and combining marks after letters, while keeping ASCII digits and ordinary spaces; tags use ASCII validation; phones accept ASCII digits with an optional leading `+` and single spaces or hyphens between digit groups. Addresses accept Unicode single-line text but reject C0/C1 controls and U+2028/U+2029. Email accepts repeated `+`, `_` and `-` in the local part and interior repeated hyphens in domain labels, while retaining the adjacent alphanumeric pair requirement in the final domain label and preserving stored case.
+Contact values remain immutable `Name`, `Phone`, `Email` and `Address` objects inside `Person`. Name and address constructors trim outer U+0020 spaces, retaining internal spaces and case. Shared parsers trim only U+0020 for all contact fields. Names require visible content (invisible Hangul fillers alone are rejected) and accept Unicode letters and combining marks after letters, while keeping ASCII digits and ordinary spaces; tags use ASCII validation; phones accept ASCII digits with an optional leading `+` and single spaces or hyphens between digit groups. Addresses accept Unicode single-line text but reject C0/C1 controls and U+2028/U+2029. Email accepts repeated `+`, `_` and `-` in the local part and interior repeated hyphens in domain labels, while retaining the adjacent alphanumeric pair requirement in the final domain label and preserving stored case.
 
 **Unicode client names.** `Name.isValidName` scans Unicode code points and rejects controls, invalid surrogate sequences and combining marks without a preceding letter. It retains the entered spelling. Duplicate-name comparison normalizes to NFC and collapses runs of ordinary spaces, then uses `equalsIgnoreCase` consistently with name search; name search normalizes both stored words and keywords to NFC before case-insensitive whole-word comparison. `NameTest`, `PersonTest`, `NameContainsKeywordsPredicateTest` and `JsonAdaptedPersonTest` cover acceptance, rejection and reconstruction.
 
@@ -204,9 +204,32 @@ Tests cover domain partitions, exact messages, validation precedence, normalized
 
 `JsonAdaptedPerson` validates saved contact fields using the domain types after removing outer ordinary spaces, matching command input. `JsonAdaptedTag` validates tags before `Tag` converts them to lowercase; collecting them into a set removes case variants. Missing tags become an empty set. Optional follow-ups, including overdue dates, use the existing follow-up adapter.
 
-`JsonSerializableAddressBook` converts every record before installing the list through `AddressBook.setPersons`. That central collection operation checks every pair with `Person.isDuplicateOf`, including the non-transitive case. Missing entries, invalid values and duplicates become loading failures. `JsonAddressBookStorage` translates them to `DataLoadingException`; `MainApp` then starts with an empty, mutation-blocked model while leaving the saved file unchanged. A repaired file loads on the next startup.
+`JsonSerializableAddressBook` converts every record before calling `AddressBook.restorePersons` with the complete contacts, IDs and next-ID counter. Restoration validates contacts and the identity association before publication, checking every pair with `Person.isDuplicateOf`, including the non-transitive case. Missing entries, invalid values and duplicates become loading failures. `JsonAddressBookStorage` translates them to `DataLoadingException`; `MainApp` then starts with an empty, mutation-blocked model while leaving the saved file unchanged. A repaired file loads on the next startup.
 
 **Unknown client fields.** JSON loading rejects unrecognised properties at the address-book, client and follow-up levels, including `tag` and `followup` misspellings. This uses the same protected startup path and preserves the original bytes. Missing optional `tags` and `followUp` remain valid. `JsonAddressBookStorage` enables strict property checking on its JSON reader; preference loading keeps ignoring unknown properties for compatibility.
+
+#### Permanent identity in JSON
+
+`JsonSerializableAddressBook(ReadOnlyAddressBook)` snapshots `nextClientId` and constructs each `JsonAdaptedPerson` with the canonical record's aggregate-owned `ClientId`. The adapters do not infer IDs from display order. The serialized shape is:
+
+```json
+{
+  "nextClientId": 42,
+  "persons": [
+    {"clientId": 17, "name": "Rachel Lim", "phone": "00123",
+     "email": "rachel@example.com", "address": "Blk 123", "tags": [],
+     "followUp": {"dueDate": "2020-01-01", "description": "Call client"}}
+  ]
+}
+```
+
+The two identity fields enter creator parameters as `JsonNode`. Before numeric conversion, adapters require integral JSON numbers: client IDs in `1..2147483647` and the counter in `1..2147483648`. Strings, booleans, fractions, containers and overflow are rejected. The aggregate additionally rejects duplicate IDs or a counter not greater than every allocated ID. Empty books preserve their supplied counter, including the exhausted sentinel.
+
+A file is legacy only when every client ID and the root counter are absent or null. All contact values are reconstructed before assigning insertion-order IDs `1..N` and counter `N+1`. Reading does not rewrite the file; the existing atomic writer saves the complete new schema on a successful mutation. If any identity value is non-null, strict validation applies throughout: mixed/missing/null metadata cannot trigger partial renumbering.
+
+The all-null rule is an explicit compatibility trade-off. A formerly migrated file whose entire identity history was externally removed/nullified is indistinguishable from legacy input. It resets to insertion-order IDs; recovery of former gaps and the high-water counter requires a complete backup. Normal operations never clear this metadata. `ClientIdMigrationTest` checks the reset/no-rewrite boundary and complete-backup restoration; `ClientIdRoundTripTest` covers gapped IDs, empty/exhausted counters, deletion/restart and failed-save retry. `ClientIdLoadingProtectionTest` verifies whole-file protection, partial-null rejection and private diagnostics.
+
+**Saved text types.** `StoredTextDeserializer` is applied only to the saved contact/follow-up text creator parameters and tag string conversion. It accepts string tokens, leaving null handling to the existing required-field/domain checks; non-string values produce a mapping failure before domain validation. It does not alter the shared mapper or preference coercion rules. `SavedTextTypeRecoveryTest` checks whole-file rejection, blocked mutations, unchanged bytes and repair/restart across scalar/container/null cases.
 
 **Strict JSON parsing.** `JsonUtil.fromJsonString` reads one root value and checks that no additional tokens remain. Client-data reads opt into Jackson's `STRICT_DUPLICATE_DETECTION` on their parser, which rejects repeated property names within any one object, including nested objects and escaped spellings of the same name; the same property name in separate objects remains valid. Trailing non-whitespace content, including a second JSON value, causes loading to fail; trailing JSON whitespace remains valid. `JsonUtil.readJsonFile` also rejects a null root. These checks apply before saved client records are converted. A client-data loading failure follows the protected startup path above: the empty model blocks mutations and preserves the original file. Repair the file or restore a valid backup, then restart the application before resuming client modifications. `JsonUserPrefsStorage` retains the legacy last-value behavior for duplicate preference properties; the shared mapper is not configured globally for strict duplicate detection. `DuplicateJsonPreferencesTest` verifies that startup retains and saves those preferences instead of replacing them with defaults. `JsonDuplicatePropertyTest` covers property uniqueness and separate-object controls; `DuplicateJsonRecoveryTest` verifies protected startup, query access, blocked mutations, byte preservation and recovery after repair for duplicate root, client and follow-up properties.
 
@@ -662,7 +685,7 @@ Help window and data-file footer (automated tests cover only the URL constant an
 5. Press Esc. Expect Help to close. Press F1 again; the previous copy message is cleared.
 6. Run `StatusBarFooterLongPathFixture` (in `src/test/java/seedu/address/ui`) from the IDE. It shows the footer for a path of about 200 characters. The footer must end with `addressbook.json`. Hovering it must show the full path wrapped within the screen, without clipping, until the pointer leaves. (The app always uses `data/addressbook.json`, so this path cannot be set through `preferences.json`.)
 
-### Integrated v1.4 dashboard checks
+### Integrated dashboard checks
 
 Use a disposable folder and fictional clients. Add at least three clients and assign actions for yesterday, today and a future date; use the automated fixed-date fixtures for additional date-boundary scenarios.
 
@@ -695,3 +718,15 @@ The reader instead attempts the load, allowing the existing I/O-to-`DataLoadingE
 Restoring folder access does not unlock that model: the user must restart so that the original client data is loaded before changes resume.
 `InaccessibleDataRecoveryTest` uses temporary POSIX directory permissions to verify protected startup, unchanged bytes after access returns, and successful recovery after restart.
 The permission-specific cases skip on platforms without POSIX support or accounts that bypass the access restriction; existing missing-file tests retain portable first-launch coverage.
+
+### Permanent-ID persistence and recovery checks
+
+Use a disposable working folder and close the application before replacing its data file. Use the single-client JSON example above (ID 17, counter 42).
+
+1. Start the app, run `view 17`, and verify Rachel's ID and overdue action. Run `list`, `find Rachel` and `followups`; query commands must leave the file byte-identical.
+2. Run `delete 17`, close and restart. Add a distinct client: expect ID 42, not 1 or 17. Restart again and verify that ID is retained.
+3. With the app closed, restore the original example and make the counter 17, equal to the existing ID. Restart: expect the persistent saved-data warning, an empty displayed list and blocked mutations. Queries remain available; the invalid file must remain unchanged.
+4. Close the app, restore the complete valid example, and restart. `view 17` must work and a successful mutation must survive another restart. Repairing the file without restarting a protected session must not unlock mutations.
+5. For legacy compatibility, remove every ID and the counter from a disposable valid copy. Loading assigns insertion-order IDs without rewriting. The first successful mutation writes the new schema. Nullifying all identity fields has the same reset behavior; never perform that experiment on the only copy of real client data.
+
+These checks supplement the automated storage/transaction regressions; they do not replace the physical keyboard, scrolling and platform matrix.
