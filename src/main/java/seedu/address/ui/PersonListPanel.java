@@ -138,11 +138,12 @@ public class PersonListPanel extends UiPart<Region> {
         String name = person.getName().fullName;
         String phone = person.getPhone().value;
         String email = person.getEmail().value;
-        if (!showingFollowUps || person.getFollowUp().isEmpty()) {
+        Optional<FollowUp> pendingFollowUp = person.getFollowUp();
+        if (!showingFollowUps || pendingFollowUp.isEmpty()) {
             return new RowDisplay(name, phone, email, "", "", "");
         }
 
-        FollowUp followUp = person.getFollowUp().orElseThrow();
+        FollowUp followUp = pendingFollowUp.orElseThrow();
         FollowUpStatus status = followUp.getStatus(today);
         String statusStyleClass = switch (status) {
             case OVERDUE -> "follow-up-status-overdue";

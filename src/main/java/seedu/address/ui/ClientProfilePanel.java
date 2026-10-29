@@ -11,6 +11,7 @@ import java.util.function.Function;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
@@ -75,10 +76,10 @@ public class ClientProfilePanel extends UiPart<Region> {
         selectedPerson.addListener((InvalidationListener) observable -> {
             Person newPerson = selectedPerson.get();
             Optional<ClientId> nextId = lookupId(newPerson);
-            boolean sameClient = renderedClientId.isPresent() && renderedClientId.equals(nextId);
+            boolean isSameClient = renderedClientId.isPresent() && renderedClientId.equals(nextId);
             renderedClientId = nextId;
             render(newPerson, today.get());
-            if (!sameClient) {
+            if (!isSameClient) {
                 ScrollPane scroll = (ScrollPane) getRoot();
                 scroll.setVvalue(scroll.getVmin());
             }
@@ -94,16 +95,23 @@ public class ClientProfilePanel extends UiPart<Region> {
     private void render(Person selectedPerson, LocalDate today) {
         ProfileDisplay display = createDisplay(selectedPerson, today);
         noSelectionMessage.setText(display.noSelection());
-        noSelectionMessage.setVisible(!display.hasSelection());
-        noSelectionMessage.setManaged(!display.hasSelection());
-        profileDetails.setVisible(display.hasSelection());
-        profileDetails.setManaged(display.hasSelection());
+        setShown(noSelectionMessage, !display.hasSelection());
+        setShown(profileDetails, display.hasSelection());
+        renderContactDetails(selectedPerson, display);
+        renderTags(display);
+        renderFollowUp(display);
+    }
 
+    /** Updates contact values without changing the selection or its scroll position. */
+    private void renderContactDetails(Person selectedPerson, ProfileDisplay display) {
         clientId.setText(lookupId(selectedPerson).map(id -> "Client ID " + id).orElse(""));
         name.setText(display.name());
         phone.setText(display.phone());
         email.setText(display.email());
         address.setText(display.address());
+    }
+
+    private void renderTags(ProfileDisplay display) {
         tagChips.getChildren().clear();
         display.tags().forEach(tag -> {
             Label chip = new WrappingTagChip(tag);
@@ -114,15 +122,14 @@ public class ClientProfilePanel extends UiPart<Region> {
             chip.maxWidthProperty().bind(tagChips.widthProperty());
             tagChips.getChildren().add(chip);
         });
-        tagsNone.setVisible(display.hasSelection() && display.tags().isEmpty());
-        tagsNone.setManaged(display.hasSelection() && display.tags().isEmpty());
+        setShown(tagsNone, display.hasSelection() && display.tags().isEmpty());
+    }
 
+    private void renderFollowUp(ProfileDisplay display) {
         FollowUpDisplay followUp = display.followUp();
         followUpNone.setText(followUp.none());
-        followUpNone.setVisible(display.hasSelection() && !followUp.hasFollowUp());
-        followUpNone.setManaged(display.hasSelection() && !followUp.hasFollowUp());
-        followUpDetails.setVisible(display.hasSelection() && followUp.hasFollowUp());
-        followUpDetails.setManaged(display.hasSelection() && followUp.hasFollowUp());
+        setShown(followUpNone, display.hasSelection() && !followUp.hasFollowUp());
+        setShown(followUpDetails, display.hasSelection() && followUp.hasFollowUp());
         followUpDate.setText(followUp.date());
         followUpAction.setText(followUp.action());
         followUpStatus.setText(followUp.status());
@@ -130,6 +137,12 @@ public class ClientProfilePanel extends UiPart<Region> {
         if (followUp.hasFollowUp()) {
             followUpStatus.getStyleClass().add(followUp.statusStyleClass());
         }
+    }
+
+    /** Keeps layout participation in sync with visibility. */
+    private static void setShown(Node node, boolean isShown) {
+        node.setVisible(isShown);
+        node.setManaged(isShown);
     }
 
     /** Builds the exact visible values without reading a clock or changing model state. */
