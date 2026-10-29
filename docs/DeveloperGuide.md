@@ -95,7 +95,7 @@ Here's a (partial) class diagram of the `Logic` component:
 
 The sequence diagram below illustrates the interactions within the `Logic` component, taking `execute("delete 1")` API call as an example.
 
-![Interactions Inside the Logic Component for the `delete 1` Command](images/DeleteSequenceDiagram.png)
+The updated [delete command sequence diagram source](diagrams/DeleteSequenceDiagram.puml) shows global permanent-ID resolution against the complete address book. Its older rendered screenshot is omitted until regenerated, because it still shows row-index targeting.
 
 How the `Logic` component works:
 
@@ -106,7 +106,7 @@ How the `Logic` component works:
 
 Here are the other classes in `Logic` (omitted from the class diagram above) that are used for parsing a user command:
 
-<img src="images/ParserClasses.png" width="600"/>
+See the updated [parser class diagram source](diagrams/ParserClasses.puml), where `ViewCommandParser` and `FollowUpCommandParser` depend on `ClientIdParserUtil.parseClientId()`. The older rendered image is omitted until regenerated.
 
 How the parsing works:
 
