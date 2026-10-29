@@ -16,15 +16,12 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import javafx.application.Platform;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -47,6 +44,8 @@ import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.FxTestSupport;
+import seedu.address.testutil.FxTestSupport.ThrowingRunnable;
 import seedu.address.testutil.PersonBuilder;
 
 /** Checks component wiring through the real window, command executor and temporary storage. */
@@ -58,16 +57,7 @@ public class DashboardIntegrationTest {
 
     @BeforeAll
     public static void initializeToolkit() throws Exception {
-        FutureTask<Void> initialize = new FutureTask<>(() -> {
-            Platform.setImplicitExit(false);
-            return null;
-        });
-        try {
-            Platform.startup(initialize);
-        } catch (IllegalStateException alreadyStarted) {
-            Platform.runLater(initialize);
-        }
-        initialize.get(10, TimeUnit.SECONDS);
+        FxTestSupport.initializeToolkit();
     }
 
     @Test
@@ -295,16 +285,6 @@ public class DashboardIntegrationTest {
     }
 
     private static void runOnFx(ThrowingRunnable action) throws Exception {
-        FutureTask<Void> task = new FutureTask<>(() -> {
-            action.run();
-            return null;
-        });
-        Platform.runLater(task);
-        task.get(20, TimeUnit.SECONDS);
-    }
-
-    @FunctionalInterface
-    private interface ThrowingRunnable {
-        void run() throws Exception;
+        FxTestSupport.runOnFx(action, 20);
     }
 }

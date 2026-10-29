@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.model.person.ClientId;
 
-/** Tests delete argument shape before shared index syntax. */
+/** Tests delete argument shape before permanent Client ID syntax. */
 public class DeleteCommandParserTest {
 
     private final DeleteCommandParser parser = new DeleteCommandParser();
@@ -29,7 +29,7 @@ public class DeleteCommandParserTest {
     }
 
     @Test
-    public void parse_singleInvalidToken_preservesIndexError() {
+    public void parse_singleInvalidToken_preservesClientIdError() {
         for (String invalid : List.of("a", "0", "-1", "1.5", "2147483648", "١")) {
             assertParseFailure(parser, invalid, "Client ID must be a positive integer from 1 to 2147483647.");
         }

@@ -3,7 +3,6 @@ package seedu.address.logic.commands;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -255,7 +254,7 @@ public class ClientRecordCommandsTest {
         byte[] bytesBefore = Files.readAllBytes(storage.getAddressBookFilePath());
         int savesBefore = storage.saveCount;
 
-        Exception error = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () ->
+        CommandException error = org.junit.jupiter.api.Assertions.assertThrows(CommandException.class, () ->
                 logic.execute("add n/Amanda Lee p/333 e/amanda@example.com a/Street"));
 
         assertTrue(error.getMessage().contains("ID"));
@@ -268,7 +267,6 @@ public class ClientRecordCommandsTest {
         assertFalse(model.hasUnsavedChanges());
         assertEquals(before, storage.readAddressBook().orElseThrow());
         assertArrayEquals(bytesBefore, Files.readAllBytes(storage.getAddressBookFilePath()));
-        assertInstanceOf(CommandException.class, error);
     }
 
     private void assertRejectedWithoutChanges(String input, Class<? extends Throwable> exception, String message)
@@ -276,14 +274,14 @@ public class ClientRecordCommandsTest {
         AddressBook original = new AddressBook(model.getAddressBook());
         List<Person> originalRows = new ArrayList<>(model.getFilteredPersonList());
         LocalDate originalToday = model.getToday();
-        boolean originalMode = model.showingFollowUpsProperty().get();
+        boolean wasShowingFollowUps = model.showingFollowUpsProperty().get();
         byte[] originalBytes = Files.readAllBytes(storage.getAddressBookFilePath());
         int originalSaves = storage.saveCount;
         assertThrows(exception, message, () -> logic.execute(input));
         assertEquals(original, model.getAddressBook());
         assertEquals(originalRows, model.getFilteredPersonList());
         assertEquals(originalToday, model.getToday());
-        assertEquals(originalMode, model.showingFollowUpsProperty().get());
+        assertEquals(wasShowingFollowUps, model.showingFollowUpsProperty().get());
         assertEquals(originalSaves, storage.saveCount);
         assertFalse(model.hasUnsavedChanges());
         assertArrayEquals(originalBytes, Files.readAllBytes(storage.getAddressBookFilePath()));

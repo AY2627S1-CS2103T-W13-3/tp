@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.commands.FollowUpCommandTestUtil.assertFailureUnchanged;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.BENSON;
 
@@ -13,11 +14,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import seedu.address.logic.commands.exceptions.CommandException;
-import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
-import seedu.address.model.ModelManager;
-import seedu.address.model.UserPrefs;
 import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.FollowUpStatus;
@@ -87,7 +84,7 @@ public class SetFollowUpCommandTest {
     }
 
     @Test
-    public void execute_searchView_targetsDisplayedRowAndKeepsFilter() throws Exception {
+    public void execute_searchView_targetsClientIdAndKeepsFilter() throws Exception {
         Model model = modelWith(ALICE, BENSON);
         model.updateFilteredPersonList(person -> person.equals(BENSON));
 
@@ -101,7 +98,7 @@ public class SetFollowUpCommandTest {
     }
 
     @Test
-    public void execute_invalidDisplayedIndex_precedesInvalidDateAndDescription() {
+    public void execute_unknownClientId_precedesInvalidDateAndDescription() {
         Model model = modelWith(ALICE, BENSON);
         model.updateFilteredPersonList(person -> person.equals(BENSON));
         assertFailureUnchanged(new SetFollowUpCommand(new ClientId(3), "bad", ""), model,
@@ -192,7 +189,7 @@ public class SetFollowUpCommandTest {
     }
 
     @Test
-    public void equals_comparesIndexAndRawValues() {
+    public void equals_comparesClientIdAndRawValues() {
         SetFollowUpCommand command = new SetFollowUpCommand(FIRST, "2026-10-07", "Call");
         assertEquals(command, command);
         assertEquals(command, new SetFollowUpCommand(FIRST, "2026-10-07", "Call"));
@@ -211,25 +208,6 @@ public class SetFollowUpCommandTest {
     }
 
     private static Model modelWith(Person... persons) {
-        AddressBook data = new AddressBook();
-        for (Person person : persons) {
-            data.addPerson(person);
-        }
-        return new ModelManager(data, new UserPrefs(), TODAY, false);
-    }
-
-    private static void assertFailureUnchanged(Command command, Model model, String message) {
-        List<Person> before = List.copyOf(model.getAddressBook().getPersonList());
-        List<Person> displayed = List.copyOf(model.getFilteredPersonList());
-        boolean pending = model.showingFollowUpsProperty().get();
-        LocalDate today = model.getToday();
-        boolean dirty = model.hasUnsavedChanges();
-        CommandException error = assertThrows(CommandException.class, () -> command.execute(model));
-        assertEquals(message, error.getMessage());
-        assertEquals(before, model.getAddressBook().getPersonList());
-        assertEquals(displayed, model.getFilteredPersonList());
-        assertEquals(pending, model.showingFollowUpsProperty().get());
-        assertEquals(today, model.getToday());
-        assertEquals(dirty, model.hasUnsavedChanges());
+        return FollowUpCommandTestUtil.createModel(TODAY, persons);
     }
 }

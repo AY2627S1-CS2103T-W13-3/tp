@@ -16,16 +16,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -47,6 +43,7 @@ import seedu.address.model.ModelManager;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.FxTestSupport;
 
 public class CommandPasteTest {
 
@@ -54,19 +51,9 @@ public class CommandPasteTest {
     public Path temporaryFolder;
 
     @BeforeAll
-    public static void initializeToolkit() throws InterruptedException {
+    public static void initializeToolkit() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless(), "JavaFX clipboard tests require a graphical session");
-        CountDownLatch initialized = new CountDownLatch(1);
-        Runnable initialize = () -> {
-            Platform.setImplicitExit(false);
-            initialized.countDown();
-        };
-        try {
-            Platform.startup(initialize);
-        } catch (IllegalStateException alreadyStarted) {
-            Platform.runLater(initialize);
-        }
-        assertTrue(initialized.await(10, TimeUnit.SECONDS), "JavaFX toolkit did not start");
+        FxTestSupport.initializeToolkit();
     }
 
     @Test
@@ -254,13 +241,40 @@ public class CommandPasteTest {
         });
     }
 
-    private void assertInvalidPasteThenSubmitOriginalDraft(boolean useRunButton) throws Exception {
+    private void assertInvalidPasteThenSubmitOriginalDraft(boolean shouldUseRunButton) throws Exception {
         runOnFxThread(() -> {
-            Path dataFile = temporaryFolder.resolve("clients.json");
-            ModelManager model = new ModelManager();
-            JsonAddressBookStorage addressBookStorage = new JsonAddressBookStorage(dataFile);
-            List<String> executedCommands = new ArrayList<>();
-            LogicManager logic = new LogicManager(model, new StorageManager(addressBookStorage,
+            try (DraftSubmissionFixture fixture = new DraftSubmissionFixture()) {
+                fixture.prepareDraft();
+                withRestoredClipboard(() -> {
+                    fixture.pasteInvalidCommand();
+                    fixture.assertRejectedPastePreservesDraft();
+                    fixture.submit(shouldUseRunButton);
+                    fixture.assertOriginalDraftSubmitted();
+                });
+                fixture.assertSavedDataMatches();
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Owns the real window and storage used to submit a draft after rejecting a paste.
+     */
+    private class DraftSubmissionFixture implements AutoCloseable {
+        private final Path dataFile = temporaryFolder.resolve("clients.json");
+        private final ModelManager model = new ModelManager();
+        private final JsonAddressBookStorage addressBookStorage = new JsonAddressBookStorage(dataFile);
+        private final List<String> executedCommands = new ArrayList<>();
+        private final String originalAddress = "Original draft address";
+        private final String originalCommand = "add n/Alice p/111 e/alice@example.com a/" + originalAddress;
+        private final MainWindow window = new MainWindow(new Stage(), createRecordingLogic(), dataFile);
+        private TextField input;
+        private TextArea feedback;
+        private Label feedbackStatus;
+        private Button run;
+
+        private LogicManager createRecordingLogic() {
+            return new LogicManager(model, new StorageManager(addressBookStorage,
                     new JsonUserPrefsStorage(temporaryFolder.resolve("preferences.json")))) {
                 @Override
                 public CommandResult execute(String commandText) throws CommandException, ParseException {
@@ -268,53 +282,62 @@ public class CommandPasteTest {
                     return super.execute(commandText);
                 }
             };
-            MainWindow window = new MainWindow(new Stage(), logic, dataFile);
-            try {
-                window.fillInnerParts();
-                Scene scene = window.getPrimaryStage().getScene();
-                TextField input = (TextField) scene.lookup("#commandTextField");
-                TextArea feedback = (TextArea) scene.lookup("#resultDisplay");
-                Label feedbackStatus = (Label) scene.lookup("#feedbackStatus");
-                Button run = (Button) scene.lookup("#runButton");
-                String originalAddress = "Original draft address";
-                String originalCommand = "add n/Alice p/111 e/alice@example.com a/" + originalAddress;
-                input.setText(originalCommand);
-                input.selectRange(originalCommand.length(), originalCommand.indexOf(originalAddress));
-                withRestoredClipboard(() -> {
-                    setClipboard("add n/Bob p/222 e/bob@example.com a/Rejected\nClipboard");
+        }
 
-                    input.paste();
+        private void prepareDraft() {
+            window.fillInnerParts();
+            Scene scene = window.getPrimaryStage().getScene();
+            input = (TextField) scene.lookup("#commandTextField");
+            feedback = (TextArea) scene.lookup("#resultDisplay");
+            feedbackStatus = (Label) scene.lookup("#feedbackStatus");
+            run = (Button) scene.lookup("#runButton");
+            input.setText(originalCommand);
+            input.selectRange(originalCommand.length(), originalCommand.indexOf(originalAddress));
+        }
 
-                    assertEquals(originalCommand, input.getText());
-                    assertEquals(originalCommand.length(), input.getAnchor());
-                    assertEquals(originalCommand.indexOf(originalAddress), input.getCaretPosition());
-                    assertEquals(originalAddress, input.getSelectedText());
-                    assertTrue(input.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS));
-                    assertEquals(Messages.MESSAGE_INVALID_CHARACTERS, feedback.getText());
-                    assertTrue(feedbackStatus.isVisible());
-                    assertTrue(executedCommands.isEmpty(), "Rejecting a paste must not execute the existing draft");
-                    assertTrue(model.getAddressBook().getPersonList().isEmpty());
-                    assertFalse(Files.exists(dataFile), "Rejecting a paste must not save any client data");
+        private void pasteInvalidCommand() {
+            setClipboard("add n/Bob p/222 e/bob@example.com a/Rejected\nClipboard");
+            input.paste();
+        }
 
-                    if (useRunButton) {
-                        run.fire();
-                    } else {
-                        input.fireEvent(new ActionEvent());
-                    }
+        private void assertRejectedPastePreservesDraft() {
+            assertEquals(originalCommand, input.getText());
+            assertEquals(originalCommand.length(), input.getAnchor());
+            assertEquals(originalCommand.indexOf(originalAddress), input.getCaretPosition());
+            assertEquals(originalAddress, input.getSelectedText());
+            assertTrue(input.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS));
+            assertEquals(Messages.MESSAGE_INVALID_CHARACTERS, feedback.getText());
+            assertTrue(feedbackStatus.isVisible());
+            assertTrue(executedCommands.isEmpty(), "Rejecting a paste must not execute the existing draft");
+            assertTrue(model.getAddressBook().getPersonList().isEmpty());
+            assertFalse(Files.exists(dataFile), "Rejecting a paste must not save any client data");
+        }
 
-                    assertEquals(List.of(originalCommand), executedCommands);
-                    assertEquals(1, model.getAddressBook().getPersonList().size());
-                    assertEquals(originalAddress, model.getAddressBook().getPersonList().getFirst().getAddress().value);
-                    assertEquals("", input.getText());
-                    assertFalse(input.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS));
-                    assertFalse(feedbackStatus.isVisible());
-                });
-                assertEquals(model.getAddressBook(), addressBookStorage.readAddressBook().orElseThrow());
-            } finally {
-                window.getPrimaryStage().close();
+        private void submit(boolean shouldUseRunButton) {
+            if (shouldUseRunButton) {
+                run.fire();
+            } else {
+                input.fireEvent(new ActionEvent());
             }
-            return null;
-        });
+        }
+
+        private void assertOriginalDraftSubmitted() {
+            assertEquals(List.of(originalCommand), executedCommands);
+            assertEquals(1, model.getAddressBook().getPersonList().size());
+            assertEquals(originalAddress, model.getAddressBook().getPersonList().getFirst().getAddress().value);
+            assertEquals("", input.getText());
+            assertFalse(input.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS));
+            assertFalse(feedbackStatus.isVisible());
+        }
+
+        private void assertSavedDataMatches() throws Exception {
+            assertEquals(model.getAddressBook(), addressBookStorage.readAddressBook().orElseThrow());
+        }
+
+        @Override
+        public void close() {
+            window.getPrimaryStage().close();
+        }
     }
 
     private static void pressPasteShortcut(TextField input) {
@@ -357,8 +380,6 @@ public class CommandPasteTest {
     }
 
     private static <T> T runOnFxThread(Callable<T> action) throws Exception {
-        FutureTask<T> task = new FutureTask<>(action);
-        Platform.runLater(task);
-        return task.get(10, TimeUnit.SECONDS);
+        return FxTestSupport.callOnFx(action, 10);
     }
 }
