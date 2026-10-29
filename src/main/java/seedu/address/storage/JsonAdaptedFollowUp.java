@@ -2,6 +2,7 @@ package seedu.address.storage;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import seedu.address.commons.exceptions.IllegalValueException;
 import seedu.address.model.person.FollowUp;
@@ -12,8 +13,9 @@ class JsonAdaptedFollowUp {
     private final String description;
 
     @JsonCreator
-    public JsonAdaptedFollowUp(@JsonProperty("dueDate") String dueDate,
-            @JsonProperty("description") String description) {
+    public JsonAdaptedFollowUp(
+            @JsonProperty("dueDate") @JsonDeserialize(using = StoredTextDeserializer.class) String dueDate,
+            @JsonProperty("description") @JsonDeserialize(using = StoredTextDeserializer.class) String description) {
         this.dueDate = dueDate;
         this.description = description;
     }
