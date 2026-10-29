@@ -13,20 +13,19 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import seedu.address.commons.core.index.Index;
-import seedu.address.logic.Messages;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 
 /** Tests clearing an action without deleting the client or resetting the view. */
 public class ClearFollowUpCommandTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 7);
-    private static final Index FIRST = Index.fromOneBased(1);
+    private static final ClientId FIRST = new ClientId(1);
     private static final Person ALICE_PENDING = ALICE.withFollowUp(new FollowUp(TODAY, "Call Alice"));
     private static final Person BENSON_OVERDUE = BENSON.withFollowUp(new FollowUp(TODAY.minusDays(1), "Call Benson"));
 
@@ -36,7 +35,7 @@ public class ClearFollowUpCommandTest {
 
         CommandResult result = new ClearFollowUpCommand(FIRST).execute(model);
 
-        assertEquals("Follow-up for Alice Pauline cleared.", result.getFeedbackToUser());
+        assertEquals("Follow-up for client ID 1: Alice Pauline cleared.", result.getFeedbackToUser());
         assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
         assertEquals(List.of(ALICE, BENSON), model.getFilteredPersonList());
         assertTrue(model.hasUnsavedChanges());
@@ -49,9 +48,9 @@ public class ClearFollowUpCommandTest {
         Model model = modelWith(ALICE_PENDING, BENSON_OVERDUE);
         model.showPendingFollowUps();
 
-        CommandResult result = new ClearFollowUpCommand(FIRST).execute(model);
+        CommandResult result = new ClearFollowUpCommand(new ClientId(2)).execute(model);
 
-        assertEquals("Follow-up for Benson Meier cleared.", result.getFeedbackToUser());
+        assertEquals("Follow-up for client ID 2: Benson Meier cleared.", result.getFeedbackToUser());
         assertEquals(List.of(ALICE_PENDING, BENSON), model.getAddressBook().getPersonList());
         assertEquals(List.of(ALICE_PENDING), model.getFilteredPersonList());
         assertTrue(model.showingFollowUpsProperty().get());
@@ -66,7 +65,7 @@ public class ClearFollowUpCommandTest {
         Model model = modelWith(ALICE_PENDING, BENSON_OVERDUE);
         model.updateFilteredPersonList(person -> person.getName().equals(BENSON.getName()));
 
-        new ClearFollowUpCommand(FIRST).execute(model);
+        new ClearFollowUpCommand(new ClientId(2)).execute(model);
 
         assertEquals(List.of(BENSON), model.getFilteredPersonList());
         assertEquals(List.of(ALICE_PENDING, BENSON), model.getAddressBook().getPersonList());
@@ -84,12 +83,12 @@ public class ClearFollowUpCommandTest {
     public void execute_invalidDisplayedIndex_failsBeforePresenceCheck() {
         Model model = modelWith(ALICE_PENDING, BENSON);
         model.showPendingFollowUps();
-        assertFailureUnchanged(new ClearFollowUpCommand(Index.fromOneBased(2)), model,
-                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
-        assertFailureUnchanged(new ClearFollowUpCommand(Index.fromOneBased(Integer.MAX_VALUE)), model,
-                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+        assertFailureUnchanged(new ClearFollowUpCommand(new ClientId(3)), model,
+                "No client with ID 3.");
+        assertFailureUnchanged(new ClearFollowUpCommand(new ClientId(Integer.MAX_VALUE)), model,
+                "No client with ID 2147483647.");
         assertFailureUnchanged(new ClearFollowUpCommand(FIRST), modelWith(),
-                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                "No client with ID 1.");
     }
 
     @Test
@@ -121,14 +120,14 @@ public class ClearFollowUpCommandTest {
         ClearFollowUpCommand command = new ClearFollowUpCommand(FIRST);
         assertEquals(command, command);
         assertEquals(command, new ClearFollowUpCommand(FIRST));
-        assertNotEquals(command, new ClearFollowUpCommand(Index.fromOneBased(2)));
+        assertNotEquals(command, new ClearFollowUpCommand(new ClientId(2)));
         assertNotEquals(command, null);
         assertNotEquals(command, "clear");
     }
 
     @Test
     public void toStringMethod() {
-        assertEquals(ClearFollowUpCommand.class.getCanonicalName() + "{targetIndex=" + FIRST + "}",
+        assertEquals(ClearFollowUpCommand.class.getCanonicalName() + "{targetId=" + FIRST + "}",
                 new ClearFollowUpCommand(FIRST).toString());
     }
 

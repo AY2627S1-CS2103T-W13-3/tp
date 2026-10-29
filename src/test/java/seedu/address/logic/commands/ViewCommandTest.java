@@ -17,7 +17,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import seedu.address.commons.core.index.Index;
 import seedu.address.logic.LogicManager;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.exceptions.ParseException;
@@ -26,6 +25,7 @@ import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.ClientId;
 import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
@@ -51,11 +51,11 @@ public class ViewCommandTest {
         Model model = createModel(false);
         assertView(model, 2, second);
         model.updateFilteredPersonList(person -> person == second);
-        assertView(model, 1, second);
+        assertView(model, 2, second);
         model.showPendingFollowUps();
         assertEquals(List.of(second, first), model.getFilteredPersonList());
-        assertView(model, 1, second);
-        assertView(model, 2, first);
+        assertView(model, 2, second);
+        assertView(model, 1, first);
     }
 
     @Test
@@ -67,14 +67,14 @@ public class ViewCommandTest {
         Model model = new ModelManager(addressBook, new UserPrefs(), TODAY, false);
         LogicManager logic = createLogic(model);
 
-        assertEquals("Showing client: Amanda Lee", logic.execute("view 02").getFeedbackToUser());
+        assertEquals("Showing client ID 2: Amanda Lee", logic.execute("view 02").getFeedbackToUser());
         assertSame(amanda, model.selectedPersonProperty().get());
-        assertEquals("Showing client: Rachel Lim", logic.execute("view 1").getFeedbackToUser());
+        assertEquals("Showing client ID 1: Rachel Lim", logic.execute("view 1").getFeedbackToUser());
         assertSame(first, model.selectedPersonProperty().get());
 
         model.showPendingFollowUps();
         assertEquals(List.of(amanda, first), model.getFilteredPersonList());
-        assertEquals("Showing client: Amanda Lee", logic.execute("view 1").getFeedbackToUser());
+        assertEquals("Showing client ID 2: Amanda Lee", logic.execute("view 2").getFeedbackToUser());
         assertSame(amanda, model.selectedPersonProperty().get());
         assertEquals(List.of(amanda, first), model.getFilteredPersonList());
         assertFalse(model.hasUnsavedChanges());
@@ -84,10 +84,10 @@ public class ViewCommandTest {
     public void execute_invalidDisplayedIndex_preservesSelectionAndState() throws Exception {
         Model model = createModel(false);
         model.updateFilteredPersonList(person -> person == second);
-        assertView(model, 1, second);
+        assertView(model, 2, second);
         Model before = model.forkForCommand(TODAY);
-        assertThrows(CommandException.class, "The client index provided is invalid.", () ->
-                new ViewCommand(Index.fromOneBased(2)).execute(model));
+        assertThrows(CommandException.class, "No client with ID 3.", () ->
+                new ViewCommand(new ClientId(3)).execute(model));
         assertEquals(before, model);
         assertSame(second, model.selectedPersonProperty().get());
     }
@@ -95,8 +95,8 @@ public class ViewCommandTest {
     @Test
     public void execute_emptyBlockedSession_reportsRangeError() {
         Model model = createModel(true);
-        assertThrows(CommandException.class, "The client index provided is invalid.", () ->
-                new ViewCommand(Index.fromOneBased(1)).execute(model));
+        assertThrows(CommandException.class, "No client with ID 1.", () ->
+                new ViewCommand(new ClientId(1)).execute(model));
         assertNull(model.selectedPersonProperty().get());
         assertFalse(model.hasUnsavedChanges());
     }
@@ -107,8 +107,8 @@ public class ViewCommandTest {
         model.updateToday(TODAY.minusDays(1));
         model.showPendingFollowUps();
         LogicManager logic = createLogic(model);
-        assertEquals("Showing client: Rachel Lim", logic.execute("view 02").getFeedbackToUser());
-        assertSame(first, logic.selectedPersonProperty().get());
+        assertEquals("Showing client ID 2: Rachel Lim", logic.execute("view 02").getFeedbackToUser());
+        assertSame(second, logic.selectedPersonProperty().get());
         assertEquals(TODAY, model.getToday());
         assertEquals(List.of(second, first), model.getFilteredPersonList());
         assertTrue(model.showingFollowUpsProperty().get());
@@ -124,26 +124,26 @@ public class ViewCommandTest {
         Model before = model.forkForCommand(model.getToday());
         LogicManager logic = createLogic(model);
         for (String input : List.of("view", "view 0 extra")) {
-            assertThrows(ParseException.class, "Invalid command format!\nUsage: view INDEX", () ->
+            assertThrows(ParseException.class, "Invalid command format!\nUsage: view ID", () ->
                     logic.execute(input));
             assertEquals(before, model);
         }
-        assertThrows(ParseException.class, "Index must be a positive integer from 1 to 2147483647.", () ->
+        assertThrows(ParseException.class, "Client ID must be a positive integer from 1 to 2147483647.", () ->
                 logic.execute("view 0"));
-        assertThrows(CommandException.class, "The client index provided is invalid.", () -> logic.execute("view 3"));
+        assertThrows(CommandException.class, "No client with ID 3.", () -> logic.execute("view 3"));
         assertEquals(before, model);
         assertSame(second, model.selectedPersonProperty().get());
     }
 
     @Test
     public void equalsAndToString() {
-        ViewCommand command = new ViewCommand(Index.fromOneBased(1));
+        ViewCommand command = new ViewCommand(new ClientId(1));
         assertEquals(command, command);
-        assertEquals(command, new ViewCommand(Index.fromOneBased(1)));
-        assertFalse(command.equals(new ViewCommand(Index.fromOneBased(2))));
+        assertEquals(command, new ViewCommand(new ClientId(1)));
+        assertFalse(command.equals(new ViewCommand(new ClientId(2))));
         assertFalse(command.equals(null));
         assertFalse(command.equals(new ListCommand()));
-        assertEquals(ViewCommand.class.getCanonicalName() + "{targetIndex=" + Index.fromOneBased(1) + "}",
+        assertEquals(ViewCommand.class.getCanonicalName() + "{targetId=" + new ClientId(1) + "}",
                 command.toString());
     }
 
@@ -160,8 +160,8 @@ public class ViewCommandTest {
         List<Person> displayed = List.copyOf(model.getFilteredPersonList());
         List<Person> stored = List.copyOf(model.getAddressBook().getPersonList());
         boolean pending = model.showingFollowUpsProperty().get();
-        assertEquals("Showing client: Rachel Lim",
-                new ViewCommand(Index.fromOneBased(index)).execute(model).getFeedbackToUser());
+        assertEquals("Showing client ID " + index + ": Rachel Lim",
+                new ViewCommand(new ClientId(index)).execute(model).getFeedbackToUser());
         assertSame(expected, model.selectedPersonProperty().get());
         assertEquals(displayed, model.getFilteredPersonList());
         assertEquals(stored, model.getAddressBook().getPersonList());
