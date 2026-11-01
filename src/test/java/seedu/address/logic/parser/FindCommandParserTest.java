@@ -11,8 +11,13 @@ import seedu.address.logic.commands.FindCommand;
 import seedu.address.model.person.ClientContainsKeywordsPredicate;
 import seedu.address.model.person.ClientSearchPredicate;
 import seedu.address.model.person.ClientSearchPredicate.Field;
+import seedu.address.model.tag.Tag;
 
 public class FindCommandParserTest {
+
+    private static final String PHONE_QUERY_CONSTRAINTS =
+            "Phone search queries need at least 1 digit (0-9). An optional leading + and single spaces or hyphens"
+                    + " between digit groups are allowed.";
 
     private FindCommandParser parser = new FindCommandParser();
 
@@ -61,7 +66,7 @@ public class FindCommandParserTest {
 
     @Test
     public void parse_shortPhoneQueries_acceptsFragmentsWithValidFormatting() {
-        for (String query : List.of("0", "12", "+0", "+12", "0-1", "0 1")) {
+        for (String query : List.of("0", "9", "12", "+0", "+12", "0-1", "0 1")) {
             assertParseSuccess(parser, "p/" + query,
                     new FindCommand(new ClientSearchPredicate(Field.PHONE, query)));
         }
@@ -69,16 +74,24 @@ public class FindCommandParserTest {
 
     @Test
     public void parse_malformedPhoneQueries_rejectsMisplacedSeparatorsAndNonAsciiDigits() {
-        for (String query : List.of("+", "-1", "+ 1", "1--2", "1  2", "1- 2", "1 +2", "1-", "１２３", "١٢٣")) {
-            assertParseFailure(parser, "p/" + query,
-                    "Invalid command format!\n" + FindCommand.MESSAGE_USAGE);
+        for (String query : List.of("+", "---", "12x", "-1", "+ 1", "1--2", "1  2", "9123  4567",
+                "1- 2", "1 +2", "1-", "１２３", "١٢٣")) {
+            assertParseFailure(parser, "p/" + query, PHONE_QUERY_CONSTRAINTS);
+        }
+    }
+
+    @Test
+    public void parse_invalidTagQueries_reportsTagConstraints() {
+        for (String query : List.of("life-insurance", "has space", "health!", "健康", "１２３")) {
+            assertParseFailure(parser, "t/" + query, Tag.MESSAGE_CONSTRAINTS);
         }
     }
 
     @Test
     public void parse_invalidExplicitFields_throwsParseException() {
-        for (String input : List.of("n/", "p/---", "p/12x", "t/has space", "n/Rachel p/9123",
-                "p/9123 t/renewal", "Rachel n/rac", "t/renewal n/rac")) {
+        for (String input : List.of("n/", "p/", "t/", "n/   ", "p/   ", "t/   ", "n/Rachel p/9123",
+                "p/9123 t/renewal", "Rachel n/rac", "t/renewal n/rac", "n/Rachel n/Bob", "p/9 p/1",
+                "t/health t/renewal", "p/p/9", "t/t/health", "p/12x t/health", "t/life-insurance p/9")) {
             assertParseFailure(parser, input,
                     "Invalid command format!\n" + FindCommand.MESSAGE_USAGE);
         }

@@ -18,6 +18,10 @@ import seedu.address.model.tag.Tag;
  */
 public class FindCommandParser implements Parser<FindCommand> {
 
+    private static final String MESSAGE_PHONE_QUERY_CONSTRAINTS =
+            "Phone search queries need at least 1 digit (0-9). An optional leading + and single spaces or hyphens"
+                    + " between digit groups are allowed.";
+
     /**
      * Parses the given {@code String} of arguments in the context of the FindCommand
      * and returns a FindCommand object for execution.
@@ -85,10 +89,10 @@ public class FindCommandParser implements Parser<FindCommand> {
 
     private void validateQuery(Field field, String query) throws ParseException {
         if (field == Field.PHONE && !Phone.isValidPhoneQuery(query)) {
-            throw createInvalidSearchFormatException();
+            throw new ParseException(MESSAGE_PHONE_QUERY_CONSTRAINTS);
         }
         if (field == Field.TAG && !Tag.isValidTagName(query)) {
-            throw createInvalidSearchFormatException();
+            throw new ParseException(Tag.MESSAGE_CONSTRAINTS);
         }
     }
 
