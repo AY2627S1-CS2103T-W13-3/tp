@@ -9,16 +9,20 @@ This page records v1.5 dashboard usability evidence: automated layout boundaries
 
 `DashboardLayoutBoundaryTest` composes the real `MainWindow` over temporary storage and lays it out at 853x480, 1536x864 and 1920x1080 logical pixels, which correspond to 1280x720 at 150%, 1920x1080 at 125% and 1920x1080 at 100%.
 
-| Partition | Test | Result |
+| Partition | Test | Current assertion |
 | --- | --- | --- |
-| 1,000 clients; last row's `#` readable, and a five-digit index fits | `table_thousandClients_lastIndexStaysReadable` | Failed before the fix (row 1000 rendered as `1...` at 853x480); passes after fixing the `#` column at 56 px |
-| Long unbroken email (125 characters) and address (153 characters) in the profile | `profile_longUnbrokenEmailAndAddress_wrapInsideViewport` | Pass |
-| 80 pending cards: summary scrolls to the last card; profile stays visible | `pendingSummary_manyCards_scrollsToLastCardAndKeepsProfile` | Pass |
-| 80-character unbroken name and 200-character action in a pending card | `pendingSummary_longNameAndMaximumAction_staysInsideSidebar` | Pass |
+| 1,000 clients; permanent Client IDs remain readable | `table_thousandClients_fullRangeIdStaysReadable` | Last-row Client ID `1000` is fully rendered; the measured text width of `2147483647` fits the fixed 110 px Client ID column |
+| Long unbroken email (125 characters) and address (153 characters) in the profile | `profile_longUnbrokenEmailAndAddress_wrapInsideViewport` | Complete values wrap inside the viewport |
+| 80 pending cards: summary scrolls to the last card; profile stays visible | `pendingSummary_manyCards_scrollsToLastCardAndKeepsProfile` | The last card is reachable and the profile stays visible |
+| 80-character unbroken name and 200-character action in a pending card | `pendingSummary_longNameAndMaximumAction_staysInsideSidebar` | Complete name and action stay inside the sidebar |
+
+The table describes the current source assertions, not a new test run.
 
 Already covered elsewhere, so not repeated: restored window geometry extremes (`DashboardShellTest.getWindowBounds_*`), recycled table rows (`PersonListPanelTest`), narrow-table horizontal scrolling (`PersonListPanelTest.narrowWidth_columnsDoNotFit_scrollsHorizontally`), long tags (`ClientProfilePanelTest`) and long feedback (`ResultDisplayTest`).
 
 The wrapping tests were checked against a regression: turning off wrapping on the profile email and on the pending action makes them fail with an ellipsis-clipped value.
+
+**Historical row-index regression:** the original `table_thousandClients_lastIndexStaysReadable` checked row 1000 (rendered as `1...` before its fix) and a five-digit index in a 56 px `#` column. The current permanent-ID test above supersedes that reference; the dated run below describes the earlier source.
 
 **Run record (27 October 2026):** macOS 26.6.2 (25G83), arm64, Homebrew OpenJDK 25.0.5.0.2. This machine has no Zulu JDK+FX, so the project's x86_64 JavaFX 17.0.7 natives could not load; the run supplied the official arm64 JavaFX 17.0.7 natives through `-Djava.library.path`. Source: uncommitted working tree on top of `81c4d65f`; repeat on the final commit. All four boundary tests and Checkstyle passed. In the full suite, only the three native-input tests in `CommandSubmissionTest` failed, because this terminal cannot send native keyboard/mouse input; they fail identically without this change.
 
