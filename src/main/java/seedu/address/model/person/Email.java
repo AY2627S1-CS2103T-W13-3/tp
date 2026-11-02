@@ -43,7 +43,7 @@ public class Email {
         for (int i = 0; i < separator; i++) {
             char character = email.charAt(i);
             boolean isAlphanumeric = isAsciiAlphanumeric(character);
-            if (!isAlphanumeric && (i == 0 || "+_.-".indexOf(character) < 0
+            if (!isAlphanumeric && (i == 0 || "+_'.-".indexOf(character) < 0
                     || email.charAt(i - 1) == '.' || character == '.' && !wasPreviousCharacterAlphanumeric)) {
                 return false;
             }

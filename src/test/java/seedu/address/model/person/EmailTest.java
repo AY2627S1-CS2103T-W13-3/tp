@@ -2,9 +2,11 @@ package seedu.address.model.person;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -91,6 +93,36 @@ public class EmailTest {
                 "alice.-smith@example.com")) {
             assertFalse(Email.isValidEmail(email), "Dots must separate alphanumeric characters: " + email);
         }
+    }
+
+    @Test
+    public void isValidEmail_internalAsciiApostrophes_preservesExactValue() {
+        for (String email : List.of("sean.o'brien@example.com", "Sean.O'Brien@Example.COM",
+                "a''b@example.com", "a+'b@example.com")) {
+            assertTrue(Email.isValidEmail(email), email);
+            assertEquals(email, new Email(email).value);
+        }
+    }
+
+    @Test
+    public void isValidEmail_apostrophes_doNotRelaxOtherConstraints() {
+        for (String email : List.of("'sean@example.com", "sean'@example.com", "sean.'brien@example.com",
+                "sean'.brien@example.com", "sean..o'brien@example.com", "sean.o'brien@exam'ple.com",
+                "sean.o'brien@-example.com", "sean.o'brien@example.c", "sean.o’brien@example.com",
+                "sean.o' brien@example.com", "sean.o'brien@example.com\t",
+                "sean.o'" + (char) 0 + "brien@example.com")) {
+            assertFalse(Email.isValidEmail(email), email);
+        }
+    }
+
+    @Test
+    public void isValidEmail_longApostropheInput_remainsBounded() {
+        String email = "a'".repeat(20000) + "b@example.com";
+        assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
+            assertTrue(Email.isValidEmail(email));
+            assertEquals(email, new Email(email).value);
+            assertFalse(Email.isValidEmail(email + "!"));
+        });
     }
 
     @Test
