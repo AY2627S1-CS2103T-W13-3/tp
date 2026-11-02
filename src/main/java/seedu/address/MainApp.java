@@ -2,7 +2,6 @@ package seedu.address;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -20,6 +19,7 @@ import javafx.util.Duration;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.commons.util.AppInstanceLock;
+import seedu.address.commons.util.ApplicationHome;
 import seedu.address.commons.util.StringUtil;
 import seedu.address.logic.Logic;
 import seedu.address.logic.LogicManager;
@@ -44,9 +44,10 @@ public class MainApp extends Application {
     public static final String VERSION = "V1.5";
 
     private static final Logger logger = LogsCenter.getLogger(MainApp.class);
-    private static final Path USER_PREFS_FILE_PATH = Paths.get("preferences.json");
-    private static final Path ADDRESS_BOOK_FILE_PATH = Paths.get("data", "addressbook.json");
-    private static final Path INSTANCE_LOCK_FILE_PATH = Paths.get(".policyharbor.lock");
+    private static final Path APPLICATION_HOME = ApplicationHome.getHomeDirectory();
+    private static final Path USER_PREFS_FILE_PATH = APPLICATION_HOME.resolve("preferences.json");
+    private static final Path ADDRESS_BOOK_FILE_PATH = APPLICATION_HOME.resolve("data").resolve("addressbook.json");
+    private static final Path INSTANCE_LOCK_FILE_PATH = APPLICATION_HOME.resolve(".policyharbor.lock");
 
     protected Ui ui;
     protected Logic logic;
@@ -72,7 +73,7 @@ public class MainApp extends Application {
             return;
         } catch (IOException e) {
             startupFailureMessage = "PolicyHarbor could not lock this folder for saving data. "
-                    + "Run it from a writable folder and check that .policyharbor.lock is a regular file. "
+                    + "Move PolicyHarbor.jar to a writable folder and check that .policyharbor.lock is a regular file. "
                     + "No client data or preferences were loaded or changed.";
             logger.warning("Startup blocked because the data-folder lock could not be acquired.");
             return;
