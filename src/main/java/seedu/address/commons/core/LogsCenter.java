@@ -10,6 +10,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+import seedu.address.commons.util.ApplicationHome;
+
 /**
  * Configures and manages loggers and handlers, including their logging level.
  * Named {@link Logger}s can be obtained from this class.<br>
@@ -85,7 +87,9 @@ public class LogsCenter {
 
         // add a FileHandler to log to a file
         try {
-            FileHandler fileHandler = new FileHandler(LOG_FILE, MAX_FILE_SIZE_IN_BYTES, MAX_FILE_COUNT, true);
+            // FileHandler treats percent signs as pattern tokens, even within the application folder name.
+            String pattern = ApplicationHome.getHomeDirectory().resolve(LOG_FILE).toString().replace("%", "%%");
+            FileHandler fileHandler = new FileHandler(pattern, MAX_FILE_SIZE_IN_BYTES, MAX_FILE_COUNT, true);
             fileHandler.setFormatter(new SimpleFormatter());
             fileHandler.setLevel(Level.ALL);
             baseLogger.addHandler(fileHandler);
