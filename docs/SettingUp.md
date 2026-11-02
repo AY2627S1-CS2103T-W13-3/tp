@@ -28,7 +28,13 @@ If you plan to use IntelliJ IDEA (highly recommended):
 
 If you run `seedu.address.Main` directly through IntelliJ instead of Gradle, open **Run > Edit Configurations**, select the application configuration, choose **Modify options > Add VM options**, and enter `-ea`. Apply this to each application run configuration you use. See the [SE-EDU assertions instructions](https://se-education.org/guides/tutorials/intellijUsefulSettings.html#enabling-assertions). Keep personal IDE configurations out of Git.
 
-Build the packaged application with `./gradlew shadowJar`. From the project root, run `java -ea -jar build/libs/PolicyHarbor.jar`; alternatively, change into the directory containing the JAR and run `java -ea -jar PolicyHarbor.jar`. PolicyHarbor reads and creates its configuration and data relative to the working directory, so use a fresh writable folder with fictional data for manual checks.
+Build the packaged application with `./gradlew shadowJar`. From the project root, run `java -ea -jar build/libs/PolicyHarbor.jar`; alternatively, change into the directory containing the JAR and run `java -ea -jar PolicyHarbor.jar`.
+
+Packaged launches resolve `data/addressbook.json`, `preferences.json` and `.policyharbor.lock` relative to the JAR's folder, regardless of the working directory. With the JAR still in `build/libs`, both commands above use `build/libs/data/addressbook.json`. A symbolic link to the JAR uses the physical target JAR's folder.
+
+Direct IDE launches and `./gradlew run` use their configured working directory, normally the project root. A packaged launch does not automatically import data from that development folder.
+
+For manual checks, copy the JAR into a fresh writable folder outside `build/`, launch it from that folder and use fictional data. Changing only the working directory does not select a separate client file. Do not keep important records under `build/`: `./gradlew clean` removes that directory.
 
 A direct `java -jar` launch does not inherit Gradle's assertion settings. Also check an ordinary launch without `-ea`, using the same JAR path: assertions protect internal programmer assumptions and must not replace user-input validation or file-error handling.
 
