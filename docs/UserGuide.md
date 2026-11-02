@@ -73,6 +73,8 @@ A Client ID identifies one client permanently. It does not change when you searc
 
 A viewed client is marked `VIEWING` in the table and, when they have an action, the summary. The profile shows their ID, contact details, lowercase tag chips and pending action. With no tags it shows `No tags`; without an action, `Follow-up: None`.
 
+To copy a client's phone, email, address or follow-up action, **right-click its value** and choose **Copy**, or **Tab** to focus the value and press **Enter**, **Space** or the copy shortcut (**Ctrl+C** on Windows/Linux, **Command+C** on macOS). The complete current value is copied, including spaces and Unicode text. Success or failure appears in the feedback panel; your command draft stays unchanged. A missing client or cleared action cannot be copied.
+
 | What you do | What happens to the open profile |
 | --- | --- |
 | `list`, add another client or change another client's action | The same client stays open. |

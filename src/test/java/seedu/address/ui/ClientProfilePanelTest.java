@@ -2,13 +2,16 @@ package seedu.address.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.JavaFxTestUtil.findById;
 import static seedu.address.testutil.JavaFxTestUtil.runOnFxThread;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +20,8 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.FlowPane;
 import seedu.address.model.AddressBook;
 import seedu.address.model.person.FollowUp;
@@ -196,4 +201,105 @@ public class ClientProfilePanelTest {
         });
     }
 
+    @Test
+    public void profileUi_copyContextMenuAndKeyboard_useCurrentCompleteValues() throws Exception {
+        JavaFxTestUtil.initializeToolkit();
+        runOnFxThread(() -> {
+            String address = "Blk 123, 新加坡  #04-05";
+            String action = "Call 陈女士 👩‍💻  next week";
+            Person first = new PersonBuilder().withPhone("001").withEmail("first@example.com")
+                    .withAddress(address).withFollowUp(new FollowUp(TODAY, action)).build();
+            Person second = new PersonBuilder().withPhone("002").withEmail("second@example.com")
+                    .withAddress("Another address").build();
+            SimpleObjectProperty<Person> selected = new SimpleObjectProperty<>(first);
+            AtomicReference<String> clipboard = new AtomicReference<>("unchanged");
+            List<String> messages = new ArrayList<>();
+            ClientProfilePanel panel = new ClientProfilePanel(selected, new SimpleObjectProperty<>(TODAY),
+                    new AddressBook()::getClientId, (message, isError) -> messages.add(message),
+                    value -> {
+                        clipboard.set(value);
+                        return true;
+                    });
+            Label phone = (Label) findById(panel.getRoot(), "phone");
+            Label email = (Label) findById(panel.getRoot(), "email");
+            Label location = (Label) findById(panel.getRoot(), "address");
+            Label followUp = (Label) findById(panel.getRoot(), "followUpAction");
+
+            assertTrue(phone.isFocusTraversable());
+            assertEquals("Copy phone", phone.getContextMenu().getItems().getFirst().getText());
+            phone.getContextMenu().getItems().getFirst().fire();
+            assertEquals("001", clipboard.get());
+
+            pressKey(location, KeyCode.ENTER);
+            assertEquals(address, clipboard.get());
+            followUp.getContextMenu().getItems().getFirst().fire();
+            assertEquals(action, clipboard.get());
+
+            selected.set(second);
+            pressKey(phone, KeyCode.SPACE);
+            assertEquals("002", clipboard.get());
+            email.getContextMenu().getItems().getFirst().fire();
+            assertEquals("second@example.com", clipboard.get());
+
+            followUp.getContextMenu().getItems().getFirst().fire();
+            assertEquals("second@example.com", clipboard.get());
+            assertEquals("No follow-up action to copy.", messages.getLast());
+
+            selected.set(null);
+            phone.getContextMenu().getItems().getFirst().fire();
+            assertEquals("second@example.com", clipboard.get());
+            assertEquals("No phone to copy.", messages.getLast());
+            assertSame(null, selected.get());
+            panel.dispose();
+        });
+    }
+
+    @Test
+    public void profileUi_copyRejectionAndDisposedPanel_reportFailureWithoutModelChanges() throws Exception {
+        JavaFxTestUtil.initializeToolkit();
+        runOnFxThread(() -> {
+            Person person = new PersonBuilder().withPhone("001").build();
+            SimpleObjectProperty<Person> selected = new SimpleObjectProperty<>(person);
+            List<String> messages = new ArrayList<>();
+            List<Boolean> errors = new ArrayList<>();
+            ClientProfilePanel panel = new ClientProfilePanel(selected, new SimpleObjectProperty<>(TODAY),
+                    new AddressBook()::getClientId, (message, isError) -> {
+                        messages.add(message);
+                        errors.add(isError);
+                    }, value -> false);
+            Label phone = (Label) findById(panel.getRoot(), "phone");
+            phone.getContextMenu().getItems().getFirst().fire();
+            assertEquals("Could not copy phone.", messages.getLast());
+            assertTrue(errors.getLast());
+            assertSame(person, selected.get());
+            assertEquals("001", person.getPhone().value);
+
+            panel.dispose();
+            phone.getContextMenu().getItems().getFirst().fire();
+            assertEquals("No phone to copy.", messages.getLast());
+        });
+    }
+
+    @Test
+    public void profileUi_clipboardThrows_reportsFailure() throws Exception {
+        JavaFxTestUtil.initializeToolkit();
+        runOnFxThread(() -> {
+            Person person = new PersonBuilder().build();
+            List<String> messages = new ArrayList<>();
+            ClientProfilePanel panel = new ClientProfilePanel(new SimpleObjectProperty<>(person),
+                    new SimpleObjectProperty<>(TODAY), new AddressBook()::getClientId,
+                    (message, isError) -> messages.add(message), value -> {
+                        throw new IllegalStateException("Clipboard busy");
+                    });
+            Label phone = (Label) findById(panel.getRoot(), "phone");
+            phone.getContextMenu().getItems().getFirst().fire();
+            assertEquals("Could not copy phone.", messages.getLast());
+            panel.dispose();
+        });
+    }
+
+    private static void pressKey(Label label, KeyCode keyCode) {
+        label.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", keyCode,
+                false, false, false, false));
+    }
 }
