@@ -77,7 +77,7 @@ Use Java 25 and the prescribed JavaFX setup from [Setting up](SettingUp.html). C
 
 Release from the tested team `master` commit. Do not upload a JAR built with a local OS-only dependency override.
 
-**Published v1.5:** the [release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5) uses [tag `v1.5`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/v1.5) at `cb060cf3460df83499e9eea4ab9865d9ebe664c3`. Its asset is `PolicyHarbor.jar`; see the [published-artifact verification record](Testing.html#published-v15-verification). The procedure below applies to future releases; do not recreate or move the existing v1.5 tag.
+**Published v1.6:** the [release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.6) uses [tag `v1.6`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/v1.6) at `dda85cd74d709880b744d1b5d9485390d0cd0f07`. Download its [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.6/PolicyHarbor.jar); see the [published-artifact verification record](Testing.html#published-v16-verification). The procedure below applies to future releases; do not recreate or move existing release tags. Earlier releases retain their [historical verification records](Testing.html#published-v15-verification).
 
 1. Set `MainApp.VERSION` and the window title to the intended version; review branding, command documentation and `docs/images/Ui.png` against the product.
 1. Use Java 25. On Mac, activate the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html) for building and running.

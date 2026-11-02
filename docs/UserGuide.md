@@ -5,7 +5,7 @@ title: User Guide
 
 PolicyHarbor helps independent insurance agents in Singapore keep client contacts and their next follow-up together. Find a client, review their details, update their contact information and record the next conversation, using typed commands in a desktop workspace.
 
-**Build covered:** this guide describes the v1.6 integration candidate at [source revision `e185a9cc`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/e185a9cc), whose window title is **PolicyHarbor v1.6**. It includes JAR-folder storage, improved edit/search feedback, case-insensitive command words and profile copying. v1.6 has not yet been published. The [latest published release is v1.5](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5); its JAR does not include these later changes.
+**Version:** this guide describes the published [PolicyHarbor v1.6 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.6), whose window title is **PolicyHarbor v1.6**. It includes JAR-folder storage, improved edit/search feedback, case-insensitive command words and profile copying.
 
 * Table of Contents
 {:toc}
@@ -15,7 +15,7 @@ PolicyHarbor helps independent insurance agents in Singapore keep client contact
 ### Install and launch
 
 1. Install Java **25**. On macOS, follow the [SE-EDU Java installation guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) for the prescribed Zulu JDK with JavaFX.
-2. Obtain the matching **v1.6 release candidate JAR** from the team, or build it from the revision above using the [build instructions](DevOps.html#building-a-candidate). Place `PolicyHarbor.jar` in a **writable folder**, such as a folder you create in Documents. If upgrading, first follow the [backup and migration instructions](#upgrading-from-v15).
+2. Download [**PolicyHarbor.jar**](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.6/PolicyHarbor.jar) from the [official v1.6 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.6). Place `PolicyHarbor.jar` in a **writable folder**, such as a folder you create in Documents. If upgrading, first follow the [backup and migration instructions](#upgrading-from-v15).
 3. Open a terminal and use `cd` to enter that folder. Check `java -version` in the same terminal; it should report Java 25. Then run:
 
    ```text

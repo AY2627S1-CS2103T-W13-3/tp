@@ -48,13 +48,27 @@ Tests use fixed dates and temporary data folders. Storage failure tests inject w
 
 Pure display-function tests do not prove FXML binding, focus, wrapping or scaling. Follow the Developer Guide's [manual testing appendix](DeveloperGuide.html#appendix-instructions-for-manual-testing) against the actual JAR before a release, and record the tested platform/runtime and remaining gaps.
 
+## Published v1.6 verification
+
+The [published v1.6 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.6) uses [source tag `v1.6`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/v1.6) at `dda85cd74d709880b744d1b5d9485390d0cd0f07`. Its [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.6/PolicyHarbor.jar) is **12,592,618 bytes**, with SHA-256:
+
+```text
+f70a19f2a6c82c5006656c0a62513e43ad163f2be04f6e97611fe80d3c58bc71
+```
+
+**Uploaded-asset check (3 November 2026):** the official download passed ZIP integrity and executable-manifest checks and matched GitHub's asset digest. In a fresh writable folder on macOS with Zulu JDK+FX 25.0.3, the downloaded JAR opened the native **PolicyHarbor v1.6** window with an empty client list and closed normally. It was byte-for-byte identical to the clean build at `7412c0175a868ae4e16b47431d40010e16c5b55a` and the earlier candidate documented below. Only `docs/UserGuide.md` changed between that build revision and the release tag; application sources, bundled resources and build inputs are identical. [Java CI](https://github.com/AY2627S1-CS2103T-W13-3/tp/actions/runs/41481917391) and [Pages deployment](https://github.com/AY2627S1-CS2103T-W13-3/tp/actions/runs/41481917337) passed for the tagged revision.
+
+**Native macOS checks on the identical pre-upload JAR (3 November 2026):** with Zulu JDK+FX 25.0.3, the exact course filename `[CS2103T-W13-3][PolicyHarbor].jar` launched from a different working folder. Enter added a synthetic client; Run recorded a follow-up; viewing, editing an apostrophe-containing email and searching an uppercase tag succeeded. An invalid phone edit preserved the command draft, selected profile and saved bytes. Normal exit and an assertions-enabled restart retained the Client ID, contact details, tag and follow-up. The caller folder stayed empty; application files remained beside the JAR.
+
+These are focused macOS checks. Native Windows/Linux GUI checks, physical display/scaling combinations, clipboard-write rejection and Firefox website validation remain unverified. The known mixed-script rendering and extreme JSON-nesting limitations remain documented in the [User Guide](UserGuide.html#known-limitations); neither release publication nor green CI establishes their resolution. The older records below retain their original scope.
+
 ## v1.6 candidate documentation verification
 
 On 2 November 2026, the guide audit used source `e185a9cc568a0cbde2225cc7e3ff3c200c39f568` on macOS with Zulu JDK+FX 25.0.3. `check coverage shadowJar` passed all **901 tests**, with no failures or skips, and both Checkstyle tasks. Independent source reviews covered every UG/DG section; 49 isolated command/storage assertions checked guide examples, validation, feedback and restart behaviour. All nine referenced diagram images contain PlantUML source matching the committed diagrams.
 
 The current `images/Ui.png` is a 2880 × 1714 scene capture of `MainWindow` loaded from that candidate JAR with ten fictional clients, pending mode and Rachel's profile selected. It was captured on 2 November using the real JAR-folder path; no interface elements were composited. The candidate JAR's SHA-256 is `f70a19f2a6c82c5006656c0a62513e43ad163f2be04f6e97611fe80d3c58bc71`.
 
-These checks cover the candidate and documentation. Final uploaded-asset verification, native platform/scaling scenarios and Firefox website validation still require their own results; the older release records below remain historical evidence.
+These checks cover the candidate and documentation. The [published v1.6 verification](#published-v16-verification) above records the subsequent uploaded-asset check and remaining platform/browser gaps; the older release records below remain historical evidence.
 
 ## Published v1.5 verification
 
@@ -72,7 +86,7 @@ The earlier comprehensive QA used source `97c10e2ad63e20b00db58657d5cd06182de0ae
 f2624a0707b078aa636e3b062a93659f0f84d4e33fd87f3186548020b60e1f82
 ```
 
-Retain its results as historical evidence, not as the final release checksum. This uploaded-asset check repeated startup and identity verification; it does not claim a new complete GUI regression, Windows/Linux desktop verification or completion of the physical display matrix. The alternate-working-directory file-location concern remained in that published binary; the v1.6 candidate now uses the physical JAR folder.
+Retain its results as historical evidence, not as the final release checksum. This uploaded-asset check repeated startup and identity verification; it does not claim a new complete GUI regression, Windows/Linux desktop verification or completion of the physical display matrix. The alternate-working-directory file-location concern remained in that published binary; v1.6 uses the physical JAR folder.
 
 ## v1.5 dashboard layout and platform matrix
 

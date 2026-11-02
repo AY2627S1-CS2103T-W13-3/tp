@@ -4,7 +4,7 @@
 
 **Clients. Follow-ups. Made simple.**
 
-PolicyHarbor v1.6 (integration candidate) is a desktop client and follow-up manager for individual insurance agents who prefer typed commands. Keep client contact details and their next action together, then review what is overdue, due today or upcoming.
+PolicyHarbor v1.6 is a desktop client and follow-up manager for individual insurance agents who prefer typed commands. Keep client contact details and their next action together, then review what is overdue, due today or upcoming.
 
 ![PolicyHarbor showing pending follow-ups and a selected client profile](docs/images/Ui.png)
 
@@ -23,9 +23,9 @@ PolicyHarbor supports one pending action per client. Multiple actions, follow-up
 
 ## Get started
 
-v1.6 is being prepared and is not yet published. The download below remains the published v1.5 artifact; it does not contain later fixes. The current guides describe the v1.6 candidate. After publication, update download links to the verified v1.6 asset.
+The guides below describe the published v1.6 release.
 
-Install Java 25; Mac users should use the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html). Download [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) from the [official v1.5 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5). Place it in a writable folder, open a terminal there and run:
+Install Java 25; Mac users should use the [prescribed Zulu JDK+FX distribution](https://se-education.org/guides/tutorials/javaInstallationMac.html). Download [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.6/PolicyHarbor.jar) from the [official v1.6 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.6). Place it in a writable folder, open a terminal there and run:
 
 ```bash
 java -jar PolicyHarbor.jar

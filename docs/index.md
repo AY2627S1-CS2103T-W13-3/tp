@@ -4,13 +4,13 @@ title: PolicyHarbor
 homepage: true
 description: A command-first desktop workspace for independent insurance agents in Singapore. Keep client details and the next conversation together.
 ---
-{%- assign release_url = 'https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5' -%}
+{%- assign release_url = 'https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.6' -%}
 {%- assign user_guide = '/UserGuide.html' | relative_url -%}
 <!--
   Design: a calm working desk, with the real product as its proof. Green, ivory,
   editorial serif headings and the application's restrained sans-serif body.
   Visitor path: understand the workspace, see it, try a short workflow, download.
-  Release contract: v1.6 candidate; download remains published v1.5 at tag v1.5, commit cb060cf3.
+  Release contract: published v1.6 at tag v1.6, commit dda85cd7.
   Download actions lead to that versioned GitHub release.
   Screenshot: one live JavaFX scene from a packaged e185a9cc build, captured
   2026-11-02 with fictional data. No compositing or interface edits.
@@ -26,17 +26,17 @@ description: A command-first desktop workspace for independent insurance agents 
     <div class="ph-hero-intro">
       <p>A clearer workspace for independent insurance agents in Singapore. Keep client details and the next conversation together, with typed commands and a graphical overview.</p>
       <div class="ph-actions">
-        <a class="ph-button" href="{{ release_url }}">Download PolicyHarbor v1.5 <span aria-hidden="true">↗</span></a>
-        <a class="ph-text-link" href="{{ user_guide }}">Explore the v1.6 candidate User Guide <span aria-hidden="true">→</span></a>
+        <a class="ph-button" href="{{ release_url }}">Download PolicyHarbor v1.6 <span aria-hidden="true">↗</span></a>
+        <a class="ph-text-link" href="{{ user_guide }}">Explore the v1.6 User Guide <span aria-hidden="true">→</span></a>
       </div>
-      <p class="ph-requirement">Preparing PolicyHarbor v1.6; latest download: v1.5 <span aria-hidden="true">·</span> Desktop app <span aria-hidden="true">·</span> Java 25</p>
+      <p class="ph-requirement">PolicyHarbor v1.6 <span aria-hidden="true">·</span> Desktop app <span aria-hidden="true">·</span> Java 25</p>
     </div>
     <figure class="ph-product-shot">
-      <a href="{{ '/images/Ui.png' | relative_url }}" aria-label="Open the full-size PolicyHarbor v1.6 candidate screenshot">
+      <a href="{{ '/images/Ui.png' | relative_url }}" aria-label="Open the full-size PolicyHarbor v1.6 screenshot">
         <img src="{{ '/images/Ui.png' | relative_url }}" width="2880" height="1714" fetchpriority="high"
-             alt="PolicyHarbor v1.6 candidate showing ten fictional Singapore clients, Rachel Lim's contact profile, and overdue, due-today and upcoming follow-up statuses. Permanent Client IDs stay visible beside each name." />
+             alt="PolicyHarbor v1.6 showing ten fictional Singapore clients, Rachel Lim's contact profile, and overdue, due-today and upcoming follow-up statuses. Permanent Client IDs stay visible beside each name." />
       </a>
-      <figcaption><span>A real v1.6 candidate workspace. Fictional clients, everyday conversations.</span><a href="{{ '/images/Ui.png' | relative_url }}">View screenshot at full size <span aria-hidden="true">↗</span></a></figcaption>
+      <figcaption><span>A real v1.6 workspace. Fictional clients, everyday conversations.</span><a href="{{ '/images/Ui.png' | relative_url }}">View screenshot at full size <span aria-hidden="true">↗</span></a></figcaption>
     </figure>
   </section>
 
@@ -121,7 +121,7 @@ followups</code></pre>
     </div>
     <ol class="ph-install">
       <li><h3>Install Java 25</h3><p>On macOS, use the <a href="https://se-education.org/guides/tutorials/javaInstallationMac.html">prescribed Zulu JDK+FX distribution</a>. Check your installation with <code>java -version</code>.</p></li>
-      <li><h3>Download the JAR</h3><p>Download <code>PolicyHarbor.jar</code> from the <a href="{{ release_url }}">official v1.5 release</a> and place it in a writable folder for your client data.</p></li>
+      <li><h3>Download the JAR</h3><p>Download <code>PolicyHarbor.jar</code> from the <a href="{{ release_url }}">official v1.6 release</a> and place it in a writable folder for your client data.</p></li>
       <li><h3>Open your workspace</h3><p>Open a terminal in that folder and run:</p><pre><code>java -jar PolicyHarbor.jar</code></pre></li>
     </ol>
     <a class="ph-text-link" href="{{ user_guide }}#quick-start">Read the full installation instructions <span aria-hidden="true">→</span></a>
@@ -130,7 +130,7 @@ followups</code></pre>
   <section class="ph-closing" aria-labelledby="ph-closing-title">
     <h2 id="ph-closing-title">Stay close to your clients.<br>Stay ahead of your next step.</h2>
     <div class="ph-actions">
-      <a class="ph-button ph-button-light" href="{{ release_url }}">Download PolicyHarbor v1.5 <span aria-hidden="true">↗</span></a>
+      <a class="ph-button ph-button-light" href="{{ release_url }}">Download PolicyHarbor v1.6 <span aria-hidden="true">↗</span></a>
       <a class="ph-text-link" href="{{ user_guide }}">Read the User Guide <span aria-hidden="true">→</span></a>
     </div>
     <p>Clients. Follow-ups. Made simple.</p>
