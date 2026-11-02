@@ -9,7 +9,7 @@ title: Developer Guide
 
 PolicyHarbor helps individual insurance agents manage contact records and one pending next action per client. This guide is for developers: start with component responsibilities, then follow the identity, command-publication and persistence invariants before changing the product. Exact command syntax is in the [User Guide](UserGuide.html).
 
-**Version baseline:** this guide describes the published [PolicyHarbor v1.5 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5) at [tag `v1.5`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/v1.5), commit [`cb060cf3`](https://github.com/AY2627S1-CS2103T-W13-3/tp/commit/cb060cf3460df83499e9eea4ab9865d9ebe664c3). Its `PolicyHarbor.jar` reports `V1.5` and displays the window title `PolicyHarbor v1.5`. The [published-artifact verification record](Testing.html#published-v15-verification) identifies its checksum and distinguishes it from earlier QA candidates; earlier run records do not establish that every final packaged-app scenario has passed.
+**Version baseline:** this guide describes the v1.6 integration candidate and its merged bug fixes. `MainApp.VERSION` is `V1.6` and the window title is `PolicyHarbor v1.6`. v1.6 is not yet published; the [published v1.5 artifact record](Testing.html#published-v15-verification) remains historical evidence for that release, not certification of this candidate. Final publication must record the tested source SHA, uploaded JAR checksum and outstanding platform checks.
 
 ## **Acknowledgements**
 
@@ -49,7 +49,7 @@ PolicyHarbor is an offline Java/JavaFX client and next-action manager. Component
 
 **`Main`** (consisting of classes [`Main`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/Main.java) and [`MainApp`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/MainApp.java)) is in charge of the app launch and shut down.
 
-* At launch, `MainApp` acquires working-folder ownership, loads/recovers preferences, constructs Storage, loads Model, then connects Logic and UI. Invalid client loading creates a protected model; it does not silently start a writable replacement dataset.
+* At launch, `MainApp` acquires JAR-home ownership, loads/recovers preferences, constructs Storage, loads Model, then connects Logic and UI. Invalid client loading creates a protected model; it does not silently start a writable replacement dataset.
 * At startup/focus and each minute, it refreshes the shared date used for action statuses. On shutdown it stops the timer, saves window preferences and releases instance ownership; UI closure disposes its observers and Help window.
 
 The bulk of the app's work is done by the following four components:
@@ -233,11 +233,13 @@ Global character validation and command-word normalization precede the failed-lo
 
 `FindCommandParser` constructs a predicate over all clients, replacing any earlier full/search/pending view. Bare keywords use whole-name-word **OR** exact-full-phone matching; explicit `n/`, `p/` or `t/` accepts exactly one field. `ClientSearchPredicate` implements normalized case-insensitive name substrings, phone-digit substrings ignoring display separators, and exact case-insensitive tags. Bare phone keywords retain leading zeroes and are not concatenated. Prefix mixing, quoted text and ordinary-space tokenization follow the shared grammar, rather than a general query language.
 
+Invalid explicit phone/tag values produce field-specific constraints after query-shape checks; missing/repeated/mixed fields retain usage feedback. Valid tag separators follow `Tag.isValidTagName`, including single internal hyphens/underscores. `FindInvalidValueFeedbackTest` verifies rejected searches preserve state and saved bytes.
+
 `FindCommand` accepts `Predicate<Person>`, keeping search policy outside the command. Search preserves insertion order, emits each client once and retains a selected profile only while its canonical record is visible. `ViewCommand` resolves IDs globally: viewing a hidden client first restores the full list; viewing an already visible client retains the current mode. Neither operation saves client data.
 
 ### Contact editing
 
-[`EditCommandParser`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/logic/parser/EditCommandParser.java) requires an ID and at least one supplied field. Omitted fields remain unchanged; supplied tags replace the complete set, with a lone empty `t/` clearing it. Contact validation occurs during parsing, before execution resolves the ID.
+[`EditCommandParser`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/logic/parser/EditCommandParser.java) requires an ID and at least one supplied field. Omitted fields remain unchanged; supplied tags replace the complete set, with a lone empty `t/` clearing it. Contact validation occurs during parsing, before execution resolves the ID. A multi-token preamble (for example `1 pp/92345678`) reports edit usage before ID parsing; a single invalid numeric token retains the existing ID error. Prefix-like text inside an address value remains literal.
 
 `EditCommand` creates an immutable replacement retaining the optional follow-up. `Model.setPerson` checks the full collection for duplicates, transfers the ID through the aggregate, and re-evaluates the active filter. Changing a search field can hide the edited client and clear selection; a failed save publishes none of these changes. This reuses the same replacement path as follow-up changes rather than assigning identity in individual commands.
 
@@ -328,17 +330,21 @@ For saves, [`JsonAddressBookStorage`](https://github.com/AY2627S1-CS2103T-W13-3/
 
 Preferences have a different recovery policy from client records. `JsonUserPrefsStorage` rejects explicitly null `guiSettings` and malformed/mapping failures; `MainApp.initPrefs` falls back to `UserPrefs` defaults and attempts to save the recovery. Missing settings retain defaults. Client loading proceeds independently, so invalid preferences alone do not block client mutations. Preference compatibility still ignores unknown properties and accepts the last repeated property; strict client-reader options are not imposed on the shared mapper.
 
-### Application instance ownership
+<span id="application-instance-ownership"></span>
 
-Before preferences/client loading, `MainApp.init()` acquires an OS file lock through `AppInstanceLock` on `.policyharbor.lock` in the working folder. A competing launch or lock I/O failure leaves services uninitialized; startup explains the error and exits without preference writes. Initialization failure, normal shutdown or process termination releases ownership.
+### Application home and instance ownership
 
-The marker is retained: deleting it while an owner holds the original file could let another process lock a replacement. An in-process registry rejects duplicate acquisitions before opening another descriptor, whose closure can release existing OS locks on some systems. Separate working folders remain independent. This prevents simultaneous PolicyHarbor writers to one working folder, without introducing a server or remote authentication.
+`ApplicationHome.getHomeDirectory()` resolves the application's code-source URI to an absolute physical JAR directory, safely decoding spaces, Unicode and percent signs. JAR aliases share their target's home. Exploded IDE/Gradle classes use the working directory. The resolver has no logging or filesystem-write dependency and does not modify `user.dir`; missing or unsupported code sources fail explicitly. `MainApp` resolves preferences, client data and the instance lock under this home. There is no automatic migration from an earlier working-folder dataset; the UG gives backup/manual relocation steps.
+
+Before preferences/client loading, `MainApp.init()` acquires an OS file lock through `AppInstanceLock` on `.policyharbor.lock` in the application home. A competing launch or lock I/O failure leaves services uninitialized; startup explains the error and exits without preference writes. Initialization failure, normal shutdown or process termination releases ownership.
+
+The marker is retained: deleting it while an owner holds the original file could let another process lock a replacement. An in-process registry rejects duplicate acquisitions before opening another descriptor, whose closure can release existing OS locks on some systems. Separate physical JAR homes remain independent. Launching the same JAR from different working directories shares one lock. This prevents simultaneous PolicyHarbor writers to one application home, without introducing a server or remote authentication.
 
 ### Diagnostic log fallback
 
 `JsonUtil.readJsonFile` logs only path and failure category, excluding Jackson messages/throwables that can contain raw client data. It retains the cause in `DataLoadingException` for callers; that does not make the cause safe to print in ordinary diagnostics. Command submission logs outcome/category without raw input. These safeguards limit accidental disclosure in local diagnostic files; they do not encrypt the user's local client data.
 
-`LogsCenter` installs console logging before opening rotating `policyharbor.log` files. A file-handler `IOException` produces a generic warning and leaves console logging available; other initialization failures propagate. This fallback does not make client/preference writes succeed in an unwritable folder.
+`Main` and `MainApp` obtain loggers during static initialization, before `MainApp.init()`. `LogsCenter` therefore resolves `policyharbor.log` through `ApplicationHome` before constructing its `FileHandler`, after installing console logging. Literal `%` characters are doubled to `%%` for FileHandler pattern syntax, preserving the physical path without expanding `%h`, `%t`, `%g` or `%u`. Append mode, the 5 MiB rotation threshold and five-file retention remain unchanged. A file-handler `IOException` produces a generic warning and leaves console logging available; other initialization failures propagate. This fallback does not make client/preference writes succeed in an unwritable folder.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -359,12 +365,14 @@ Use the [documentation](Documentation.html), [testing](Testing.html), [logging](
 | Save-before-publish, canonical selection and dates | `LogicManagerTest`, `ClientProfileSelectionTest`, `ClientProfileWorkflowIntegrationTest`, `FollowUpWorkflowIntegrationTest` |
 | Identity migration/round trips and whole-file recovery | `ClientIdMigrationTest`, `ClientIdRoundTripTest`, `ClientIdLoadingProtectionTest`, `SavedTextTypeRecoveryTest`, `InaccessibleDataRecoveryTest` |
 | Strict JSON/Unicode and private diagnostics | `JsonDuplicatePropertyTest`, `SavedDataEncodingRecoveryTest`, `SavedAddressRecoveryTest`, `JsonDiagnosticPrivacyTest`, `LoadingDiagnosticPrivacyTest` |
+| JAR-home resolution, early logging and cross-CWD persistence | `ApplicationHomeTest`, `JarHomeStorageIntegrationTest`, `JarHomeLoggingIntegrationTest` |
+| Edit preamble correction and unchanged state | `EditFormatRecoveryIntegrationTest`, `EditCommandParserTest` |
 | Atomic I/O, instance ownership and diagnostic fallback | `JsonAddressBookStorageTest`, `StorageDirectoryRecoveryTest`, `AppInstanceLockTest`, `MainAppInstanceTest`, `LogsCenterTest` |
 | Observable dashboard, input and real geometry | `DashboardIntegrationTest`, `DashboardLayoutBoundaryTest`, `CommandSubmissionTest`, `ClientProfileScrollTest`, `HelpAndFooterTest` |
 
 Test classes live under [`src/test/java/seedu/address`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/master/src/test/java/seedu/address). Storage tests inject write/move failures; integration tests assert saved bytes and live state, rather than just error text. Fixed/injected dates establish midnight and time-zone behavior reproducibly. Native focus, font substitution and physical display scaling still need packaged-app checks.
 
-`DisplayMatrixFixture` is an **IDE/test-source tool**, not a packaged command. It writes 1,000 synthetic records to a fresh folder and refuses overwrite. Launch the JAR from that folder, reach `view 1000`, inspect long contact values and scroll to the final pending card. `StatusBarFooterLongPathFixture` separately exercises a roughly 200-character path/tooltip, which the app's fixed relative data path cannot configure through preferences. Logical scene-size tests establish geometry, not physical scaling or throughput. Record actual OS/JDK/resolution/scaling results and pending combinations in the [platform matrix](testing/v1.5/platform-matrix.html).
+`DisplayMatrixFixture` is an **IDE/test-source tool**, not a packaged command. It writes 1,000 synthetic records to a fresh folder and refuses overwrite. Place the candidate JAR in that fixture folder, launch it, reach `view 1000`, inspect long contact values and scroll to the final pending card. `StatusBarFooterLongPathFixture` separately exercises a roughly 200-character path/tooltip, which the app's JAR-home data path cannot configure through preferences. Logical scene-size tests establish geometry, not physical scaling or throughput. Record actual OS/JDK/resolution/scaling results and pending combinations in the [platform matrix](testing/v1.5/platform-matrix.html).
 
 The repository's Java CI workflow configures Java 25 Zulu with JavaFX on Linux, macOS and Windows, `check coverage`, and Linux repository checks. Inspect the actual workflow/check status on the release commit; configuration is not evidence that CI ran. For release evidence, identify the exact source revision, JAR checksum/runtime and tests executed. A previous revision's test record does not by itself verify the final distributed JAR.
 
@@ -378,7 +386,7 @@ The repository's Java CI workflow configures Java 25 Zulu with JavaFX on Linux, 
 
 ### User stories
 
-The following stories are implemented in the verified candidate; they are not a statement that the published v1.4 JAR has these newer capabilities. In each row, read: **As an insurance agent, I want to [capability], so that I can [benefit].**
+The following stories describe the implemented v1.6 source; historical v1.4/v1.5 artifacts retain their own documented scope. In each row, read: **As an insurance agent, I want to [capability], so that I can [benefit].**
 
 | Priority | Capability | Benefit |
 | --- | --- | --- |
@@ -502,7 +510,7 @@ These are acceptance criteria. Platform, timing and physical-display targets req
 | NFR6 | Rejected input and reported save failures leave live client data, IDs, list/selection and existing saved bytes unchanged. | Fault-injection and workflow tests; independent date refresh can still occur. |
 | NFR7 | Invalid/inaccessible existing client data is preserved and blocks mutations until a valid reload. | Recovery tests include unchanged bytes and repair/restart. |
 | NFR8 | Core client/action operations work with networking disabled, with data on local storage and no required remote server. | Help's external UG link is supplementary. Local storage is not encrypted by the app. |
-| NFR9 | Distribution is one executable JAR of at most 100 MB, launched from a writable working folder without a separate installer. | Measure the final uploaded asset; a candidate measurement does not certify a later JAR. |
+| NFR9 | Distribution is one executable JAR of at most 100 MB, stored in a writable JAR folder without a separate installer. | Measure the final uploaded asset; a candidate measurement does not certify a later JAR. |
 | NFR10 | Command box/feedback, client table and both sidebar views remain accessible at 1280×720/150% and 1920×1080/100% or 125%; overflowing content remains reachable. | Record actual OS/resolution/scaling in the platform matrix. Logical geometry is supporting evidence. |
 | NFR11 | Equivalent operations use consistent permanent-ID syntax, shared domain validation and explicit corrective feedback; retained failed input remains editable. | Parser/feedback tests and packaged scenarios. |
 | NFR12 | Closing the main window closes Help, stops date refresh and releases process ownership so the same folder can be reopened. | Lifecycle tests and second-process/restart checks. |
@@ -521,7 +529,7 @@ These are acceptance criteria. Platform, timing and physical-display targets req
 
 ## **Appendix: Instructions for manual testing**
 
-These are independent packaged-app procedures, not a statement that every OS/scaling combination has passed. Use **only disposable synthetic data**. Record the JAR checksum, matching commit, Java/OS and physical display settings. Run each lettered scenario in its own fresh writable working folder; copy the [published v1.5 `PolicyHarbor.jar`](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) there and launch from that folder with Java 25 (`java -jar PolicyHarbor.jar`). On macOS use the prescribed Zulu JDK+FX setup from [SettingUp](SettingUp.html). Expect the title `PolicyHarbor v1.5`; also verify the artifact checksum.
+These are independent packaged-app procedures, not a statement that every OS/scaling combination has passed. Use **only disposable synthetic data**. Record the JAR checksum, matching commit, Java/OS and physical display settings. Run each lettered scenario in its own fresh writable working folder; copy the tested v1.6 candidate `PolicyHarbor.jar` there and launch from that folder with Java 25 (`java -jar PolicyHarbor.jar`). On macOS use the prescribed Zulu JDK+FX setup from [SettingUp](SettingUp.html). Expect the title `PolicyHarbor v1.6`; also verify the artifact checksum.
 
 **Two-client fixture:** whenever requested below, start an empty folder, launch, and enter these lines separately. Expect Rachel ID 1 with lowercase `health`/`active` tags, Amanda ID 2, and no selected profile. Repeated tag case variants collapse.
 
@@ -539,7 +547,7 @@ add n/Amanda Lee p/002 e/amanda@example.com a/Blk 456
 1. Launch in a fresh folder. Expect an empty table, `No client selected.`, an empty pending summary and no saved-data warning. Run `list` and `followups`; neither creates client records.
 2. Add the two-client fixture, close the main window and restart in the same folder. Expect both records/IDs, no selected profile and the full list. Move/resize the window, close/restart and check restored window preferences.
 3. While that instance is open, launch the JAR from a second terminal in the **same** folder. Expect an already-running error, no second working window and unchanged saved client bytes. Close the first normally and reopen: the retained `.policyharbor.lock` marker must not block restart. Never remove a marker while an owner is running.
-4. Launch in a different fresh working folder while the first is open. Expect an independent empty dataset. Close all test windows afterwards, including Help if open.
+4. Launch that same JAR from a different working folder while the first is open: expect the same already-running protection. Copy the JAR to another fresh writable folder and launch that copy: expect an independent empty dataset. Confirm data, preferences and diagnostic logs stay beneath each JAR home, including a home with spaces, `%` and Unicode. Close all test windows afterwards, including Help if open.
 
 <span id="search-and-validation"></span>
 
@@ -559,6 +567,8 @@ add n/Amanda Lee p/002 e/amanda@example.com a/Blk 456
 | `edit 1 t/` | Tags cleared; contacts retained. |
 | `find p/9123`, then `edit 1 p/888` | Rachel leaves results and profile closes; `view 1` restores the full list and shows phone `888`. |
 | `delete 2`, then add `add n/Ben Tan p/003 e/ben@example.com a/Blk 789` | Amanda removed; Ben receives ID **3**, not 2. Rachel remains ID 1. |
+
+After the valid workflow, submit `edit 1 pp/92345678`: expect edit usage, retained input and unchanged data. Submit `find p/9123  4567` and `find t/health!`: expect field-specific constraints with the previous view retained. Correct to `find p/9` and `find t/health`: these valid queries still work. `find n/Rac p/9` retains structural usage feedback. Record an action for ID 1, then check `LIST` and `followup 1 CLEAR` behave like lowercase forms, and profile Copy actions preserve the current command draft.
 
 Repeat a same-name check in a separate fresh folder: add two Rachel Lim records with different phone **and** email values, then view/delete by the displayed IDs. Only the intended record is affected. Conversely, adding `n/RACHEL  LIM` with Rachel's existing phone or case-variant email is rejected as a duplicate, with existing records unchanged.
 
