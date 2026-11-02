@@ -344,14 +344,30 @@ When loading reports a saved-data error, the app shows an empty table and a pers
 2. If the folder was inaccessible, restore access. Otherwise restore a complete known-good backup, or have the file repaired using the [advanced reference](#advanced-data-file-reference).
 3. Restart the same JAR copy to reload the file. If the client file is absent and that absence can be confirmed, the app starts a new, writable dataset. The app does not partly load a file containing invalid records.
 
-**Known startup limitation:** an externally edited client file with extremely deeply nested data can stop the app before the dashboard or saved-data warning appears. Close the app, preserve the original file, restore a complete known-good backup to the JAR's `data/addressbook.json`, then restart. The protected empty workspace is not available in this case.
+**Known startup limitation:** an externally edited client file with extremely deeply nested data can stop the app before the dashboard or saved-data warning appears. Normal app commands cannot create this problem. Close the app and preserve the original file, then restore a complete known-good backup to the JAR's `data/addressbook.json` or have the file safely repaired before restarting. The protected empty workspace is not available in this case; do not delete your only copy to get past startup.
 
 ## Known limitations
 
-- Mixed Chinese/Tamil action text can render incorrectly on some macOS/JavaFX setups even though saved text is intact. Check the saved value before re-entering it; a portable font workaround has not been established.
-- One current action per client, with no follow-up history, automatic reminders or notifications. Replacement/clearing has no undo.
-- Search supports one explicit field at a time and does not search email/address. Use permanent IDs for changes and `view` to open profiles.
-- PolicyHarbor stores contacts and next actions. It does not manage insurance policy, premium or claim records; send messages; import/export CSV; synchronise with cloud services; or create automatic backups. Use the manual backup procedure above.
+### Client records
+
+- **Complete contact details are required.** Adding a prospect requires a name, phone, valid email and address. Unknown email/address values cannot be omitted or left empty, so a prospect with incomplete details cannot yet be recorded. See [adding a client](#adding-a-client-add).
+- **Shared contacts can trigger duplicate rejection.** Distinct people with matching normalised names and either a matching phone or email cannot both be stored, even if they share that contact legitimately. There is no override; see the [duplicate rules](#adding-a-client-add).
+- **Tag changes replace the whole set.** `edit ID t/TAG` does not append a tag: supply every tag you want to retain. `edit ID t/` clears all tags. See [editing details](#editing-a-clients-details-edit) for the full syntax.
+
+### Follow-ups and everyday use
+
+- **Rescheduling requires the description again.** Use `followup ID d/DATE m/DESCRIPTION`; a date-only change is unsupported. You can copy the existing description from the profile before [replacing the action](#recording-or-replacing-a-follow-up-followup). Each client has one current action, with no follow-up history, reminders or notifications.
+- **Searches do not combine.** Only one explicit field is accepted: `find n/Lim t/health` is unsupported. Each new search replaces the previous filter rather than narrowing its results. Email/address searches are unsupported; see [search options](#finding-clients-find).
+- **Profiles open through `view ID`.** Clicking or highlighting a table row does not open its profile. Use the permanent Client ID shown in the table, not its row position; see [selecting a client](#selecting-a-client-view).
+- **Successful commands cannot be recalled with Up/Down.** There is no command history. Failed input stays available for correction; see the [keyboard workflow](#keyboard-workflow-and-error-correction) for ways to reuse command text.
+- **Saved changes have no undo.** Successful edits, deletions and follow-up changes save immediately. Check the intended client with `view ID` before changing their details. Backups are manual; restoring one replaces later changes. See [backup precautions](#existing-files-client-ids-and-backups).
+
+### Known display and startup problems
+
+- **Mixed Chinese/Tamil action text can display incorrectly** on some macOS/JavaFX setups, although the stored text remains intact. This affects readability of some mixed-language descriptions; a portable workaround has not been verified.
+- **Exceptionally nested, externally edited files can prevent startup**, before the dashboard or protected-data warning opens. Follow [saved-data recovery](#saved-data-warning-and-recovery), preserving the original file before restoring a complete known-good backup or arranging a safe repair.
+
+PolicyHarbor stores contacts and next actions. It does not manage insurance policy, premium or claim records; send messages; import/export CSV; or synchronise with cloud services.
 
 ## Reference information
 

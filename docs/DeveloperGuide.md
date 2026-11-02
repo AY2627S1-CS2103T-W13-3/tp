@@ -326,7 +326,7 @@ Client reads use strict UTF-8 (one initial BOM is accepted), reject a null root/
 
 When saved-client loading reports a `DataLoadingException`, `MainApp.initModelManager` creates an empty mutation-blocked model and the UI displays a persistent warning. Queries remain usable; command dispatch blocks mutations. Repairing permissions or JSON during that session does not unlock it: restart and successfully reload valid data before modifying clients.
 
-**Known limitation:** extremely nested, externally edited JSON can cause a `StackOverflowError` before protected mode opens ([#278](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/278)). Preserve the original file and restore a complete known-good backup before restarting.
+An exceptionally deeply nested array supplied externally as `nextClientId` can fail before this protected session opens; see the [known technical limitation](#deeply-nested-externally-edited-json).
 
 For saves, [`JsonAddressBookStorage`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/storage/JsonAddressBookStorage.java) serializes a candidate, writes a sibling temporary file and atomically replaces the destination. Unsupported atomic replacement is a save failure, not a fallback to partial writing; failures attempt temporary-file cleanup. A symbolic-link destination is rejected before writing and again before replacement. These checks are best effort against external filesystem changes: a late path swap can replace the link itself, but the atomic move does not write through to its target. The instance lock coordinates PolicyHarbor processes, not external editors. Atomic replacement is not a backup/history service or a guarantee against hardware failure.
 
@@ -349,6 +349,18 @@ The marker is retained: deleting it while an owner holds the original file could
 `JsonUtil.readJsonFile` logs only path and failure category, excluding Jackson messages/throwables that can contain raw client data. It retains the cause in `DataLoadingException` for callers; that does not make the cause safe to print in ordinary diagnostics. Command submission logs outcome/category without raw input. These safeguards limit accidental disclosure in local diagnostic files; they do not encrypt the user's local client data.
 
 `Main` and `MainApp` obtain loggers during static initialization, before `MainApp.init()`. `LogsCenter` therefore resolves `policyharbor.log` through `ApplicationHome` before constructing its `FileHandler`, after installing console logging. Literal `%` characters are doubled to `%%` for FileHandler pattern syntax, preserving the physical path without expanding `%h`, `%t`, `%g` or `%u`. Append mode, the 5 MiB rotation threshold and five-file retention remain unchanged. A file-handler `IOException` produces a generic warning and leaves console logging available; other initialization failures propagate. This fallback does not make client/preference writes succeed in an unwritable folder.
+
+### Known technical limitations
+
+These unresolved defects are separate from the potential enhancements below.
+
+#### Mixed Chinese/Tamil follow-up rendering
+
+On the reported macOS 26.6.2 Apple Silicon setup with Zulu JDK+FX 25.0.3, some follow-up labels containing both Chinese and Tamil display unrelated glyphs in the Chinese portion. The saved JSON, Java string and accessibility text remain correct in the reproduction; this is a rendering defect, not evidence of stored-text corruption. The evidence does not establish a failure for all Chinese text or all operating systems. No portable fix or workaround has been validated ([#269](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/269)).
+
+#### Deeply nested externally edited JSON
+
+An exceptionally deeply nested array used as the externally malformed `nextClientId` value can cause `StackOverflowError` during recursive Jackson `JsonNode` deserialization, before identity validation and the `DataLoadingException` handling that opens protected mode. Normal commands cannot produce this value. Close the app, preserve the original file, and restore a complete known-good backup or safely repair the malformed file before restarting; never delete the only copy of client data ([#278](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/278)).
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -514,7 +526,7 @@ These are acceptance criteria. Platform, timing and physical-display targets req
 | NFR4 | A tester can complete add/search/view/edit/action/clear/delete using the keyboard without refocusing with a pointer after each submission. | Packaged Enter/Tab/Space/error-correction checks; this replaces an unmeasured faster-than-mouse claim. |
 | NFR5 | Successful mutations survive close/restart with identical contacts, IDs, counter and actions. | Compare restored values; selection/list mode are intentionally session-only. |
 | NFR6 | Rejected input and reported save failures leave live client data, IDs, list/selection and existing saved bytes unchanged. | Fault-injection and workflow tests; independent date refresh can still occur. |
-| NFR7 | Invalid/inaccessible existing client data is preserved and blocks mutations until a valid reload. | Recovery tests include unchanged bytes and repair/restart. |
+| NFR7 | Invalid/inaccessible existing client data is preserved and blocks mutations until a valid reload. | Recovery tests include unchanged bytes and repair/restart; [exceptional deep nesting](#deeply-nested-externally-edited-json) remains unresolved. |
 | NFR8 | Core client/action operations work with networking disabled, with data on local storage and no required remote server. | Help's external UG link is supplementary. Local storage is not encrypted by the app. |
 | NFR9 | Distribution is one executable JAR of at most 100 MB, stored in a writable JAR folder without a separate installer. | Measure the final uploaded asset; a candidate measurement does not certify a later JAR. |
 | NFR10 | Command box/feedback, client table and both sidebar views remain accessible at 1280×720/150% and 1920×1080/100% or 125%; overflowing content remains reachable. | Record actual OS/resolution/scaling in the platform matrix. Logical geometry is supporting evidence. |
@@ -530,6 +542,25 @@ These are acceptance criteria. Platform, timing and physical-display targets req
 * **Pending:** recorded and not cleared, including actions whose dates have passed.
 * **Overdue / due today / upcoming:** due date is before / equal to / after the published local date.
 * **Protected startup:** empty query-capable session that blocks client mutations when loading reports a data error; see the [known recovery limitation](#protected-startup-and-safe-replacement).
+
+--------------------------------------------------------------------------------------------------------------------
+
+## **Appendix: Planned Enhancements**
+
+The following capabilities are unimplemented in the v1.6 baseline. The directions are potential improvements for consideration, not approved designs or release commitments; no delivery dates are assigned.
+
+| Enhancement | Current implementation boundary | Potential improvement | User benefit | Related issue |
+| --- | --- | --- | --- | --- |
+| Date-only follow-up rescheduling | Replacing an action requires both date and description. | Allow a date-only update that preserves the existing description. | Reschedule a commitment without retyping its details. | [#268](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/268) |
+| Incomplete prospect records | `add` requires valid name, phone, email and address; unknown email/address values are not represented. | Represent optional contact details through coordinated domain validation, JSON compatibility and duplicate-matching changes. | Record a prospect before all contact details are known. | [#270](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/270) |
+| Command history | Rejected input remains editable, but successful commands cannot be recalled with Up/Down. | Add keyboard recall of successful commands for editing and deliberate resubmission. | Repeat similar work with less typing. | [#272](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/272) |
+| Incremental tag editing | Supplied `t/` values replace the entire tag set; empty `t/` clears it. | Add or remove individual tags while retaining the others and their normalization rules. | Update a category without reconstructing every tag. | [#273](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/273) |
+| Combined search criteria | Explicit search accepts one field; each search replaces the previous query. | Define field combinations while preserving existing single-field matching semantics unless deliberately redesigned. | Narrow a large client list using several known details. | [#274](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/274) |
+| Open profiles from client rows | Row selection/highlighting does not open a profile; `view ID` does. | Route row activation through the same permanent-ID selection rules as `view`. | Open a visible client's context directly from the table. | [#275](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/275) |
+| Legitimate shared contact details | Matching normalized names plus either matching phone digits or case-insensitive email cause duplicate rejection. | Review how to distinguish legitimate shared contacts while retaining protection against accidental duplicates. | Record distinct people who share a name and household contact details. | [#276](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/276) |
+| One-level undo | Successful mutations are saved immediately; no undo history is retained. | Define reversal that preserves permanent IDs and non-reuse, follows save-before-publish, and retains the current state if saving the reversal fails. | Recover from the most recent mistaken edit, deletion or follow-up change. | [#277](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/277) |
+
+The [recorded future requirements](#recorded-future-requirements--not-implemented) retain the broader needs for multiple actions and history, reminders, archiving and importing records. They remain unimplemented aspirations alongside these proposals.
 
 --------------------------------------------------------------------------------------------------------------------
 
