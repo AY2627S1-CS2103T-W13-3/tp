@@ -112,8 +112,8 @@ Paste one command line at a time. A paste containing a tab, control character or
 ### Command format
 
 - Replace `UPPER_CASE` words with your values. Do not type the square brackets: they mark optional fields. `...` means tags or bare search keywords may be repeated as shown.
-- Command words are lowercase and case-sensitive. Use ordinary spaces to separate words; extra ordinary spaces around a command are accepted. Tabs, control characters and line separators are rejected.
-- Named fields such as `n/` and `p/` may be supplied in any order. Put a space before each prefix. Required fields cannot be omitted or empty; `edit ID t/` is the special case for clearing tags.
+- Command words and the `clear` subcommand are case-insensitive: `LIST`, `Find Rachel` and `followup 1 CLEAR` work like their lowercase equivalents. Use ordinary spaces to separate words; extra ordinary spaces around a command are accepted. Tabs, control characters and line separators are rejected.
+- Named fields such as `n/` and `p/` may be supplied in any order. Prefixes remain lowercase and case-sensitive. Put a space before each prefix. Required fields cannot be omitted or empty; `edit ID t/` is the special case for clearing tags.
 - Do not repeat single-valued fields such as `n/` or `d/`; `t/` may repeat. Known prefixes within values can be interpreted as fields, and quotes do not escape them. See the [prefix reference](#prefixes-and-literal-text).
 - `list` and `followups` take **no arguments**. For example, `list 123` is rejected with usage feedback.
 
@@ -308,7 +308,7 @@ The **Help → Help** menu or **F1** opens a window with the online User Guide l
 | The JAR does not start | Launch from a terminal with `java -version` and `java -jar "PolicyHarbor.jar"`. Confirm Java 25 and the actual JAR filename. Double-clicking may use another Java installation. |
 | Startup fails on macOS | Follow the [prescribed JavaFX/JDK setup](https://se-education.org/guides/tutorials/javaInstallationMac.html). Check `java -version` and `which java` in the same terminal before launching. |
 | Linux shows `Gdk-CRITICAL` under Wayland | Try `GDK_BACKEND=x11 java -jar "PolicyHarbor.jar"`, as advised in the [course JAR testing instructions](https://nus-cs2103-ay2627-s1.github.io/website/schedule/week11/project.html). |
-| A command is rejected | Read the complete feedback, correct the retained line and retry. Use lowercase command words and one line with ordinary spaces. See the [command overview](#command-overview) and [field reference](#contact-field-reference). |
+| A command is rejected | Read the complete feedback, correct the retained line and retry. Use lowercase field prefixes and one line with ordinary spaces. Command words accept any letter case. See the [command overview](#command-overview) and [field reference](#contact-field-reference). |
 | A new or edited client seems missing | Run `list`: an active search can hide non-matching clients, and pending mode hides clients without actions. IDs have not changed. |
 | `No client with ID ...` | Check the table/profile ID, not the row position. The client may have been deleted or belong to another data folder. |
 | Changes cannot be saved | Check write access, free space and whether a regular file is blocking the `data` folder. Restore access, then retry. Do not run as administrator just to bypass permissions. |

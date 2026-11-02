@@ -10,6 +10,7 @@ import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.testutil.Assert.assertThrows;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -45,8 +46,7 @@ public class AddressBookParserTest {
                     parser.parseCommand("view 0 extra", isDataLoadingBlocked));
             assertThrows(ParseException.class, ClientIdParserUtil.MESSAGE_INVALID_CLIENT_ID, () ->
                     parser.parseCommand("view 0", isDataLoadingBlocked));
-            assertThrows(ParseException.class, "Unknown command.", () ->
-                    parser.parseCommand("VIEW 1", isDataLoadingBlocked));
+            assertEquals(new ViewCommand(new ClientId(1)), parser.parseCommand("VIEW 1", isDataLoadingBlocked));
         }
     }
 
@@ -108,7 +108,7 @@ public class AddressBookParserTest {
             assertThrows(ParseException.class,
                     String.format(MESSAGE_INVALID_COMMAND_FORMAT, FindCommand.MESSAGE_USAGE), () ->
                     parser.parseCommand("find   ", isDataLoadingBlocked));
-            assertThrows(ParseException.class, "Unknown command.", () ->
+            assertEquals(new FindCommand(new ClientContainsKeywordsPredicate(List.of("Alice"))),
                     parser.parseCommand("FIND Alice", isDataLoadingBlocked));
             for (String character : List.of("\t", "\n", "\r", "\u0000", "\u007f", "\u0085",
                     "\u2028", "\u2029")) {
@@ -131,6 +131,48 @@ public class AddressBookParserTest {
     }
 
     @Test
+    public void parseCommand_caseVariants_preserveArgumentsAcrossLocales() throws Exception {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            for (Locale locale : List.of(Locale.ROOT, Locale.forLanguageTag("tr-TR"))) {
+                Locale.setDefault(locale);
+                for (String input : List.of(
+                        "add n/Rachel McKay p/91110001 e/Rachel.McKay@Example.com a/Blk 123 Queen Street t/Health",
+                        "edit 1 n/Rachel McKay e/Rachel.McKay@Example.com",
+                        "delete 1", "view 1", "find Rachel McKay",
+                        "followup 1 d/2099-12-15 m/Call Rachel ASAP")) {
+                    int boundary = input.indexOf(' ');
+                    String word = input.substring(0, boundary);
+                    String arguments = input.substring(boundary);
+                    for (String variant : List.of(word.toUpperCase(Locale.ROOT),
+                            word.substring(0, 1).toUpperCase(Locale.ROOT) + word.substring(1))) {
+                        assertEquals(parser.parseCommand(input), parser.parseCommand(" " + variant + arguments + " "));
+                    }
+                }
+                for (boolean isDataLoadingBlocked : List.of(false, true)) {
+                    assertTrue(parser.parseCommand("LIST", isDataLoadingBlocked) instanceof ListCommand);
+                    assertTrue(parser.parseCommand("LiSt", isDataLoadingBlocked) instanceof ListCommand);
+                    assertTrue(parser.parseCommand("FOLLOWUPS", isDataLoadingBlocked) instanceof FollowUpsCommand);
+                    assertTrue(parser.parseCommand("FoLlOwUpS", isDataLoadingBlocked) instanceof FollowUpsCommand);
+                }
+                assertEquals(new ClearFollowUpCommand(new ClientId(1)), parser.parseCommand("FoLlOwUp 1 ClEaR"));
+            }
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
+    @Test
+    public void parseCommand_uppercasePrefixes_keepExistingGrammar() throws Exception {
+        for (String input : List.of("ADD N/Rachel p/91110001 e/rachel@example.com a/Blk 1",
+                "EDIT 1 N/Rachel", "FOLLOWUP 1 D/2099-12-15 m/Call", "FOLLOWUP 1 d/2099-12-15 M/Call")) {
+            assertThrows(ParseException.class, () -> parser.parseCommand(input));
+        }
+        assertEquals(new FindCommand(new ClientContainsKeywordsPredicate(List.of("N/Rachel"))),
+                parser.parseCommand("FIND N/Rachel"));
+    }
+
+    @Test
     public void parseCommand_emptyInput_throwsParseException() {
         assertThrows(ParseException.class, MESSAGE_EMPTY_COMMAND, () -> parser.parseCommand("   "));
     }
@@ -147,10 +189,10 @@ public class AddressBookParserTest {
 
     @Test
     public void parseCommand_noArgumentCommands_rejectsExtraArguments() {
-        for (String command : List.of("list", "followups")) {
+        for (String command : List.of("list", "LIST", "LiSt", "followups", "FOLLOWUPS", "FoLlOwUpS")) {
             for (boolean isDataLoadingBlocked : List.of(false, true)) {
                 for (String suffix : List.of(" words", " 123", " n/Rachel", " list", " \u00a0")) {
-                    String usage = "Usage: " + command + " (no arguments)";
+                    String usage = "Usage: " + command.toLowerCase(Locale.ROOT) + " (no arguments)";
                     assertThrows(ParseException.class, String.format(MESSAGE_INVALID_COMMAND_FORMAT, usage), () ->
                             parser.parseCommand(" " + command + suffix + " ", isDataLoadingBlocked));
                 }
@@ -163,7 +205,8 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_targetedCommands_rejectsExtraTokens() {
         for (String command : List.of("view 1 words", "delete 1 words", "edit 1 words n/Rachel",
-                "followup 1 clear words", "followup 1 words d/2099-12-31 m/Call client")) {
+                "followup 1 clear words", "followup 1 words d/2099-12-31 m/Call client",
+                "VIEW 1 words", "DELETE 1 words", "EDIT 1 words n/Rachel", "FOLLOWUP 1 CLEAR words")) {
             assertThrows(ParseException.class, () -> parser.parseCommand(command));
         }
     }
@@ -177,7 +220,7 @@ public class AddressBookParserTest {
 
     @Test
     public void parseCommand_supportedAndUnsupportedRoutes_invalidCharactersTakeGlobalPriority() {
-        for (String commandWord : List.of("edit", "clear", "help", "exit")) {
+        for (String commandWord : List.of("edit", "clear", "help", "exit", "EDIT", "CLEAR", "HELP", "EXIT")) {
             for (boolean isDataLoadingBlocked : List.of(false, true)) {
                 assertThrows(ParseException.class,
                         "Use one command line and ordinary spaces. Control characters are not allowed.", () ->
@@ -205,14 +248,21 @@ public class AddressBookParserTest {
         assertTrue(parser.parseCommand("followups", true) instanceof FollowUpsCommand);
         assertTrue(parser.parseCommand("list", true) instanceof ListCommand);
         assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("unknown", true));
-        assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("FOLLOWUP 1 clear"));
+        assertEquals(new ClearFollowUpCommand(new ClientId(1)), parser.parseCommand("FOLLOWUP 1 clear"));
+        for (String command : List.of("ADD malformed", "AdD malformed", "EDIT malformed", "EdIt malformed",
+                "DELETE malformed", "DeLeTe malformed", "FOLLOWUP malformed", "FoLlOwUp 1 CLEAR")) {
+            assertThrows(ParseException.class, MESSAGE_CHANGES_BLOCKED, () -> parser.parseCommand(command, true));
+        }
     }
 
     private void assertUnsupportedRoute(String commandWord) {
-        for (boolean isDataLoadingBlocked : List.of(false, true)) {
-            for (String suffix : List.of("", " 1", " malformed extra")) {
-                assertThrows(ParseException.class, "Unknown command.", () ->
-                        parser.parseCommand(" " + commandWord + suffix + " ", isDataLoadingBlocked));
+        for (String variant : List.of(commandWord, commandWord.toUpperCase(Locale.ROOT),
+                commandWord.substring(0, 1).toUpperCase(Locale.ROOT) + commandWord.substring(1))) {
+            for (boolean isDataLoadingBlocked : List.of(false, true)) {
+                for (String suffix : List.of("", " 1", " malformed extra")) {
+                    assertThrows(ParseException.class, "Unknown command.", () ->
+                            parser.parseCommand(" " + variant + suffix + " ", isDataLoadingBlocked));
+                }
             }
         }
     }

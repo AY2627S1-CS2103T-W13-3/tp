@@ -39,7 +39,7 @@ public final class FollowUpCommandParser implements Parser<Command> {
     }
 
     private static boolean isClearForm(String preamble) {
-        return preamble.matches("[^ ]+ +clear");
+        return preamble.matches("[^ ]+ +(?i:clear)");
     }
 
     private static ParseException createInvalidFormatException() {

@@ -224,9 +224,9 @@ This relation is symmetric but **not transitive**: for one name, A `(111, one@ex
 
 ### View parsing, client search and supported command routing
 
-[`AddressBookParser`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/logic/parser/AddressBookParser.java) first rejects raw control characters and line/paragraph separators, then dispatches case-sensitive commands. Only `add`, `delete`, `edit`, `view`, `find`, `list`, `followup` and `followups` are typed routes. Legacy command classes are not proof that `clear`, `help` or `exit` is accepted at the command box; Help/window closure are GUI actions.
+[`AddressBookParser`](https://github.com/AY2627S1-CS2103T-W13-3/tp/blob/master/src/main/java/seedu/address/logic/parser/AddressBookParser.java) first rejects raw control characters and line/paragraph separators, then normalizes only the command word with `Locale.ROOT` for case-insensitive dispatch. Only `add`, `delete`, `edit`, `view`, `find`, `list`, `followup` and `followups` are typed routes. Arguments retain their original case for command-specific parsing; field prefixes remain case-sensitive. Legacy command classes are not proof that `clear`, `help` or `exit` is accepted at the command box; Help/window closure are GUI actions.
 
-Global character validation precedes the failed-load mutation gate. In a protected session, `add`, `delete`, `edit` and singular `followup` are rejected before their command-specific parsers; queries remain available. Otherwise each parser checks its own shape/prefixes and values. `list`/`followups` reject arguments. Shared `ClientIdParserUtil` validates a bounded ASCII numeric ID (leading zeroes allowed); `ClientIdResolver` distinguishes a valid-but-absent ID during execution. A malformed command never changes the model merely because its prefix was recognized.
+Global character validation and command-word normalization precede the failed-load mutation gate. In a protected session, `add`, `delete`, `edit` and singular `followup` are rejected in every letter case before their command-specific parsers; queries remain available. Otherwise each parser checks its own shape/prefixes and values. `list`/`followups` reject arguments. Shared `ClientIdParserUtil` validates a bounded ASCII numeric ID (leading zeroes allowed); `ClientIdResolver` distinguishes a valid-but-absent ID during execution. A malformed command never changes the model merely because its prefix was recognized.
 
 #### Bare and explicit client search
 
@@ -244,7 +244,7 @@ Global character validation precedes the failed-load mutation gate. In a protect
 
 `Person` contains **zero or one** immutable `FollowUp` with `dueDate : LocalDate` and `description : String`. Setting/replacing creates a new `Person` preserving contacts/tags/ID; clearing removes the optional value. There is no completion flag, notification scheduler or action history.
 
-`FollowUpCommandParser` distinguishes `followup ID clear` from date/description input. The set command resolves the global ID before validating the raw date and description; date errors precede description errors. Past dates are allowed for overdue carry-over work. Calendar parsing is strict, with years 0001–9999. Notes retain Unicode spelling/internal spacing, trim outer ordinary spaces, and require 1–200 Unicode code points with visible content. The tokenizer recognizes space-prefixed `d/` and `m/` even inside a note; quotes do not escape them. These are deliberate grammar limits, documented in the UG.
+`FollowUpCommandParser` distinguishes `followup ID clear` from date/description input, accepting any letter case for the `clear` subcommand. The set command resolves the global ID before validating the raw date and description; date errors precede description errors. Past dates are allowed for overdue carry-over work. Calendar parsing is strict, with years 0001–9999. Notes retain Unicode spelling/internal spacing, trim outer ordinary spaces, and require 1–200 Unicode code points with visible content. The tokenizer recognizes space-prefixed `d/` and `m/` even inside a note; quotes do not escape them. These are deliberate grammar limits, documented in the UG.
 
 `ModelManager.showPendingFollowUps()` includes every client with an action and stably sorts by due date. Ties retain full-list insertion order. `FollowUp.getStatus(today)` derives `OVERDUE`, `DUE_TODAY` or `UPCOMING` from the supplied date; the value does not read the device clock. Neither status nor selection is serialized.
 
@@ -560,6 +560,8 @@ add n/Amanda Lee p/002 e/amanda@example.com a/Blk 456
 | `delete 2`, then add `add n/Ben Tan p/003 e/ben@example.com a/Blk 789` | Amanda removed; Ben receives ID **3**, not 2. Rachel remains ID 1. |
 
 Repeat a same-name check in a separate fresh folder: add two Rachel Lim records with different phone **and** email values, then view/delete by the displayed IDs. Only the intended record is affected. Conversely, adding `n/RACHEL  LIM` with Rachel's existing phone or case-variant email is rejected as a duplicate, with existing records unchanged.
+
+In a separate fresh folder, enter `ADD n/Rachel McKay p/91110001 e/Rachel.McKay@Example.com a/Blk 123 Queen Street`, `Find Rachel`, `LiSt`, `FOLLOWUP 1 d/2099-12-15 m/Call Rachel ASAP`, `VIEW 1`, and `FOLLOWUP 1 CLEAR`. Expect the same behavior as lowercase commands, with contact spelling/capitalization retained and only the action cleared. Close/restart to verify persistence. `LIST extra` and `FOLLOWUP 1 CLEAR extra` must retain input and preserve saved data; standalone `CLEAR` must report `Unknown command.`. Prefixes remain case-sensitive.
 
 <span id="recording-and-replacing-overdue-carry-over-work"></span>
 
