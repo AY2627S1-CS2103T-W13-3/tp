@@ -89,6 +89,33 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_caseVariants_preserveClientDetailsAndPersistFollowUpChanges() throws Exception {
+        logic.execute("ADD n/Rachel McKay p/91110001 e/Rachel.McKay@Example.com a/Blk 123 Queen Street");
+        Person client = model.getAddressBook().getPersonList().getFirst();
+        assertEquals("Rachel McKay", client.getName().fullName);
+        assertEquals("Rachel.McKay@Example.com", client.getEmail().value);
+        assertEquals("Blk 123 Queen Street", client.getAddress().value);
+        FollowUp followUp = new FollowUp(LocalDate.of(2099, 12, 15), "Call Rachel ASAP");
+
+        logic.execute("FoLlOwUp 1 d/2099-12-15 m/Call Rachel ASAP");
+        logic.execute("VIEW 1");
+        Person withFollowUp = model.getAddressBook().getPersonList().getFirst();
+        assertEquals(client.withFollowUp(followUp), withFollowUp);
+        assertEquals(model.getAddressBook(), storage.readAddressBook().orElseThrow());
+        byte[] savedBytes = Files.readAllBytes(storage.getAddressBookFilePath());
+
+        assertThrows(ParseException.class, () -> logic.execute("FOLLOWUP 1 CLEAR extra"));
+        assertSame(withFollowUp, model.getAddressBook().getPersonList().getFirst());
+        assertSame(withFollowUp, model.selectedPersonProperty().get());
+        assertTrue(java.util.Arrays.equals(savedBytes, Files.readAllBytes(storage.getAddressBookFilePath())));
+
+        logic.execute("FOLLOWUP 1 CLEAR");
+        assertEquals(List.of(client), model.getAddressBook().getPersonList());
+        assertSame(model.getAddressBook().getPersonList().getFirst(), model.selectedPersonProperty().get());
+        assertEquals(model.getAddressBook(), storage.readAddressBook().orElseThrow());
+    }
+
+    @Test
     public void execute_storageThrowsIoException_throwsCommandException() {
         assertCommandFailureForExceptionFromStorage(DUMMY_IO_EXCEPTION,
                 String.format(LogicManager.MESSAGE_SAVE_FAILED, temporaryFolder.resolve("ExceptionUserPrefs.json")));

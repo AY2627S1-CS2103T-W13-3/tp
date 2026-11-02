@@ -7,6 +7,8 @@ import static seedu.address.logic.parser.ClientIdParserUtil.MESSAGE_INVALID_CLIE
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseSuccess;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import seedu.address.logic.commands.ClearFollowUpCommand;
@@ -70,6 +72,18 @@ public class FollowUpCommandParserTest {
     public void parse_descriptionClearIsTreatedAsDescription() {
         assertParseSuccess(parser, " 1 d/2026-10-05 m/clear",
                 new SetFollowUpCommand(new ClientId(1), "2026-10-05", "clear"));
+        assertParseSuccess(parser, " 1 d/2026-10-05 m/CLEAR",
+                new SetFollowUpCommand(new ClientId(1), "2026-10-05", "CLEAR"));
+    }
+
+    @Test
+    public void parse_clearCaseVariants_preserveShapeAndClientIdValidation() {
+        for (String keyword : List.of("clear", "CLEAR", "Clear", "cLeAr")) {
+            assertParseSuccess(parser, " 0001   " + keyword + "  ", new ClearFollowUpCommand(new ClientId(1)));
+            assertParseFailure(parser, " 0 " + keyword, MESSAGE_INVALID_CLIENT_ID);
+            assertParseFailure(parser, " 1 " + keyword + " extra", FORMAT_MESSAGE);
+            assertParseFailure(parser, " 1 " + keyword + " d/2026-10-05 m/Call", FORMAT_MESSAGE);
+        }
     }
 
     @Test
