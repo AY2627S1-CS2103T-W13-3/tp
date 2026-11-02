@@ -27,7 +27,7 @@ IntelliJ can run a class, package or `src/test/java` through its JUnit runner. E
 
 Gradle explicitly enables assertions for `Test` and `JavaExec` tasks, including `test`, `run` and `runShadow`. An assertion failure signals an internal invariant violation; investigate it rather than disabling assertions to make a check pass. Assertions must have no side effects and must not be the only validation for user input, external files or recoverable errors.
 
-For a direct IntelliJ application launch, enable `-ea` in its VM options as described in [Setting up](SettingUp.md#setting-up-the-project-on-your-computer). Build the packaged application with `./gradlew shadowJar`. From the project root, run each command below separately, closing the application between runs:
+For a direct IntelliJ application launch, enable `-ea` in its VM options as described in [Setting up](SettingUp.html#setting-up-the-project-on-your-computer). Build the packaged application with `./gradlew shadowJar`. From the project root, run each command below separately, closing the application between runs:
 
 ```bash
 java -ea -jar build/libs/PolicyHarbor.jar
@@ -46,7 +46,7 @@ For isolated manual checks, use a fresh writable folder with fictional data and 
 
 Tests use fixed dates and temporary data folders. Storage failure tests inject write/move failures rather than relying on OS permissions. Keep successful and rejected commands' data/view assertions together.
 
-Pure display-function tests do not prove FXML binding, focus, wrapping or scaling. Follow the Developer Guide's [manual testing appendix](DeveloperGuide.md#appendix-instructions-for-manual-testing) against the actual JAR before a release, and record the tested platform/runtime and remaining gaps.
+Pure display-function tests do not prove FXML binding, focus, wrapping or scaling. Follow the Developer Guide's [manual testing appendix](DeveloperGuide.html#appendix-instructions-for-manual-testing) against the actual JAR before a release, and record the tested platform/runtime and remaining gaps.
 
 ## Published v1.5 verification
 
@@ -68,9 +68,9 @@ Retain its results as historical evidence, not as the final release checksum. Th
 
 ## v1.5 dashboard layout and platform matrix
 
-`DashboardLayoutBoundaryTest` lays out the real window at the logical sizes of the release display matrix and checks a 1,000-client table, long unbroken profile values and a full pending summary. `DisplayMatrixFixture` writes the matching 1,000-client data file for packaged-JAR checks. Run `./gradlew displayMatrixFixture --args="/absolute/path/to/fresh-folder yyyy-MM-dd"`; the folder must not already contain a client-data file. `DisplayMatrixFixtureTest` checks round-trip loading, the reference-date distribution and refusal to overwrite existing data. Use `./gradlew packagedBackendCheck --args="/absolute/path/to/another-fresh-folder"` for a self-checking 1,000-client workflow and backend timings against the built JAR. This does not exercise keyboard/mouse input or rendering. Record automated results and every packaged OS/resolution/scaling check in the [v1.5 platform matrix](testing/v1.5/platform-matrix.md); combinations nobody has run stay pending.
+`DashboardLayoutBoundaryTest` lays out the real window at the logical sizes of the release display matrix and checks a 1,000-client table, long unbroken profile values and a full pending summary. `DisplayMatrixFixture` writes the matching 1,000-client data file for packaged-JAR checks. Run `./gradlew displayMatrixFixture --args="/absolute/path/to/fresh-folder yyyy-MM-dd"`; the folder must not already contain a client-data file. `DisplayMatrixFixtureTest` checks round-trip loading, the reference-date distribution and refusal to overwrite existing data. Use `./gradlew packagedBackendCheck --args="/absolute/path/to/another-fresh-folder"` for a self-checking 1,000-client workflow and backend timings against the built JAR. This does not exercise keyboard/mouse input or rendering. Record automated results and every packaged OS/resolution/scaling check in the [v1.5 platform matrix](testing/v1.5/platform-matrix.html); combinations nobody has run stay pending.
 
-The [28 October composed-candidate record](testing/v1.5/platform-matrix.md#composed-candidate-record-28-october-2026) identifies the exact source and JAR, 624 passing tests, three locally excluded native-input tests, packaged backend timings and limited ordinary/`-ea` startup observations. Physical resolution/scaling and desktop interaction remain pending; #135 is not complete.
+The [28 October composed-candidate record](testing/v1.5/platform-matrix.html#composed-candidate-record-28-october-2026) identifies the exact source and JAR, 624 passing tests, three locally excluded native-input tests, packaged backend timings and limited ordinary/`-ea` startup observations. Physical resolution/scaling and desktop interaction remain pending; #135 is not complete.
 
 ## v1.4 integrated dashboard
 
@@ -82,7 +82,7 @@ The three Robot-based command-submission tests were retired after reproducible d
 
 The Help restoration regression checks `HelpWindow.focus()` on an unshown stage: it must clear a pre-set iconified state, retain the same stage and remain safe when repeated. It runs on every CI platform without a skip or desktop opt-in. A shown stage's iconified state is controlled by the OS window manager, so this regression does not assert synchronous native minimise/restore transitions. For desktop verification, open Help, minimise it, then reopen it through the Help menu and F1 separately; allow the desktop to settle and confirm that the same window is restored and focused. The component regression does not prove that native interaction. See the [JavaFX Stage iconification contract](https://openjfx.io/javadoc/17/javafx.graphics/javafx/stage/Stage.html#iconifiedProperty()).
 
-See the [Developer Guide's dashboard procedure](DeveloperGuide.md#integrated-v14-dashboard-checks) for manual acceptance and the [v1.4 release notes](releases/v1.4.md) for the user-visible increment.
+See the [Developer Guide's dashboard procedure](DeveloperGuide.html#integrated-v14-dashboard-checks) for manual acceptance and the [v1.4 release notes](releases/v1.4.html) for the user-visible increment.
 
 ### v1.4 release GUI verification record
 
@@ -104,6 +104,10 @@ GitHub's reported asset digest matches the locally built JAR used for the final 
 
 On that final source, `check coverage shadowJar` passed locally using the committed macOS Actions test profile through a temporary init script: 576 tests, 572 passed and the four native desktop tests present at that revision skipped. Checkstyle, coverage generation and JAR packaging passed. [CI run 39600670010](https://github.com/AY2627S1-CS2103T-W13-3/tp/actions/runs/39600670010) passed on Linux, macOS and Windows for the same source revision. These automated checks are separate from packaged desktop verification.
 
+The evidence table scrolls horizontally when needed; keyboard users can focus it and use the arrow keys.
+
+<div role="region" aria-label="Release verification evidence" tabindex="0" style="max-width: 100%; overflow-x: auto;" markdown="1">
+
 | Release check | Evidence/status |
 | --- | --- |
 | Missing saved screen | `DashboardIntegrationTest.window_unavailableSavedScreen_restoresInsidePrimaryWithoutDiscardingPreferences` verifies the real window constructor with unavailable saved coordinates, primary-screen bounds and retained preferences. Physical monitor unplug/reconnect remains untested. |
@@ -115,5 +119,7 @@ On that final source, `check coverage shadowJar` passed locally using the commit
 | 1920x1080 at 100% and 125%, on each supported OS | Physical display/scaling checks pending. |
 | 1280x720 at 150%, on each supported OS | Physical display/scaling checks pending; the 853x480 logical scene test is automated evidence only. |
 | Clipboard rejection | Pending; record whether the environment can exercise a rejected clipboard write. |
+
+</div>
 
 When adding verification evidence, record the exact source commit, JAR SHA-256, OS/JDK, actual resolution/scaling, date, result and evidence for each exercised case. Keep unavailable combinations explicitly pending rather than treating publication, a screenshot or green CI as proof.

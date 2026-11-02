@@ -24,7 +24,7 @@ If you plan to use IntelliJ IDEA (highly recommended):
   :exclamation: Note: Importing a Gradle project is slightly different from importing a normal Java project.
 1. **Verify the setup**:
    1. Run `./gradlew run` and try a few commands. Gradle enables Java assertions for application runs, including `runShadow`, and tests.
-   1. [Run the tests](Testing.md) to ensure they all pass.
+   1. [Run the tests](Testing.html) to ensure they all pass.
 
 If you run `seedu.address.Main` directly through IntelliJ instead of Gradle, open **Run > Edit Configurations**, select the application configuration, choose **Modify options > Add VM options**, and enter `-ea`. Apply this to each application run configuration you use. See the [SE-EDU assertions instructions](https://se-education.org/guides/tutorials/intellijUsefulSettings.html#enabling-assertions). Keep personal IDE configurations out of Git.
 
@@ -57,7 +57,7 @@ A direct `java -jar` launch does not inherit Gradle's assertion settings. Also c
 
 1. **Learn the design**
 
-   When you are ready to start coding, we recommend that you get some sense of the overall design by reading about [PolicyHarbor’s architecture](DeveloperGuide.md#architecture).
+   When you are ready to start coding, we recommend that you get some sense of the overall design by reading about [PolicyHarbor’s architecture](DeveloperGuide.html#architecture).
 
 1. **Do the tutorials**
    These tutorials will help you get acquainted with the codebase.
