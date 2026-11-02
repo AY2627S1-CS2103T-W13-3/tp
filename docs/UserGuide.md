@@ -340,9 +340,10 @@ The **Help → Help** menu or **F1** opens a window with the online User Guide l
 
 When loading reports a saved-data error, the app shows an empty table and a persistent warning. **This does not mean your saved clients were deleted.** `add`, `edit`, `delete` and `followup` are blocked to protect the file; query commands remain available. An ordinary command result does not dismiss the warning.
 
-1. Close PolicyHarbor and make a backup of `data/addressbook.json` if you can access it. Do not delete the only copy of client data to make the warning disappear.
+1. Before closing, note the **data-file path at the bottom of the main window**; hover over a shortened path to read it in full. Separate JAR copies can use different client files. Close PolicyHarbor and back up that exact file if you can access it. Do not delete the only copy of client data to make the warning disappear.
 2. If the folder was inaccessible, restore access. Otherwise restore a complete known-good backup, or have the file repaired using the [advanced reference](#advanced-data-file-reference).
 3. Restart the same JAR copy to reload the file. If the client file is absent and that absence can be confirmed, the app starts a new, writable dataset. The app does not partly load a file containing invalid records.
+4. Run `list`, then `view ID` using an ID from the restored table, and check the expected contact details and follow-up. If expected clients are still missing, check the footer path and backup you restored before adding replacement records; an empty list alone does not confirm successful recovery.
 
 **Known startup limitation:** an externally edited client file with extremely deeply nested data can stop the app before the dashboard or saved-data warning appears. Normal app commands cannot create this problem. Close the app and preserve the original file, then restore a complete known-good backup to the JAR's `data/addressbook.json` or have the file safely repaired before restarting. The protected empty workspace is not available in this case; do not delete your only copy to get past startup.
 
@@ -403,3 +404,5 @@ Prefer `add`/`edit`/`followup` to changing saved files directly. If you must edi
 - A legacy file with **no identity metadata** loads valid clients with insertion-order IDs, starting at 1, without rewriting the file. The first successfully saved change writes IDs and the next-ID counter.
 - Keep every `clientId` and the root `nextClientId` when copying/backing up. If any identity metadata remains, incomplete/invalid metadata is rejected. If **all** IDs and the counter are removed or set to `null`, the file is treated as legacy and receives a new ID history; discarded IDs and the old counter cannot be reconstructed. Restoring an older backup can also restore older history.
 - Do not change paths or saved files externally while PolicyHarbor is running. Symbolic-link save checks do not synchronise with external filesystem changes. Repairing a file during a protected session cannot unlock it; close and restart after repair.
+
+**Repeated properties are different from repeated fields across clients.** Two `email` properties inside one client object are rejected even if both contain the same address; one `email` property in each of two separate client objects is normal. The same rule applies to `persons` in the outer object and `description` inside a follow-up. Before removing a repeated property, compare both values with your backup so that you do not discard clients or follow-up details that need to be recovered.
