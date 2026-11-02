@@ -54,7 +54,8 @@ public class EditCommandParserTest {
     @Test
     public void parse_missingParts_failure() {
         // no ID specified
-        assertParseFailure(parser, VALID_NAME_AMY, MESSAGE_INVALID_ID);
+        assertParseFailure(parser, VALID_NAME_AMY,
+                String.format(Messages.MESSAGE_INVALID_COMMAND_FORMAT, EditCommand.MESSAGE_USAGE));
 
         // no field specified
         assertParseFailure(parser, "1", EditCommand.MESSAGE_NOT_EDITED);
@@ -73,10 +74,34 @@ public class EditCommandParserTest {
         assertParseFailure(parser, "2147483648" + NAME_DESC_AMY, MESSAGE_INVALID_ID);
 
         // invalid arguments being parsed as preamble
-        assertParseFailure(parser, "1 some random string", MESSAGE_INVALID_ID);
+        assertParseFailure(parser, "1 some random string",
+                String.format(Messages.MESSAGE_INVALID_COMMAND_FORMAT, EditCommand.MESSAGE_USAGE));
 
         // invalid prefix being parsed as preamble
-        assertParseFailure(parser, "1 i/ string", MESSAGE_INVALID_ID);
+        assertParseFailure(parser, "1 i/ string",
+                String.format(Messages.MESSAGE_INVALID_COMMAND_FORMAT, EditCommand.MESSAGE_USAGE));
+    }
+
+    @Test
+    public void parse_extraPreambleTokens_reportsEditUsage() {
+        String expectedMessage = String.format(Messages.MESSAGE_INVALID_COMMAND_FORMAT, EditCommand.MESSAGE_USAGE);
+        for (String input : new String[] {"1 pp/92345678", "1 phone/92345678", "1 extra", "1 2",
+            "1  extra p/92345678", "1 pp/92345678 n/Alice", "1 extra p/111 p/222"}) {
+            assertParseFailure(parser, input, expectedMessage);
+        }
+    }
+
+    @Test
+    public void parse_singleInvalidId_retainsIdErrorBeforeDuplicatePrefixes() {
+        for (String id : new String[] {"", "0", "-1", "+1", "2147483648", "Alice"}) {
+            assertParseFailure(parser, id + " p/111 p/222", MESSAGE_INVALID_ID);
+        }
+    }
+
+    @Test
+    public void parse_leadingZeroIdAndLiteralUnknownPrefix_success() {
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withAddress("Home pp/unit").build();
+        assertParseSuccess(parser, "  001   a/Home pp/unit  ", new EditCommand(new ClientId(1), descriptor));
     }
 
     @Test
