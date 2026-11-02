@@ -81,8 +81,16 @@ public class FindCommandParserTest {
     }
 
     @Test
+    public void parse_segmentedTagQueries_acceptsMixedCase() {
+        for (String query : List.of("life-insurance", "HIGH_PRIORITY", "A-2_b")) {
+            assertParseSuccess(parser, "t/" + query,
+                    new FindCommand(new ClientSearchPredicate(Field.TAG, query)));
+        }
+    }
+
+    @Test
     public void parse_invalidTagQueries_reportsTagConstraints() {
-        for (String query : List.of("life-insurance", "has space", "health!", "健康", "１２３")) {
+        for (String query : List.of("life--insurance", "has space", "health!", "健康", "１２３")) {
             assertParseFailure(parser, "t/" + query, Tag.MESSAGE_CONSTRAINTS);
         }
     }

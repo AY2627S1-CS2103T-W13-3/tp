@@ -53,6 +53,31 @@ public class NameTest {
     }
 
     @Test
+    public void messageConstraints_explainsFirstCharacterRule() {
+        assertTrue(Name.MESSAGE_CONSTRAINTS.contains("begin with a letter or digit (0-9)"));
+        assertFalse(Name.isValidName("-Sean"));
+        assertTrue(Name.isValidName("Sean-"));
+    }
+
+    @Test
+    public void constructor_smartApostrophe_preservesExactSpelling() {
+        for (String name : new String[] {"Sean O’Brien", "Sean O'Brien", "José O’Neil", "Jose\u0301 O’Neil"}) {
+            assertTrue(Name.isValidName(name));
+            assertEquals(name, new Name("  " + name + "  ").fullName);
+        }
+        assertFalse(new Name("Sean O’Brien").equals(new Name("Sean O'Brien")));
+    }
+
+    @Test
+    public void isValidName_smartApostrophe_keepsUnrelatedRestrictions() {
+        for (String invalid : new String[] {"’Sean", "‘Sean", "Sean‘", "Sean_", "Sean\uD800",
+            "Sean\uDC00", "Sean\n", "\u3164", "O’\u0301Neil"}) {
+            assertFalse(Name.isValidName(invalid));
+            assertThrows(IllegalArgumentException.class, () -> new Name(invalid));
+        }
+    }
+
+    @Test
     public void equals() {
         Name name = new Name("Valid Name");
 
