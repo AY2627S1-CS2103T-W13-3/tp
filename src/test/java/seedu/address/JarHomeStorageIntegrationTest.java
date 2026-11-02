@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
@@ -49,9 +50,10 @@ public class JarHomeStorageIntegrationTest {
     @Test
     public void init_jarPathHasSpacesPercentAndUnicode_createsCoreFilesBesideJar() throws Exception {
         Path jar = createApplicationJar("app home % 新加坡");
-        Path workingFolder = Files.createDirectory(testFolder.resolve("other working folder"));
+        // Keep launcher arguments ASCII while retaining the Unicode code source and a different caller folder.
+        Path workingFolder = Files.createDirectory(jar.getParent().resolve("other working folder"));
 
-        runProbe(jar, workingFolder, "create", "CREATED");
+        runProbe(workingFolder.relativize(jar), workingFolder, "create", "CREATED");
 
         assertTrue(Files.exists(jar.getParent().resolve("data/addressbook.json")));
         assertTrue(Files.exists(jar.getParent().resolve("preferences.json")));
@@ -207,7 +209,9 @@ public class JarHomeStorageIntegrationTest {
         String javaName = System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java";
         Path java = Path.of(System.getProperty("java.home"), "bin", javaName);
         Path diagnostics = Files.createTempFile(testFolder, "child-", ".log");
-        List<String> command = List.of(java.toString(), "-ea", "-jar", jar.toString(), mode, jar.toString());
+        Path expectedJar = workingFolder.resolve(jar).normalize();
+        List<String> command = List.of(java.toString(), "-ea", "-jar", jar.toString(),
+                mode, expectedJar.toUri().toASCIIString());
         Process process = new ProcessBuilder(command).directory(workingFolder.toFile())
                 .redirectError(diagnostics.toFile()).start();
         return new PackagedProcess(process, diagnostics);
@@ -273,7 +277,8 @@ public class JarHomeStorageIntegrationTest {
 
         public static void main(String[] args) throws Exception {
             Path loadedJar = Path.of(MainApp.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-            require(Files.isSameFile(loadedJar, Path.of(args[1])), "Production classes did not load from the JAR");
+            require(Files.isSameFile(loadedJar, Path.of(URI.create(args[1]))),
+                    "Production classes did not load from the JAR");
             String workingDirectory = System.getProperty("user.dir");
             MainApp app = new MainApp();
             try {
