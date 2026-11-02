@@ -90,7 +90,7 @@ public class FindInvalidValueFeedbackTest {
 
     @Test
     public void find_invalidTag_reportsTagConstraintsAndPreservesState() throws Exception {
-        for (String query : List.of("life-insurance", "has space", "health!", "健康")) {
+        for (String query : List.of("life--insurance", "has space", "health!", "健康")) {
             assertRejectedSearch("find t/" + query, Tag.MESSAGE_CONSTRAINTS);
         }
     }

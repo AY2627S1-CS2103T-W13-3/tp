@@ -43,12 +43,33 @@ public class TagTest {
     }
 
     @Test
-    public void isValidTagName_asciiLettersAndDigitsOnly() {
-        for (String valid : new String[] {"HEALTH", "2026", "health2"}) {
+    public void isValidTagName_alphanumericSegmentsWithSingleInternalSeparators() {
+        for (String valid : new String[] {"HEALTH", "2026", "health2", "life-insurance", "high_priority", "A-2_b"}) {
             assertTrue(Tag.isValidTagName(valid));
         }
-        for (String invalid : new String[] {"", " ", "health care", "a-b", "健康", "é", "a\t"}) {
+        for (String invalid : new String[] {"", " ", "health care", "-a", "a-", "_", "a--b", "a__b", "a-_b", "a_-b",
+            "健康", "é", "a\t"}) {
             assertFalse(Tag.isValidTagName(invalid));
+        }
+    }
+
+    @Test
+    public void isValidTagName_longSegmentedTags_remainsBounded() {
+        String valid = "a-b_".repeat(5000) + "z";
+        assertTrue(Tag.isValidTagName(valid));
+        assertFalse(Tag.isValidTagName(valid + "-"));
+        assertFalse(Tag.isValidTagName(valid + "!"));
+    }
+
+    @Test
+    public void constructor_segmentedCaseVariants_normalizesWithRootLocale() {
+        Locale previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals("life-insurance", new Tag("LIFE-INSURANCE").tagName);
+            assertEquals(new Tag("high_priority"), new Tag("HIGH_PRIORITY"));
+        } finally {
+            Locale.setDefault(previous);
         }
     }
 

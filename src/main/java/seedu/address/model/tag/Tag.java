@@ -15,8 +15,9 @@ import java.util.stream.Collectors;
 public class Tag {
 
     public static final String MESSAGE_CONSTRAINTS =
-            "Tags must contain only English letters and digits. Tags must not be blank.";
-    public static final String VALIDATION_REGEX = "[A-Za-z0-9]+";
+            "Tags must contain English letters and digits, optionally separated by single hyphens or underscores. "
+                    + "Tags must not be blank.";
+    public static final String VALIDATION_REGEX = "[A-Za-z0-9]++(?:[-_][A-Za-z0-9]++)*+";
 
     public final String tagName;
 

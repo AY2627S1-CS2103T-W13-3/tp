@@ -66,6 +66,15 @@ public class AddCommandParserTest {
     }
 
     @Test
+    public void parse_segmentedTags_normalizesValues() {
+        Person expected = new PersonBuilder(BOB).withTags("life-insurance", "high_priority").build();
+        assertParseSuccess(parser, NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB
+                + " t/LIFE-INSURANCE t/high_priority", new AddCommand(expected));
+        assertParseFailure(parser, NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB
+                + " t/life--insurance", Tag.MESSAGE_CONSTRAINTS);
+    }
+
+    @Test
     public void parse_repeatedNonTagValue_failure() {
         String validExpectedPersonString = NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB
                 + ADDRESS_DESC_BOB + TAG_DESC_FRIEND;
@@ -214,7 +223,7 @@ public class AddCommandParserTest {
                 "Email format is not supported. Example: rachel.lim+work@example.com.");
         assertParseFailure(parser, " a/ t/! e/a@bc p/001 n/Rachel", Address.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, " a/Blk 1 t/! e/a@bc p/001 n/Rachel",
-                "Tags must contain only English letters and digits. Tags must not be blank.");
+                Tag.MESSAGE_CONSTRAINTS);
     }
 
     @Test

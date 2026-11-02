@@ -52,6 +52,15 @@ public class EditCommandParserTest {
     private EditCommandParser parser = new EditCommandParser();
 
     @Test
+    public void parse_segmentedTags_normalizesValues() {
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
+                .withTags("high_priority", "life-insurance").build();
+        assertParseSuccess(parser, "1 t/HIGH_PRIORITY t/life-insurance",
+                new EditCommand(new ClientId(1), descriptor));
+        assertParseFailure(parser, "1 t/high__priority", Tag.MESSAGE_CONSTRAINTS);
+    }
+
+    @Test
     public void parse_missingParts_failure() {
         // no ID specified
         assertParseFailure(parser, VALID_NAME_AMY,
