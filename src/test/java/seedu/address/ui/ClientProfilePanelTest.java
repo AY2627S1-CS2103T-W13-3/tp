@@ -287,8 +287,9 @@ public class ClientProfilePanelTest {
             Person person = new PersonBuilder().build();
             List<String> messages = new ArrayList<>();
             ClientProfilePanel panel = new ClientProfilePanel(new SimpleObjectProperty<>(person),
-                    new SimpleObjectProperty<>(TODAY), new AddressBook()::getClientId,
-                    (message, isError) -> messages.add(message), value -> {
+                    new SimpleObjectProperty<>(TODAY), new AddressBook()::getClientId, (message, isError) -> {
+                        messages.add(message);
+                    }, value -> {
                         throw new IllegalStateException("Clipboard busy");
                     });
             Label phone = (Label) findById(panel.getRoot(), "phone");

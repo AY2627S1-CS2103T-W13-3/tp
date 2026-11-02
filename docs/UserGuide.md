@@ -5,7 +5,7 @@ title: User Guide
 
 PolicyHarbor helps independent insurance agents in Singapore keep client contacts and their next follow-up together. Find a client, review their details, update their contact information and record the next conversation, using typed commands in a desktop workspace.
 
-**Build covered:** this guide describes the published [PolicyHarbor v1.5 release](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5), with permanent Client IDs, contact editing and name/phone/tag search. Download [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) for the [v1.5 source tag](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/v1.5) (commit `cb060cf3`). The application window displays **PolicyHarbor v1.5**.
+**Build covered:** this guide describes the v1.6 integration candidate, whose window title is **PolicyHarbor v1.6**. It includes JAR-folder storage, improved edit/search feedback, case-insensitive command words and profile copying. v1.6 has not yet been published. The [latest published release is v1.5](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5); its JAR does not include these later changes.
 
 * Table of Contents
 {:toc}
@@ -15,7 +15,7 @@ PolicyHarbor helps independent insurance agents in Singapore keep client contact
 ### Install and launch
 
 1. Install Java **25**. On macOS, follow the [SE-EDU Java installation guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) for the prescribed Zulu JDK with JavaFX.
-2. Download [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) from the official v1.5 release and place it in a **writable folder**, such as a folder you create in Documents. Keep an existing client-data file backed up before replacing an older JAR.
+2. Download [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) from the official v1.5 release (the currently published build), or use the team-provided v1.6 candidate for this guide, and place it in a **writable folder**, such as a folder you create in Documents. Keep an existing client-data file backed up before replacing an older JAR.
 3. Open a terminal and use `cd` to enter that folder. Check `java -version` in the same terminal; it should report Java 25. Then run:
 
    ```text
@@ -43,7 +43,7 @@ followups
 - The search finds Rachel by part of her name. `view 1` opens her profile; `edit` changes her phone to `92345678` while keeping her ID.
 - The follow-up appears in Rachel's profile and the pending summary. The example date is in the future and displays as `UPCOMING`; use the real due date for your own work.
 
-Close the main window, then run the JAR again from the **same folder**. Rachel, her edited phone and her action are restored. The profile starts closed; enter `view 1` to reopen it. You can also close the app through **File → Exit**.
+Close the main window, then run the **same JAR** again. Rachel, her edited phone and her action are restored. The profile starts closed; enter `view 1` to reopen it. You can also close the app through **File → Exit**.
 
 ## Understanding the workspace
 
@@ -174,6 +174,8 @@ Bare search uses **either** keyword, not all keywords together: `find Rachel 923
 
 Explicit name search ignores case, equivalent accented spellings and repeated ordinary spaces. Phone search ignores stored `+`, spaces and hyphens, and accepts a fragment of one or more digits with valid phone formatting. `find t/new` does not match `renewal`. Email and address are not searched; quotes and punctuation are literal text.
 
+Invalid phone searches such as `find p/9123  4567` report phone-query constraints: at least one digit, an optional leading `+`, and single spaces or hyphens between digit groups. Invalid tags such as `find t/health!` report tag constraints; `find t/life-insurance` is valid. These errors leave the table, profile and saved records unchanged.
+
 Use **one** explicit field, without bare text before it. `find n/Rachel p/9234`, repeated fields, empty values or `find` alone produce usage feedback. The prefixes `n/`, `p/` and `t/` remain reserved inside explicit queries.
 
 ### Selecting a client: `view`
@@ -197,6 +199,8 @@ Update contact details while retaining the client's **ID and pending follow-up**
 **Example:** `edit 1 p/92345678`
 
 **Result:** Rachel's phone changes; feedback starts `Client ID 1 updated: Rachel Lim`. Omitted fields keep their values. At least one field must be supplied; `edit 1` alone reports `At least one field to edit must be provided.`
+
+A mistyped prefix after an ID, such as `edit 1 pp/92345678` or `edit 1 phone/92345678`, produces edit usage feedback. Correct it to `edit 1 p/92345678` and retry. An invalid numeric ID such as `0` still reports the ID constraint. Text already inside a recognised value, such as `edit 1 a/Home pp/unit`, remains literal address text.
 
 **Supplying tags replaces the entire tag set.** For example, `edit 1 a/Blk 456 t/renewal t/priority` changes the address and replaces all previous tags with `priority` and `renewal`. Use a lone empty `t/`, as in `edit 1 t/`, to remove all tags.
 
@@ -274,19 +278,25 @@ Statuses use the computer's current local date and refresh at startup, when the 
 
 Successful `add`, `edit`, `delete` and singular `followup` changes are saved automatically before appearing in the workspace. There is no save command. `list`, `find`, `view` and `followups` do not rewrite client data.
 
-The file is `data/addressbook.json`, inside the folder **from which you run** `java -jar "PolicyHarbor.jar"`. Running from another folder uses a separate dataset. The footer shows the data-file path. Preferences such as window size/position are stored separately in `preferences.json`.
+In v1.6, `data/addressbook.json` is inside the folder containing the **executed JAR**, regardless of the terminal's working directory. The footer shows the absolute data-file path. `preferences.json`, `.policyharbor.lock` and rotating `policyharbor.log.*` diagnostics use that same JAR folder. A symbolic link to the JAR uses the physical target JAR's folder; separate copies in different folders have independent datasets. IDE/Gradle runs use their working directory instead.
 
-After restarting from the same folder, contacts, IDs and pending actions return. The app starts with the full client list and no open profile; search/pending mode and profile selection are not restored.
+For example, launching `java -jar "/path/to/clients/PolicyHarbor.jar"` from another folder still loads `/path/to/clients/data/addressbook.json`. Diagnostic logs are local files; back up and share them with care.
+
+After restarting the same JAR, contacts, IDs and pending actions return. The app starts with the full client list and no open profile; search/pending mode and profile selection are not restored.
 
 ### If saving fails
 
 A failed save keeps the previous client data, table and profile, and retains the rejected command for correction/retry. For a normal write failure, feedback says:
 
 ```text
-Could not save to data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.
+Could not save to /path/to/JAR-folder/data/addressbook.json. No changes were kept. Check that the data folder is writable and has free space, then try again.
 ```
 
-Restore access to the data folder and free disk space as needed, then submit the retained command again. Do not assume a failed add received an ID or that an unsuccessful edit/delete/action change was saved. The [troubleshooting table](#troubleshooting) covers protected data and symbolic-link errors separately.
+The path in the message is your actual data-file location; the path above is illustrative. Restore access to the data folder and free disk space as needed, then submit the retained command again. Do not assume a failed add received an ID or that an unsuccessful edit/delete/action change was saved. The [troubleshooting table](#troubleshooting) covers protected data and symbolic-link errors separately.
+
+### Upgrading from v1.5
+
+v1.5 used the terminal's working folder; v1.6 does **not** automatically import files from that old location. Before upgrading, close every instance and back up the old `data/addressbook.json` and `preferences.json`. Put the new JAR in that old folder to keep using its files, or copy the complete client file into the new JAR folder's `data` subfolder. Copy preferences only if you want to retain window settings. Back up any destination files first; do not overwrite or combine two datasets without choosing which complete copy to keep. Do not copy or delete an active lock file. Restart and check the footer path and several client IDs before making changes.
 
 ### Existing files, Client IDs and backups
 
@@ -315,12 +325,12 @@ The **Help → Help** menu or **F1** opens a window with the online User Guide l
 | `No client with ID ...` | Check the table/profile ID, not the row position. The client may have been deleted or belong to another data folder. |
 | Changes cannot be saved | Check write access, free space and whether a regular file is blocking the `data` folder. Restore access, then retry. Do not run as administrator just to bypass permissions. |
 | Saved-data warning; changes are blocked | Follow [protected-data recovery](#saved-data-warning-and-recovery). Restoring folder access or editing a file does not unlock the running session; restart to reload. |
-| Another instance is running | Use or close the existing window before launching in the same folder. One folder supports one instance; separate folders have independent data. |
+| Another instance is running | Use or close the existing window for that JAR home. Launching the same JAR from another terminal folder still shares its lock; JAR copies in separate folders have independent data. |
 | The folder cannot be locked | Use a writable folder. `.policyharbor.lock` must be a regular file; it normally remains after closing. Its presence alone does not mean the app is running. Do not delete/replace it while an instance runs; closing/terminating that instance releases the operating-system lock. |
 | The data file is a symbolic link | Saving through it is refused. Close the app, back up the link's target, then replace the link with a regular data file and restart. Do not change data paths externally while the app is open. |
 | Window settings are invalid or a saved screen was disconnected | Invalid `preferences.json` falls back to default settings and may be replaced; a preference error alone does not block client changes. A missing saved screen causes the window to fit on the primary screen; deleting client data is unnecessary. |
 | The workspace feels cramped | Maximise the main window and adjust its dividers. Scroll the table horizontally and the profile/summary vertically. Secondary windows can behave differently across platforms; keep Help in an ordinary window if fullscreen causes trouble. |
-| Diagnostic logging is unavailable | The launch terminal reports `Unable to create diagnostic log file; continuing with console logging.` The app keeps running. Check folder write access and that `policyharbor.log.0` is not a directory, then restart to restore file logging. |
+| Diagnostic logging is unavailable | The launch terminal reports `Unable to create diagnostic log file; continuing with console logging.` The app keeps running. Check write access to the JAR folder and that `policyharbor.log.0` there is not a directory, then restart to restore file logging. |
 
 ### Saved-data warning and recovery
 
@@ -328,10 +338,11 @@ If client data cannot be read or is invalid, the app shows an empty table and a 
 
 1. Close PolicyHarbor and make a backup of `data/addressbook.json` if you can access it. Do not delete the only copy of client data to make the warning disappear.
 2. If the folder was inaccessible, restore access. Otherwise restore a complete known-good backup, or have the file repaired using the [advanced reference](#advanced-data-file-reference).
-3. Restart from the same folder to reload the file. If the client file is absent and that absence can be confirmed, the app starts a new, writable dataset. The app does not partly load a file containing invalid records.
+3. Restart the same JAR to reload the file. If the client file is absent and that absence can be confirmed, the app starts a new, writable dataset. The app does not partly load a file containing invalid records.
 
 ## Known limitations
 
+- Mixed Chinese/Tamil action text can render incorrectly on some macOS/JavaFX setups even though saved text is intact. Check the saved value before re-entering it; a portable font workaround has not been established.
 - One current action per client, with no follow-up history, automatic reminders or notifications. Replacement/clearing has no undo.
 - Search supports one explicit field at a time and does not search email/address. Use permanent IDs for changes and `view` to open profiles.
 - PolicyHarbor stores contacts and next actions. It does not manage insurance policy, premium or claim records; send messages; import/export CSV; synchronise with cloud services; or create automatic backups. Use the manual backup procedure above.

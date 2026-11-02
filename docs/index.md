@@ -10,7 +10,7 @@ description: A command-first desktop workspace for independent insurance agents 
   Design: a calm working desk, with the real product as its proof. Green, ivory,
   editorial serif headings and the application's restrained sans-serif body.
   Visitor path: understand the workspace, see it, try a short workflow, download.
-  Release contract: published v1.5 at tag v1.5, commit cb060cf3.
+  Release contract: v1.6 candidate; download remains published v1.5 at tag v1.5, commit cb060cf3.
   Download actions lead to that versioned GitHub release.
   Screenshot: one live JavaFX scene from a packaged dd3b0020 build, captured
   2026-10-29 with fictional data. No compositing or interface edits.
@@ -27,9 +27,9 @@ description: A command-first desktop workspace for independent insurance agents 
       <p>A clearer workspace for independent insurance agents in Singapore. Keep client details and the next conversation together, with typed commands and a graphical overview.</p>
       <div class="ph-actions">
         <a class="ph-button" href="{{ release_url }}">Download PolicyHarbor v1.5 <span aria-hidden="true">↗</span></a>
-        <a class="ph-text-link" href="{{ user_guide }}">Explore the User Guide <span aria-hidden="true">→</span></a>
+        <a class="ph-text-link" href="{{ user_guide }}">Explore the v1.6 candidate User Guide <span aria-hidden="true">→</span></a>
       </div>
-      <p class="ph-requirement">PolicyHarbor v1.5 <span aria-hidden="true">·</span> Desktop app <span aria-hidden="true">·</span> Java 25</p>
+      <p class="ph-requirement">Preparing PolicyHarbor v1.6; latest download: v1.5 <span aria-hidden="true">·</span> Desktop app <span aria-hidden="true">·</span> Java 25</p>
     </div>
     <figure class="ph-product-shot">
       <a href="{{ '/images/Ui.png' | relative_url }}" aria-label="Open the full-size PolicyHarbor v1.5 screenshot">
