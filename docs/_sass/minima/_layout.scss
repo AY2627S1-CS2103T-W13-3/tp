@@ -37,10 +37,6 @@
   border-radius: 5px;
   text-align: right;
 
-  .nav-trigger {
-      display: none;
-  }
-
   .menu-icon {
     float: right;
     width: 36px;
@@ -54,21 +50,31 @@
     }
   }
 
-  label[for="nav-trigger"] {
+  // Native details/summary: focusable, toggled by Enter/Space and announced as expanded/collapsed
+  .nav-menu > summary {
     display: block;
     float: right;
     width: 36px;
     height: 36px;
-    z-index: 2;
     cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $brand-color-dark;
+      outline-offset: 2px;
+    }
   }
 
-  input ~ .trigger {
+  .trigger {
     clear: both;
     display: none;
   }
 
-  input:checked ~ .trigger {
+  .nav-menu[open] ~ .trigger {
     display: block;
     padding-bottom: 5px;
   }
@@ -92,15 +98,11 @@
     border: none;
     background-color: inherit;
 
-    label[for="nav-trigger"] {
+    .nav-menu {
       display: none;
     }
 
-    .menu-icon {
-      display: none;
-    }
-
-    input ~ .trigger {
+    .trigger {
       display: block;
     }
 
