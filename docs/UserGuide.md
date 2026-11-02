@@ -5,7 +5,7 @@ title: User Guide
 
 PolicyHarbor helps independent insurance agents in Singapore keep client contacts and their next follow-up together. Find a client, review their details, update their contact information and record the next conversation, using typed commands in a desktop workspace.
 
-**Build covered:** this guide describes the v1.6 integration candidate, whose window title is **PolicyHarbor v1.6**. It includes JAR-folder storage, improved edit/search feedback, case-insensitive command words and profile copying. v1.6 has not yet been published. The [latest published release is v1.5](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5); its JAR does not include these later changes.
+**Build covered:** this guide describes the v1.6 integration candidate at [source revision `e185a9cc`](https://github.com/AY2627S1-CS2103T-W13-3/tp/tree/e185a9cc), whose window title is **PolicyHarbor v1.6**. It includes JAR-folder storage, improved edit/search feedback, case-insensitive command words and profile copying. v1.6 has not yet been published. The [latest published release is v1.5](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/tag/v1.5); its JAR does not include these later changes.
 
 * Table of Contents
 {:toc}
@@ -15,7 +15,7 @@ PolicyHarbor helps independent insurance agents in Singapore keep client contact
 ### Install and launch
 
 1. Install Java **25**. On macOS, follow the [SE-EDU Java installation guide](https://se-education.org/guides/tutorials/javaInstallationMac.html) for the prescribed Zulu JDK with JavaFX.
-2. Download [PolicyHarbor.jar](https://github.com/AY2627S1-CS2103T-W13-3/tp/releases/download/v1.5/PolicyHarbor.jar) from the official v1.5 release (the currently published build), or use the team-provided v1.6 candidate for this guide, and place it in a **writable folder**, such as a folder you create in Documents. Keep an existing client-data file backed up before replacing an older JAR.
+2. Obtain the matching **v1.6 release candidate JAR** from the team, or build it from the revision above using the [build instructions](DevOps.html#building-a-candidate). Place `PolicyHarbor.jar` in a **writable folder**, such as a folder you create in Documents. If upgrading, first follow the [backup and migration instructions](#upgrading-from-v15).
 3. Open a terminal and use `cd` to enter that folder. Check `java -version` in the same terminal; it should report Java 25. Then run:
 
    ```text
@@ -24,11 +24,11 @@ PolicyHarbor helps independent insurance agents in Singapore keep client contact
 
    Launching from a terminal makes the Java version and any startup error visible; double-clicking may use a different Java installation. If your downloaded JAR has a different filename, substitute that filename inside the quotes.
 
-On a first launch in a folder with no saved client data, the client list is empty. If clients already appear, your saved data has loaded: use their displayed Client IDs and skip adding the sample client if it would duplicate an existing record.
+On a first launch with no saved client data beside the JAR, the client list is empty. The client file is `data/addressbook.json` within the JAR's folder. If clients already appear, your saved data has loaded: use their displayed Client IDs and skip adding the sample client if it would duplicate an existing record.
 
 ### Try a daily workflow
 
-Use a fresh, separate folder for this example so that it does not change your real clients. Enter each line separately and press **Enter** or click **Run**:
+Copy the JAR into a fresh, separate folder and launch that copy for this example so that it does not change your real clients. Merely changing the terminal's folder while launching the original JAR still uses the original data. Enter each line separately and press **Enter** or click **Run**:
 
 ```text
 add n/Rachel Lim p/91234567 e/rachel@example.com a/Blk 123 t/health
@@ -51,7 +51,7 @@ Close the main window, then run the **same JAR** again. Rachel, her edited phone
 
 [![PolicyHarbor showing permanent Client IDs, Rachel's selected profile and pending follow-ups](images/Ui.png)](images/Ui.png)
 
-*The workspace in pending mode, populated with fictional clients. The Client ID is the command target; the screenshot contains a larger dataset than the quick-start example. Status badges reflect the capture date, 29 October 2026; live badges change with the current date. Open the image for a full-size view.*
+*The workspace in pending mode, populated with fictional clients. The Client ID is the command target; the screenshot contains a larger dataset than the quick-start example. Captured from the v1.6 candidate on 2 November 2026; status badges reflect that date and change with the current date. Open the image for a full-size view.*
 
 - **Top: command and feedback.** Type a command, then press Enter or use Run. The feedback explains the result or how to correct an error.
 - **Left: client table.** It shows Client ID, name, phone and email. `list` shows all clients, `find` shows matches and `followups` shows clients with pending actions, adding due-date and status columns. Columns cannot be sorted by clicking their headers; use the command's displayed order. Narrow tables scroll horizontally.
@@ -73,7 +73,9 @@ A Client ID identifies one client permanently. It does not change when you searc
 
 A viewed client is marked `VIEWING` in the table and, when they have an action, the summary. The profile shows their ID, contact details, lowercase tag chips and pending action. With no tags it shows `No tags`; without an action, `Follow-up: None`.
 
-To copy a client's phone, email, address or follow-up action, **right-click its value** and choose **Copy**, or **Tab** to focus the value and press **Enter**, **Space** or the copy shortcut (**Ctrl+C** on Windows/Linux, **Command+C** on macOS). The complete current value is copied, including spaces and Unicode text. Success or failure appears in the feedback panel; your command draft stays unchanged. A missing client or cleared action cannot be copied.
+To copy a client's phone, email, address or follow-up action, **right-click its value** and choose **Copy phone**, **Copy email**, **Copy address** or **Copy follow-up action**. You can also **Tab** to focus the value and press **Enter**, **Space** or the copy shortcut (**Ctrl+C** on Windows/Linux, **Command+C** on macOS).
+
+The complete current value is copied, including spaces and Unicode text; copying an action copies its description, without the due date. Feedback confirms success, such as `Copied phone.`, or reports `Could not copy phone.` if the clipboard is unavailable. Your command draft stays unchanged. A missing client or cleared action cannot be copied; an unavailable action reports `No follow-up action to copy.`
 
 | What you do | What happens to the open profile |
 | --- | --- |
@@ -88,6 +90,8 @@ When a profile closes, later returning to the full list does not reopen it; use 
 ### Keyboard workflow and error correction
 
 Successful commands clear the command field. Rejected commands keep the input for correction, mark the field and show **Error** above the message. For example, after `view 0`, correct the retained line to `view 1` for Rachel. Editing removes the field's error style; feedback stays until the next command. Long feedback wraps, scrolls and can be selected/copied.
+
+There is no command history. Copy a reusable command from the command field before submitting it if you want to keep it elsewhere.
 
 Enter and Run submit the same command. You can reach Run with **Tab** and activate it with **Space**; typing focus returns to the command field after submission. If the retained text is selected, typing replaces it.
 
@@ -141,7 +145,7 @@ add n/Rachel Lim p/91234567 e/rachel@example.com a/Blk 123 t/health
 
 Supply name, phone, email and address exactly once. Tags are optional. The [contact field reference](#contact-field-reference) explains accepted values.
 
-A duplicate is rejected when the **name matches and either the phone or email matches** an existing client. Names ignore case, equivalent accented spellings and repeated ordinary spaces; phone comparison ignores allowed formatting, and emails ignore case. Address, tags and follow-up are not part of the check. Two clients may have the same name if both phone and email differ; different names may share contact details. Hidden clients are also checked.
+A duplicate is rejected when the **name matches and either the phone or email matches** an existing client. Names ignore case, equivalent accented spellings and repeated ordinary spaces; phone comparison ignores allowed formatting, and emails ignore case. Straight `'` and curly `’` apostrophes remain distinct in names: `Sean O'Brien` and `Sean O’Brien` do not count as the same name. Address, tags and follow-up are not part of the check. Two clients may have the same name if both phone and email differ; different names may share contact details. Hidden clients are also checked.
 
 For example, after adding Rachel, `add n/RACHEL  LIM p/91234567 e/other@example.com a/Blk 456` reports `This client already exists in PolicyHarbor.`
 
@@ -172,7 +176,7 @@ Search all clients, including those hidden by the current view. Results appear o
 
 Bare search uses **either** keyword, not all keywords together: `find Rachel 92345678` returns clients matching either. Partial words do not match in bare mode: `find Rach` does not find Rachel; `find n/Rach` does. Bare phone search requires all stored digits, including any country code and leading zeroes. Separate tokens are not joined into one phone number.
 
-Explicit name search ignores case, equivalent accented spellings and repeated ordinary spaces. Phone search ignores stored `+`, spaces and hyphens, and accepts a fragment of one or more digits with valid phone formatting. `find t/new` does not match `renewal`. Email and address are not searched; quotes and punctuation are literal text.
+Explicit name search ignores case, equivalent accented spellings and repeated ordinary spaces. Straight `'` and curly `’` apostrophes are distinct in both name search modes: use the spelling stored in the name, or search for a part without the apostrophe. Phone search ignores stored `+`, spaces and hyphens, and accepts a fragment of one or more digits with valid phone formatting. `find t/new` does not match `renewal`. Email and address are not searched; quotes and punctuation are literal text.
 
 Invalid phone searches such as `find p/9123  4567` report phone-query constraints: at least one digit, an optional leading `+`, and single spaces or hyphens between digit groups. Invalid tags such as `find t/health!` report tag constraints; `find t/life-insurance` is valid. These errors leave the table, profile and saved records unchanged.
 
@@ -302,7 +306,7 @@ v1.5 used the terminal's working folder; v1.6 does **not** automatically import 
 
 **Back up the complete `data/addressbook.json` while the app is closed.** There is no automatic backup or undo. Restore backups while closed, then restart; restoring an older copy replaces newer saved work with that copy's contents.
 
-To transfer data, close the app on both computers. Put the matching JAR in a writable folder on the destination, create its `data` subfolder and copy the complete client file there, backing up any existing destination file first. Launch from the new JAR folder with Java 25.
+To transfer data, close the app on both computers. Put the matching JAR in a writable folder on the destination, create its `data` subfolder and copy the complete client file there, backing up any existing destination file first. Launch the new JAR copy with Java 25.
 
 IDs and allocation history survive normal restarts and deletion, including deleting every client. Copying only contact entries, discarding identity fields or restoring an older backup can lose that history. Never reset IDs or lower their allocation counter as a repair. See [advanced file compatibility](#advanced-data-file-reference) if you maintain saved files directly.
 
@@ -334,18 +338,36 @@ The **Help → Help** menu or **F1** opens a window with the online User Guide l
 
 ### Saved-data warning and recovery
 
-If client data cannot be read or is invalid, the app shows an empty table and a persistent warning. **This does not mean your saved clients were deleted.** `add`, `edit`, `delete` and `followup` are blocked to protect the file; query commands remain available. An ordinary command result does not dismiss the warning.
+When loading reports a saved-data error, the app shows an empty table and a persistent warning. **This does not mean your saved clients were deleted.** `add`, `edit`, `delete` and `followup` are blocked to protect the file; query commands remain available. An ordinary command result does not dismiss the warning.
 
 1. Close PolicyHarbor and make a backup of `data/addressbook.json` if you can access it. Do not delete the only copy of client data to make the warning disappear.
 2. If the folder was inaccessible, restore access. Otherwise restore a complete known-good backup, or have the file repaired using the [advanced reference](#advanced-data-file-reference).
-3. Restart the same JAR to reload the file. If the client file is absent and that absence can be confirmed, the app starts a new, writable dataset. The app does not partly load a file containing invalid records.
+3. Restart the same JAR copy to reload the file. If the client file is absent and that absence can be confirmed, the app starts a new, writable dataset. The app does not partly load a file containing invalid records.
+
+**Known startup limitation:** an externally edited client file with extremely deeply nested data can stop the app before the dashboard or saved-data warning appears. Normal app commands cannot create this problem. Close the app and preserve the original file, then restore a complete known-good backup to the JAR's `data/addressbook.json` or have the file safely repaired before restarting. The protected empty workspace is not available in this case; do not delete your only copy to get past startup.
 
 ## Known limitations
 
-- Mixed Chinese/Tamil action text can render incorrectly on some macOS/JavaFX setups even though saved text is intact. Check the saved value before re-entering it; a portable font workaround has not been established.
-- One current action per client, with no follow-up history, automatic reminders or notifications. Replacement/clearing has no undo.
-- Search supports one explicit field at a time and does not search email/address. Use permanent IDs for changes and `view` to open profiles.
-- PolicyHarbor stores contacts and next actions. It does not manage insurance policy, premium or claim records; send messages; import/export CSV; synchronise with cloud services; or create automatic backups. Use the manual backup procedure above.
+### Client records
+
+- **Complete contact details are required.** Adding a prospect requires a name, phone, valid email and address. Unknown email/address values cannot be omitted or left empty, so a prospect with incomplete details cannot yet be recorded. See [adding a client](#adding-a-client-add).
+- **Shared contacts can trigger duplicate rejection.** Distinct people with matching normalised names and either a matching phone or email cannot both be stored, even if they share that contact legitimately. There is no override; see the [duplicate rules](#adding-a-client-add).
+- **Tag changes replace the whole set.** `edit ID t/TAG` does not append a tag: supply every tag you want to retain. `edit ID t/` clears all tags. See [editing details](#editing-a-clients-details-edit) for the full syntax.
+
+### Follow-ups and everyday use
+
+- **Rescheduling requires the description again.** Use `followup ID d/DATE m/DESCRIPTION`; a date-only change is unsupported. You can copy the existing description from the profile before [replacing the action](#recording-or-replacing-a-follow-up-followup). Each client has one current action, with no follow-up history, reminders or notifications.
+- **Searches do not combine.** Only one explicit field is accepted: `find n/Lim t/health` is unsupported. Each new search replaces the previous filter rather than narrowing its results. Email/address searches are unsupported; see [search options](#finding-clients-find).
+- **Profiles open through `view ID`.** Clicking or highlighting a table row does not open its profile. Use the permanent Client ID shown in the table, not its row position; see [selecting a client](#selecting-a-client-view).
+- **Successful commands cannot be recalled with Up/Down.** There is no command history. Failed input stays available for correction; see the [keyboard workflow](#keyboard-workflow-and-error-correction) for ways to reuse command text.
+- **Saved changes have no undo.** Successful edits, deletions and follow-up changes save immediately. Check the intended client with `view ID` before changing their details. Backups are manual; restoring one replaces later changes. See [backup precautions](#existing-files-client-ids-and-backups).
+
+### Known display and startup problems
+
+- **Mixed Chinese/Tamil action text can display incorrectly** on some macOS/JavaFX setups, although the stored text remains intact. This affects readability of some mixed-language descriptions; a portable workaround has not been verified.
+- **Exceptionally nested, externally edited files can prevent startup**, before the dashboard or protected-data warning opens. Follow [saved-data recovery](#saved-data-warning-and-recovery), preserving the original file before restoring a complete known-good backup or arranging a safe repair.
+
+PolicyHarbor stores contacts and next actions. It does not manage insurance policy, premium or claim records; send messages; import/export CSV; or synchronise with cloud services.
 
 ## Reference information
 
@@ -355,17 +377,17 @@ These rules apply to both adding and editing. Ordinary spaces at the outside of 
 
 | Field | Accepted values |
 | --- | --- |
-| Name | Starts with a letter from any language or a digit `0`–`9`. Supports Unicode letters, combining accents, ordinary spaces and `/ - ' @ .`. A name must contain visible content; invisible Hangul fillers alone are rejected. Examples: `Ravi s/o Kumar`, `Sean O'Brien`, `Dr. Lim`. |
+| Name | Starts with a letter from any language or a digit `0`–`9`. Supports Unicode letters with combining accents, ordinary spaces and `/ - ' ’ @ .`. Both the straight apostrophe `'` and curly right apostrophe `’` (U+2019) are accepted and retained as typed. A name must contain visible content; invisible Hangul fillers alone are rejected. Examples: `Ravi s/o Kumar`, `Sean O'Brien`, `Sean O’Brien`, `Dr. Lim`. |
 | Phone | At least three digits `0`–`9`, optionally beginning with `+`, with single spaces or hyphens between digit groups. For example, `+65 9123 4567`. Display formatting and leading zeroes are retained. |
-| Email | One `@`, with ASCII letters/digits and supported punctuation; no spaces. Before `@`, the first/last characters must be letters/digits; `+`, `_`, `-` and periods may occur inside. Periods must separate letters/digits. Domain labels start/end with letters/digits and may contain hyphens; the final label needs two adjacent letters/digits. Stored case is retained. |
+| Email | One `@`, with ASCII letters/digits and supported punctuation; no spaces. Before `@`, the first/last characters must be letters/digits; `+`, `_`, `-`, straight apostrophes `'` and periods may occur inside. Each period must have a letter/digit immediately on both sides. For example, `o'connor@example.com` is accepted; a curly apostrophe `’` is not. Domain labels start/end with letters/digits and may contain hyphens; the final label needs two adjacent letters/digits. Stored case is retained. |
 | Address | Non-empty, single-line text with visible content, including punctuation, non-English text and emoji. Text made only of spaces/invisible formatting, controls or invalid character sequences is rejected. |
-| Tag | One or more English letters or digits, without spaces or punctuation. Tags become lowercase; repeated case variants become one tag. |
+| Tag | One or more English letters or digits, optionally separated by single internal hyphens `-` or underscores `_`. For example, `life-insurance` and `high_priority` are valid; leading/trailing separators, adjacent separators such as `life--insurance`, spaces and other punctuation are rejected. Tags become lowercase; repeated case variants become one tag. |
 
 Tags have no count limit. They display in lowercase alphabetical order; command feedback uses bracketed tags separated by spaces. Missing required fields, repeated single-valued prefixes and invalid values produce feedback to guide correction. When several values are invalid, correct the reported error and resubmit rather than assuming every problem was listed.
 
 ### Prefixes and literal text
 
-Recognised field prefixes must follow an ordinary space. For add/edit, these are `n/`, `p/`, `e/`, `a/` and `t/`; for recording an action, `d/` and `m/`. Quotes are literal characters, not a way to escape a recognised prefix. Avoid putting a space followed by a command's recognised prefix inside a value.
+Recognised field prefixes are lowercase and case-sensitive and must follow an ordinary space. For add/edit, these are `n/`, `p/`, `e/`, `a/` and `t/`; for recording an action, `d/` and `m/`. For example, `EDIT 1 n/Rachel Lim` uses a recognised name prefix, but `EDIT 1 N/Rachel Lim` does not. Quotes are literal characters, not a way to escape a recognised prefix. Avoid putting a space followed by a command's recognised prefix inside a value.
 
 Unrecognised prefixes stay inside the value and must still meet that field's rules: `z/unit` can be address text but is not a valid phone number. Local name forms `s/o` and `d/o` are ordinary name text for add/edit. Explicit search reserves `n/`, `p/` and `t/` and accepts only one field.
 
@@ -377,7 +399,7 @@ Prefer `add`/`edit`/`followup` to changing saved files directly. If you must edi
 
 - Save as **UTF-8**. A single leading byte-order mark (BOM), as added by some editors, is accepted. Invalid byte sequences or invalid saved character sequences are rejected, even when a JSON escape is syntactically valid.
 - Contact fields, tags, dates and descriptions must be JSON strings. Keep phone values quoted to retain leading zeroes. IDs/counters are numbers; do not convert them to strings.
-- Keep property names exact, including `persons`, `tags` and `followUp`. Unknown fields, repeated properties in one object, invalid/duplicate clients, missing required values and invalid identity metadata cause protected startup. Optional missing tags mean no tags; absent/null `followUp` means no action. Valid overdue dates remain supported.
+- Keep property names exact, including `persons`, `tags` and `followUp`. Unknown fields, repeated properties in one object, invalid/duplicate clients, missing required values and invalid identity metadata are rejected. When loading reports a data error, the app opens a protected empty workspace; see the [startup limitation and recovery steps](#saved-data-warning-and-recovery) for extremely deeply nested files. Optional missing tags mean no tags; absent/null `followUp` means no action. Valid overdue dates remain supported.
 - A legacy file with **no identity metadata** loads valid clients with insertion-order IDs, starting at 1, without rewriting the file. The first successfully saved change writes IDs and the next-ID counter.
 - Keep every `clientId` and the root `nextClientId` when copying/backing up. If any identity metadata remains, incomplete/invalid metadata is rejected. If **all** IDs and the counter are removed or set to `null`, the file is treated as legacy and receives a new ID history; discarded IDs and the old counter cannot be reconstructed. Restoring an older backup can also restore older history.
 - Do not change paths or saved files externally while PolicyHarbor is running. Symbolic-link save checks do not synchronise with external filesystem changes. Repairing a file during a protected session cannot unlock it; close and restart after repair.
