@@ -160,7 +160,13 @@ public class MainWindow extends UiPart<Stage> {
         personListPanelPlaceholder.getChildren().add(personListPanel.getRoot());
 
         clientProfilePanel = new ClientProfilePanel(logic.selectedPersonProperty(),
-                logic.todayProperty(), logic::getClientId);
+                logic.todayProperty(), logic::getClientId, (message, isError) -> {
+                    if (isError) {
+                        resultDisplay.setErrorFeedbackToUser(message);
+                    } else {
+                        resultDisplay.setFeedbackToUser(message);
+                    }
+                });
         clientProfilePlaceholder.getChildren().add(clientProfilePanel.getRoot());
 
         pendingProjection = new PendingFollowUpProjection(logic.getAllPersonList());

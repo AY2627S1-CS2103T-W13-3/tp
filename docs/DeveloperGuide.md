@@ -17,6 +17,7 @@ PolicyHarbor helps individual insurance agents manage contact records and one pe
 * The [AB3 Developer Guide](https://se-education.org/addressbook-level3/DeveloperGuide.html) and [User Guide](https://se-education.org/addressbook-level3/UserGuide.html) supplied documentation structure and retained architecture explanations. The architecture, component, class/parser and deletion diagrams under `docs/diagrams` derive from AB3 diagrams and have been adapted to PolicyHarbor's implemented relationships and execution flow. The project website retains the AB3 Jekyll/Minima foundation.
 * The homepage bundles a subset of [Newsreader, by the Newsreader Project Authors](https://github.com/productiontype/Newsreader), for headings in `docs/assets/landing/Newsreader.woff2`. Its SIL Open Font License 1.1 notice is retained in [`OFL.txt`](assets/landing/OFL.txt). The font is a reused asset, separate from the application implementation.
 * All team members used ChatGPT for general assistance during the project.
+* ChatGPT assisted in drafting the profile copy actions and associated tests ([#271](https://github.com/AY2627S1-CS2103T-W13-3/tp/issues/271)); the contributor is responsible for reviewing and verifying the changes.
 
 --------------------------------------------------------------------------------------------------------------------
 

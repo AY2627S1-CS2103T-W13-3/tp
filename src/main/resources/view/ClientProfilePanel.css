@@ -47,6 +47,11 @@
     -fx-text-fill: #203a2b;
 }
 
+.client-profile-panel .profile-copyable:focused {
+    -fx-border-color: #397856;
+    -fx-border-width: 0 0 1 0;
+}
+
 .client-profile-panel .profile-muted,
 .client-profile-panel .profile-empty {
     -fx-text-fill: #607367;
