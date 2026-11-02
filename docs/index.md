@@ -12,8 +12,8 @@ description: A command-first desktop workspace for independent insurance agents 
   Visitor path: understand the workspace, see it, try a short workflow, download.
   Release contract: v1.6 candidate; download remains published v1.5 at tag v1.5, commit cb060cf3.
   Download actions lead to that versioned GitHub release.
-  Screenshot: one live JavaFX scene from a packaged dd3b0020 build, captured
-  2026-10-29 with fictional data. No compositing or interface edits.
+  Screenshot: one live JavaFX scene from a packaged e185a9cc build, captured
+  2026-11-02 with fictional data. No compositing or interface edits.
 -->
 <div class="ph-home">
   <a class="ph-skip" href="#product">Skip to product overview</a>
@@ -32,11 +32,11 @@ description: A command-first desktop workspace for independent insurance agents 
       <p class="ph-requirement">Preparing PolicyHarbor v1.6; latest download: v1.5 <span aria-hidden="true">·</span> Desktop app <span aria-hidden="true">·</span> Java 25</p>
     </div>
     <figure class="ph-product-shot">
-      <a href="{{ '/images/Ui.png' | relative_url }}" aria-label="Open the full-size PolicyHarbor v1.5 screenshot">
-        <img src="{{ '/images/Ui.png' | relative_url }}" width="2880" height="1722" fetchpriority="high"
-             alt="PolicyHarbor v1.5 showing ten fictional Singapore clients, Rachel Lim's contact profile, and overdue, due-today and upcoming follow-up statuses. Permanent Client IDs stay visible beside each name." />
+      <a href="{{ '/images/Ui.png' | relative_url }}" aria-label="Open the full-size PolicyHarbor v1.6 candidate screenshot">
+        <img src="{{ '/images/Ui.png' | relative_url }}" width="2880" height="1714" fetchpriority="high"
+             alt="PolicyHarbor v1.6 candidate showing ten fictional Singapore clients, Rachel Lim's contact profile, and overdue, due-today and upcoming follow-up statuses. Permanent Client IDs stay visible beside each name." />
       </a>
-      <figcaption><span>A real PolicyHarbor workspace. Fictional clients, everyday conversations.</span><a href="{{ '/images/Ui.png' | relative_url }}">View screenshot at full size <span aria-hidden="true">↗</span></a></figcaption>
+      <figcaption><span>A real v1.6 candidate workspace. Fictional clients, everyday conversations.</span><a href="{{ '/images/Ui.png' | relative_url }}">View screenshot at full size <span aria-hidden="true">↗</span></a></figcaption>
     </figure>
   </section>
 

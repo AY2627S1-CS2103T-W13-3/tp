@@ -69,6 +69,10 @@ Any warnings or errors will be printed out to the console.
 
 --------------------------------------------------------------------------------------------------------------------
 
+## Building a candidate
+
+Use Java 25 and the prescribed JavaFX setup from [Setting up](SettingUp.html). Check out the source revision named in the Developer Guide's version baseline, then run `./gradlew shadowJar` (`gradlew.bat shadowJar` on Windows). The result is `build/libs/PolicyHarbor.jar`. Copy it to a fresh writable folder before running `java -jar PolicyHarbor.jar`; that physical JAR folder owns its data, preferences, logs and lock. A development build is not a published release. Record its source SHA and SHA-256; a displayed version alone does not uniquely identify a candidate.
+
 ## Making a release
 
 Release from the tested team `master` commit. Do not upload a JAR built with a local OS-only dependency override.

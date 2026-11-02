@@ -34,7 +34,7 @@ java -ea -jar build/libs/PolicyHarbor.jar
 java -jar build/libs/PolicyHarbor.jar
 ```
 
-For isolated manual checks, use a fresh writable folder with fictional data and specify the absolute path to the built JAR. If you copy the JAR into that folder, use `PolicyHarbor.jar` as the path instead. Both modes must preserve normal validation and save/load protection. The Gradle daemon's JVM arguments or a task dry run alone do not prove assertions are active in the application JVM.
+For isolated manual checks, copy the built JAR into a fresh writable folder with fictional data, then run that copy. The packaged app stores its data/preferences/logs/lock beside the physical JAR; passing the original build JAR's absolute path from a different working folder is not isolation. Both modes must preserve normal validation and save/load protection. The Gradle daemon's JVM arguments or a task dry run alone do not prove assertions are active in the application JVM.
 
 ## Test responsibilities
 
@@ -47,6 +47,14 @@ For isolated manual checks, use a fresh writable folder with fictional data and 
 Tests use fixed dates and temporary data folders. Storage failure tests inject write/move failures rather than relying on OS permissions. Keep successful and rejected commands' data/view assertions together.
 
 Pure display-function tests do not prove FXML binding, focus, wrapping or scaling. Follow the Developer Guide's [manual testing appendix](DeveloperGuide.html#appendix-instructions-for-manual-testing) against the actual JAR before a release, and record the tested platform/runtime and remaining gaps.
+
+## v1.6 candidate documentation verification
+
+On 2 November 2026, the guide audit used source `e185a9cc568a0cbde2225cc7e3ff3c200c39f568` on macOS with Zulu JDK+FX 25.0.3. `check coverage shadowJar` passed all **901 tests**, with no failures or skips, and both Checkstyle tasks. Independent source reviews covered every UG/DG section; 49 isolated command/storage assertions checked guide examples, validation, feedback and restart behaviour. All nine referenced diagram images contain PlantUML source matching the committed diagrams.
+
+The current `images/Ui.png` is a 2880 × 1714 scene capture of `MainWindow` loaded from that candidate JAR with ten fictional clients, pending mode and Rachel's profile selected. It was captured on 2 November using the real JAR-folder path; no interface elements were composited. The candidate JAR's SHA-256 is `f70a19f2a6c82c5006656c0a62513e43ad163f2be04f6e97611fe80d3c58bc71`.
+
+These checks cover the candidate and documentation. Final uploaded-asset verification, native platform/scaling scenarios and Firefox website validation still require their own results; the older release records below remain historical evidence.
 
 ## Published v1.5 verification
 
@@ -64,7 +72,7 @@ The earlier comprehensive QA used source `97c10e2ad63e20b00db58657d5cd06182de0ae
 f2624a0707b078aa636e3b062a93659f0f84d4e33fd87f3186548020b60e1f82
 ```
 
-Retain its results as historical evidence, not as the final release checksum. This uploaded-asset check repeated startup and identity verification; it does not claim a new complete GUI regression, Windows/Linux desktop verification or completion of the physical display matrix. The alternate-working-directory file-location concern remains separate unresolved work.
+Retain its results as historical evidence, not as the final release checksum. This uploaded-asset check repeated startup and identity verification; it does not claim a new complete GUI regression, Windows/Linux desktop verification or completion of the physical display matrix. The alternate-working-directory file-location concern remained in that published binary; the v1.6 candidate now uses the physical JAR folder.
 
 ## v1.5 dashboard layout and platform matrix
 
